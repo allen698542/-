@@ -12,7 +12,7 @@ hide_st_style = """
     header {visibility: hidden;}
 
     /* 2. 針對您截圖中的特定亂碼 class (直接狙擊) */
-    ._profilePreview_gzau3_63 { display: none !important; }
+    ._profilePreview_gzau3_53 { display: none !important; }
     ._link_gzau3_10 { display: none !important; }
 
     /* 3. 預防亂碼變更的「模糊搜尋」語法 */
@@ -333,5 +333,6 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
