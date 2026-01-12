@@ -4,30 +4,6 @@ import plotly.express as px
 # ==========================================
 # CSS 隱藏選單與浮水印 (強制隱藏)
 # ==========================================
-hide_st_style = """
-    <style>
-    /* 1. 隱藏上方選單 */
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    
-    /* 2. 嘗試隱藏 footer */
-    footer {visibility: hidden;}
-    
-    /* 3. 【遮罩】強制在視窗最下方蓋一層與背景同色的長條 */
-    div[data-testid="stAppViewContainer"]::after {
-        content: "";
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 50px; /* 高度剛好蓋住工具列 */
-        background-color: #0e1117; /* 這是 Streamlit 深色模式的預設背景色，如果是淺色模式請改成 white */
-        z-index: 99999; /* 層級最高，蓋在所有東西上面 */
-        pointer-events: none; /* 讓滑鼠點擊可以穿透（雖然蓋住了但防誤觸） */
-    }
-    </style>
-    """
-st.markdown(hide_st_style, unsafe_allow_html=True)
 st.set_page_config(page_title="公會每周統計", page_icon="🍁", layout="wide")
 
 # ==========================================
@@ -331,6 +307,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
