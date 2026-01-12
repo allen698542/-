@@ -6,27 +6,25 @@ import plotly.express as px
 # ==========================================
 hide_st_style = """
     <style>
-    /* 1. 隱藏上方選單與頁尾 */
+    /* 1. 隱藏上方選單 */
     #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
     header {visibility: hidden;}
-
-    /* 2. 針對您截圖中的特定亂碼 class (直接狙擊) */
-    ._profilePreview_gzau3_53 { display: none !important; }
-    ._link_gzau3_10 { display: none !important; }
-
-    /* 3. 預防亂碼變更的「模糊搜尋」語法 */
-    /* 只要 class 名稱裡面包含 "_profilePreview_" 就隱藏 (頭像) */
-    div[class*="_profilePreview_"] { display: none !important; }
     
-    /* 只要 class 名稱裡面包含 "_link_" 就隱藏 (Logo) */
-    div[class*="_link_"] { display: none !important; }
-
-    /* 4. 針對 data-testid (這是您截圖中頭像圖片的官方標籤) */
-    img[data-testid="appCreatorAvatar"] { display: none !important; }
+    /* 2. 嘗試隱藏 footer */
+    footer {visibility: hidden;}
     
-    /* 5. 隱藏整個 Viewer Badge 容器 (預防萬一) */
-    [data-testid="stStatusWidget"] { display: none !important; }
+    /* 3. 【遮罩】強制在視窗最下方蓋一層與背景同色的長條 */
+    div[data-testid="stAppViewContainer"]::after {
+        content: "";
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 50px; /* 高度剛好蓋住工具列 */
+        background-color: #0e1117; /* 這是 Streamlit 深色模式的預設背景色，如果是淺色模式請改成 white */
+        z-index: 99999; /* 層級最高，蓋在所有東西上面 */
+        pointer-events: none; /* 讓滑鼠點擊可以穿透（雖然蓋住了但防誤觸） */
+    }
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -333,6 +331,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
