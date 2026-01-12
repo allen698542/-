@@ -6,20 +6,20 @@ import plotly.express as px
 # ==========================================
 hide_st_style = """
     <style>
-    /* 隱藏右上角的漢堡選單 (三條線/三個點) */
+    /* 隱藏右上角選單 */
     #MainMenu {visibility: hidden;}
     
-    /* 隱藏頁尾 "Made with Streamlit" */
+    /* 隱藏頁尾 (包含 Made with Streamlit) */
     footer {visibility: hidden;}
     
-    /* 隱藏上方原本的裝飾條 */
+    /* 隱藏上方裝飾條 */
     header {visibility: hidden;}
     
-    /* 重點：隱藏右下角的浮動按鈕/檢視者工具列 */
-    [data-testid="stToolbar"] {visibility: hidden !important;}
+    /* 強力隱藏：右下角的紅色 Deploy 按鈕與 Created by */
+    .stDeployButton {display:none;}
     
-    /* 隱藏頭像區域 (如果有顯示的話) */
-    [data-testid="stHeader"] {visibility: hidden !important;}
+    /* 隱藏 Viewer Badge (頭像與帳號) */
+    [data-testid="stDecoration"] {display:none;}
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -326,3 +326,4 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
