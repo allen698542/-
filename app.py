@@ -6,24 +6,31 @@ import plotly.express as px
 # ==========================================
 hide_st_style = """
     <style>
-    /* 隱藏右上角選單 */
+    /* 1. 隱藏上方選單與頁尾 */
     #MainMenu {visibility: hidden;}
-    
-    /* 隱藏頁尾 (包含 Made with Streamlit) */
     footer {visibility: hidden;}
-    
-    /* 隱藏上方裝飾條 */
     header {visibility: hidden;}
+
+    /* 2. 針對您截圖中的特定亂碼 class (直接狙擊) */
+    ._profilePreview_gzau3_63 { display: none !important; }
+    ._link_gzau3_10 { display: none !important; }
+
+    /* 3. 預防亂碼變更的「模糊搜尋」語法 */
+    /* 只要 class 名稱裡面包含 "_profilePreview_" 就隱藏 (頭像) */
+    div[class*="_profilePreview_"] { display: none !important; }
     
-    /* 強力隱藏：右下角的紅色 Deploy 按鈕與 Created by */
-    .stDeployButton {display:none;}
+    /* 只要 class 名稱裡面包含 "_link_" 就隱藏 (Logo) */
+    div[class*="_link_"] { display: none !important; }
+
+    /* 4. 針對 data-testid (這是您截圖中頭像圖片的官方標籤) */
+    img[data-testid="appCreatorAvatar"] { display: none !important; }
     
-    /* 隱藏 Viewer Badge (頭像與帳號) */
-    [data-testid="stDecoration"] {display:none;}
+    /* 5. 隱藏整個 Viewer Badge 容器 (預防萬一) */
+    [data-testid="stStatusWidget"] { display: none !important; }
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
-st.set_page_config(page_title="公會戰情室", page_icon="🍁", layout="wide")
+st.set_page_config(page_title="公會每周統計", page_icon="🍁", layout="wide")
 
 # ==========================================
 # 0. 職業階層定義
@@ -326,4 +333,5 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
