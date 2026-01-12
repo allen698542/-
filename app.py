@@ -1,7 +1,28 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-
+# ==========================================
+# CSS 隱藏選單與浮水印 (強制隱藏)
+# ==========================================
+hide_st_style = """
+    <style>
+    /* 隱藏右上角的漢堡選單 (三條線/三個點) */
+    #MainMenu {visibility: hidden;}
+    
+    /* 隱藏頁尾 "Made with Streamlit" */
+    footer {visibility: hidden;}
+    
+    /* 隱藏上方原本的裝飾條 */
+    header {visibility: hidden;}
+    
+    /* 重點：隱藏右下角的浮動按鈕/檢視者工具列 */
+    [data-testid="stToolbar"] {visibility: hidden !important;}
+    
+    /* 隱藏頭像區域 (如果有顯示的話) */
+    [data-testid="stHeader"] {visibility: hidden !important;}
+    </style>
+    """
+st.markdown(hide_st_style, unsafe_allow_html=True)
 st.set_page_config(page_title="公會戰情室", page_icon="🍁", layout="wide")
 
 # ==========================================
@@ -303,4 +324,5 @@ with tab3:
         fig_pie.add_annotation(text=f"達成<br>{achieved_num}次", showarrow=False, font_size=20)
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
+
         st.info("此區間無資料")
