@@ -147,7 +147,8 @@ if not check_password():
 # ==========================================
 @st.cache_data
 def load_data():
-    df = pd.read_excel("data.xlsx")
+    #df = pd.read_excel("data.xlsx") 舊的
+    df = pd.read_csv("guild_data.csv")
     
     df.dropna(how='all', inplace=True)
     df.dropna(subset=['職業'], inplace=True)
@@ -285,38 +286,57 @@ if len(df_filtered) == 0:
     st.warning(f"玩家 {final_selected_player} 在此日期區間內無資料。")
     st.stop()
 
-# --- 從資料表中抓取該玩家的「最新」基本資料 ---
-# 因為 df_filtered 是該玩家的所有週次資料，每一行應該都有等級/圖片
-# 我們抓第一筆 (或是按照日期排序抓最新的一筆) 即可
-player_info = df_filtered.sort_values('周次', ascending=False).iloc[0]
+# --- 智慧搜尋：不只找最新，還要找「有資料」的那一筆 ---
 
-# 取得 CSV 裡面的欄位 (假設 update_tool.py 產生的欄位叫 '等級', '職業', '圖片')
-# 使用 .get 以防欄位不存在時報錯
-current_level = player_info.get('等級', '???')
-current_job = player_info.get('職業', '未知')
-img_url = player_info.get('圖片', None) # 或是 '角色圖片'，看您 update_tool 怎麼寫
+# 1. 先把資料按日期「由新到舊」排序
+df_sorted = df_filtered.sort_values('周次', ascending=False)
 
-# 標題
-st.markdown(f"## 👤 {final_selected_player} 的個人數據報告 (Lv. {current_level})")
+# 2. 預設先抓第一筆 (最新的)
+player_info = df_sorted.iloc[0]
+current_level = player_info.get('等級', 0)
+img_url = player_info.get('圖片', None)
+
+# 3. 如果最新的這筆資料壞掉了 (等級是 0 或 NaN)，我們就往下找舊資料
+#    檢查條件：等級是 0 或 空值
+if pd.to_numeric(current_level, errors='coerce') == 0 or pd.isna(current_level):
+    # 試著在歷史資料裡找一筆有等級的 (等級 > 0)
+    valid_rows = df_sorted[pd.to_numeric(df_sorted['等級'], errors='coerce') > 0]
+    if not valid_rows.empty:
+        player_info = valid_rows.iloc[0] # 抓到有資料且日期最新的那一筆
+        current_level = player_info.get('等級')
+        img_url = player_info.get('圖片')
+
+# 確保顯示格式
+if str(current_level) == "0" or str(current_level) == "nan":
+    display_level = "???"
+else:
+    display_level = int(float(current_level)) # 轉成整數好看一點
+
+# 取得職業 (顯示用)
+job_display = player_info.get('職業', '未知')
+if str(job_display) == 'nan': job_display = '未知'
+
+# --- 標題 ---
+st.markdown(f"## 👤 {final_selected_player} 的個人數據報告 (Lv. {display_level})")
 
 # --- 玩家檔案卡片 ---
 with st.container(border=True):
     col_profile_img, col_profile_info = st.columns([1.5, 3.5])
     
     with col_profile_img:
-        # 如果有圖片網址且不是 nan (空值)
-        if img_url and str(img_url) != "nan":
+        # 顯示圖片 (過濾掉 nan 或空字串)
+        if img_url and str(img_url) != "nan" and str(img_url).strip() != "":
             st.image(img_url, width=130)
         else:
-            st.markdown("# 👤") # 沒圖片時顯示一個 icon
+            st.markdown("# 👤") 
             
     with col_profile_info:
         st.markdown(f"""
         #### 📜 角色詳細資料
         
-        * **職業：** {current_job}
-        * **等級：** {current_level}
-        * **資料來源：** 靜態資料庫 (無需 API)
+        * **職業：** {job_display}
+        * **等級：** {display_level}
+        * **資料來源：** 靜態資料庫 (智慧回溯)
         """)
 
 st.markdown("---")
@@ -525,6 +545,7 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
 
