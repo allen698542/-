@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-
+import requests
+import datetime
 # ==========================================
 # API 串接設定 (新功能)
 # ==========================================
@@ -383,6 +384,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
