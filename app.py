@@ -262,14 +262,14 @@ total_weeks = len(df_filtered)
 # 計算平均值 (避免除以 0，雖然上面有擋但在數學運算上保持嚴謹)
 avg_flag = int(p_flag / total_weeks) if total_weeks > 0 else 0
 avg_water = int(p_water / total_weeks) if total_weeks > 0 else 0
-avg_castle = float(p_castle / total_weeks) if total_weeks > 0 else 0
+avg_castle = int(float(p_castle / total_weeks)*10000)/100 if total_weeks > 0 else 0
 
 # KPI
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("📊 資料筆數", f"{len(df_filtered)} 週")
 col2.metric("🚩 旗幟戰總分", f"{p_flag:,}",delta=f"平均 {avg_flag:,}", delta_color="off")
 col3.metric("💧 水道總傷分", f"{p_water:,}",delta=f"平均 {avg_water:,}", delta_color="off")
-col4.metric("🏰 公會城完成數", f"{p_castle} 次",delta=f"平均 {avg_castle:,}", delta_color="off")
+col4.metric("🏰 公會城完成數", f"{p_castle} 次",delta=f"平均 {avg_castle:,}%", delta_color="off")
 
 # 圖表
 tab1, tab2, tab3 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況"])
@@ -316,6 +316,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
