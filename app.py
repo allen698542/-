@@ -4,7 +4,6 @@ import plotly.express as px
 import datetime
 import numpy as np
 import requests
-import calendar  # 新增：用於計算每個月的天數
 
 # ==========================================
 # API 串接設定
@@ -486,7 +485,8 @@ else:
             job_display = player_info.get('職業', '未知')
             if str(job_display) == 'nan': job_display = '未知'
 
-            st.markdown(f"## 👤 {final_selected_player} 的個人數據報告 (Lv. {display_level})")
+            # 這裡已經移除了 (Lv. xxx)
+            st.markdown(f"## 👤 {final_selected_player} 的個人數據報告")
 
             with st.container(border=True):
                 col_profile_img, col_profile_info = st.columns([1.5, 3.5])
@@ -610,5 +610,3 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
-
-
