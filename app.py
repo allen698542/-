@@ -392,7 +392,7 @@ else:
 # (C) 公會城特效 (第一名給皇冠)
 if rank_castle == 1 and avg_castle_pct == 100:
     # 修改：把皇冠放最前面，並用 " | " 符號區隔，看起來乾淨很多
-    castle_label = f"👑 完美全勤!! | 🥇 公會第一 ({avg_castle_pct}%)"
+    castle_label = f"👑 完美全勤 | 🥇 公會第一 ({avg_castle_pct}%)"
 elif rank_castle == 1:
     castle_label = f"🥇 公會第一 (達成率 {avg_castle_pct}%)"
 elif rank_castle == 2:
@@ -457,4 +457,5 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
