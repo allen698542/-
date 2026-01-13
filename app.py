@@ -269,13 +269,11 @@ if search_mode == "🏆 全公會排行榜":
                 return f'<img src="{url}" style="width: {width}px; height: auto; border-radius: 8px; object-fit: contain; margin: 5px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">'
             return ""
 
+        # 將 CSS 壓縮為單行，避免 HTML 屬性解析錯誤
         base_style = "text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); height: 100%;"
 
         style_1st = f"""
-            <div style="{base_style} padding: 12px; border-radius: 15px; 
-                border: 3px solid #FFD700; 
-                background: linear-gradient(135deg, #262730 0%, #3a3200 100%);
-                box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);">
+            <div style="{base_style} padding: 12px; border-radius: 15px; border: 3px solid #FFD700; background: linear-gradient(135deg, #262730 0%, #3a3200 100%); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);">
                 <div style="font-size: 3.2rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
                 {{img_tag}}
                 <div style="font-size: 1.4rem; font-weight: bold; color: #FFF; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
@@ -316,7 +314,7 @@ if search_mode == "🏆 全公會排行榜":
                 for _ in range(spacer_low): st.write("")
                 st.markdown(style_4th5th.format(
                     icon="4️⃣", img_tag=get_img_tag(p.get('圖片'), width=110), 
-                    name=p['暱稱'], score_label="分數", score=f"{int(p[col_name]):,}", color="#4D96FF"
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#4D96FF"
                 ), unsafe_allow_html=True)
         with cols[1]:
             if len(sorted_df) > 1:
@@ -324,7 +322,7 @@ if search_mode == "🏆 全公會排行榜":
                 for _ in range(spacer_mid): st.write("")
                 st.markdown(style_2nd3rd.format(
                     icon="🥈", img_tag=get_img_tag(p.get('圖片'), width=130), 
-                    name=p['暱稱'], score_label="分數", score=f"{int(p[col_name]):,}", 
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", 
                     color="#C0C0C0", border_color="#C0C0C0"
                 ), unsafe_allow_html=True)
         with cols[2]:
@@ -332,7 +330,7 @@ if search_mode == "🏆 全公會排行榜":
                 p = sorted_df.iloc[0]
                 st.markdown(style_1st.format(
                     icon="🥇", img_tag=get_img_tag(p.get('圖片'), width=150), 
-                    name=p['暱稱'], score_label="分數", score=f"{int(p[col_name]):,}", color="#FFD700"
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#FFD700"
                 ), unsafe_allow_html=True)
         with cols[3]:
             if len(sorted_df) > 2:
@@ -340,7 +338,7 @@ if search_mode == "🏆 全公會排行榜":
                 for _ in range(spacer_mid): st.write("")
                 st.markdown(style_2nd3rd.format(
                     icon="🥉", img_tag=get_img_tag(p.get('圖片'), width=130), 
-                    name=p['暱稱'], score_label="分數", score=f"{int(p[col_name]):,}", 
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", 
                     color="#CD7F32", border_color="#CD7F32"
                 ), unsafe_allow_html=True)
         with cols[4]:
@@ -349,7 +347,7 @@ if search_mode == "🏆 全公會排行榜":
                 for _ in range(spacer_low): st.write("")
                 st.markdown(style_4th5th.format(
                     icon="5️⃣", img_tag=get_img_tag(p.get('圖片'), width=110), 
-                    name=p['暱稱'], score_label="分數", score=f"{int(p[col_name]):,}", color="#4D96FF"
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#4D96FF"
                 ), unsafe_allow_html=True)
 
         st.markdown("---")
@@ -504,42 +502,21 @@ else:
 
             st.markdown("### 🏆 本周戰績與排名情報")
             
-            # --- 核心：繪製數據卡片 (修正高度不一與移除多餘文字) ---
+            # --- 核心：繪製數據卡片 (修正 CSS 換行導致的 HTML 解析錯誤) ---
             def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one=False):
-                # 基礎 CSS：設定 Flexbox 排版讓內容垂直對齊，並確保有高度屬性
-                base_style = """
-                    border-radius: 10px;
-                    padding: 15px;
-                    margin-bottom: 10px;
-                    height: 100%;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
-                """
+                # 將 CSS 寫成單行字串，防止 Streamlit 解析時出錯
+                base_style = "border-radius: 10px; padding: 15px; margin-bottom: 10px; height: 100%; display: flex; flex-direction: column; justify-content: space-between;"
 
                 if is_number_one:
                     # 第一名：金色邊框
-                    container_style = f"""
-                        {base_style}
-                        border: 3px solid #FFD700;
-                        background: linear-gradient(135deg, #262730 0%, #3a3200 100%);
-                        box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
-                        color: white;
-                    """
+                    container_style = f"{base_style} border: 3px solid #FFD700; background: linear-gradient(135deg, #262730 0%, #3a3200 100%); box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); color: white;"
                     score_color = "#FFD700"
                 else:
                     # 普通名次：深灰色邊框 (寬度 3px 以對齊第一名的邊框厚度)
-                    # 使用 #444 或 #262730 (背景色) 都可以，這裡用深灰框比較有質感且對齊
-                    container_style = f"""
-                        {base_style}
-                        border: 3px solid #444; 
-                        background-color: #262730;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-                        color: white;
-                    """
+                    container_style = f"{base_style} border: 3px solid #444; background-color: #262730; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: white;"
                     score_color = "#FF9F1C"
 
-                # 統一渲染 HTML，不使用 st.container 以確保高度一致
+                # 渲染 HTML
                 html_code = f"""
                 <div style="{container_style}">
                     <div>
@@ -560,7 +537,6 @@ else:
 
             # 1. 統計週數
             with col1:
-                # 這裡使用原生 container 保持簡單，因為週數通常內容較少不需要對齊
                 with st.container(border=True):
                     st.markdown(f"#### 📊 統計週數\n## :orange[{my_weeks} 週]\n### 📅 區間累計"); st.divider(); st.caption(f"📅 **開始**：{start_date}\n📅 **結束**：{end_date}")
 
@@ -632,4 +608,3 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
-
