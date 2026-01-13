@@ -524,27 +524,25 @@ with tab1:
         y_label = "完成狀態 (1=有, 0=無)"
 
     # 3. 建立長條圖 (Bar Chart)
+    # 這裡我們不設定 text_auto，避免格式錯誤，改用 hover 顯示就好
     fig_chart = px.bar(
         df_filtered,
         x='周次',
         y=chart_type,
-        title=f"{final_selected_player} - {chart_type} 每週表現",
-        text_auto='.2s',  # 自動顯示數值 (大數字會縮寫，如 10k)
+        title=f"{final_selected_player} - {chart_type} 每週表現"
     )
 
-    # 4. 美化圖表樣式
+    # 4. 美化圖表樣式 (移除危險的 width 設定)
     fig_chart.update_traces(
-        marker_color=bar_color,  # 設定顏色
-        marker_line_width=0,     # 去掉邊框
-        opacity=0.8,             #稍微透明一點比較有質感
-        width=1000*60*60*24*4    # 設定柱子寬度 (約4天寬)，避免只有一筆資料時柱子太肥
+        marker_color=bar_color,
+        marker_line_width=0,
+        opacity=0.8
     )
 
-    # 5. 加上「平均線」 (讓圖表更有價值！)
-    # 計算該玩家這段時間的平均分
+    # 5. 加上「平均線」
     avg_score = df_filtered[chart_type].mean()
     
-    # 只有當分數大於0 (且不是公會城這種0/1狀態) 時才顯示平均線
+    # 只有當分數大於0 (且不是公會城) 時才顯示平均線
     if chart_type != "公會城每周" and avg_score > 0:
         fig_chart.add_hline(
             y=avg_score, 
@@ -554,22 +552,20 @@ with tab1:
             annotation_position="top right"
         )
 
-    # 6. 設定 X 軸與 Y 軸
+    # 6. 設定 X 軸與 Y 軸 (移除強制 dtick，改用自動)
     fig_chart.update_layout(
-        xaxis_title="",          # 省略 X 軸標題 (日期很明顯了)
+        xaxis_title="",
         yaxis_title=y_label,
-        hovermode="x unified",   # 滑鼠移上去顯示資訊
-        showlegend=False,        # 隱藏圖例
+        hovermode="x unified",
+        showlegend=False,
         xaxis=dict(
-            tickformat="%Y-%m-%d", # 日期格式
-            dtick="W1"             # 強制每週顯示一個刻度 (避免日期亂跳)
+            tickformat="%Y-%m-%d" # 只保留日期格式設定
         )
     )
     
     # 7. 顯示圖表
     st.plotly_chart(fig_chart, use_container_width=True)
     
-    # 備註
     if chart_type == "公會城每周":
         st.caption("ℹ️ 長條顯示 1 代表該週有完成，0 代表未完成")
 
@@ -598,6 +594,7 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
 
