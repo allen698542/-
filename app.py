@@ -90,7 +90,7 @@ def check_password():
     if "password_correct" not in st.session_state:
         st.session_state.password_correct = False
     if not st.session_state.password_correct:
-        password = st.text_input("請輸入公會通關密碼", type="password")
+        password = st.text_input("請輸入密碼", type="password")
         if password == actual_password or password == actual_password2:
             st.session_state.password_correct = True
             st.rerun()
@@ -132,7 +132,7 @@ except Exception as e:
 # ==========================================
 # 3. 介面與搜尋邏輯 (核心修改區)
 # ==========================================
-st.title("🍁 公會數據戰情室")
+st.title("🍁 公會每周統計")
 
 # --- 日期區間 (共用) ---
 st.sidebar.header("📅 日期區間設定")
@@ -259,7 +259,7 @@ p_castle = int(df_filtered['公會城每周'].sum())
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("📊 資料筆數", f"{len(df_filtered)} 週")
 col2.metric("🚩 旗幟戰總分", f"{p_flag:,}")
-col3.metric("💧 水道總傷", f"{p_water:,}")
+col3.metric("💧 水道總傷分", f"{p_water:,}")
 col4.metric("🏰 公會城完成數", f"{p_castle} 次")
 
 # 圖表
@@ -307,6 +307,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
