@@ -303,7 +303,6 @@ if search_mode == "🏆 全公會排行榜":
                 <div style="font-size: 1.6rem; font-weight: bold; color: #FFF; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
                 <div style="font-size: 1.1rem; color: #BBB;">{{score_label}}</div>
                 <div style="font-size: 2.2rem; font-weight: bold; color: {{color}};">{{score}}</div>
-                <div style="font-size: 0.9rem; color: #FFD700; margin-top:5px;">👑 冠軍霸主</div>
             </div>
         """
         
@@ -658,3 +657,4 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
