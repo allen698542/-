@@ -200,7 +200,7 @@ except Exception as e:
     st.stop()
 
 # ==========================================
-# 3. 介面與搜尋邏輯 (修正版：回歸標準日曆元件)
+# 3. 介面與搜尋邏輯 (經典雙欄位版)
 # ==========================================
 st.title("🍁 公會每周統計")
 
@@ -210,37 +210,30 @@ st.sidebar.header("📅 日期區間設定")
 data_min_date = df['周次'].min().date()
 data_max_date = df['周次'].max().date()
 
-# 使用 Streamlit 標準日期選擇器 (區間模式)
-# value 傳入一個 list [開始, 結束]，這樣介面上只會有一個美觀的日曆
-date_range = st.sidebar.date_input(
-    "選擇查詢區間",
-    value=[data_min_date, data_max_date], # 預設全選
-    min_value=data_min_date,
-    max_value=data_max_date,
-    format="YYYY-MM-DD"  # 強制顯示為數字格式，看起來比較清爽
-)
+# 使用 columns 將兩個日期選擇器並排，視覺上比較整齊
+col_start, col_end = st.sidebar.columns(2)
 
-# 防呆機制：確保使用者選了兩個日期 (有時候使用者只點了一下，還沒點第二下)
-if isinstance(date_range, tuple) or isinstance(date_range, list):
-    if len(date_range) == 2:
-        start_date = date_range[0]
-        end_date = date_range[1]
-    elif len(date_range) == 1:
-        # 如果只選了一個日期，預設開始=結束
-        start_date = date_range[0]
-        end_date = date_range[0]
-    else:
-        start_date = data_min_date
-        end_date = data_max_date
-else:
-    start_date = data_min_date
-    end_date = data_max_date
+with col_start:
+    start_date = st.date_input(
+        "開始日期",
+        value=data_min_date,      # 預設選最早
+        min_value=data_min_date,
+        max_value=data_max_date,
+        format="YYYY-MM-DD"       # 顯示格式
+    )
 
+with col_end:
+    end_date = st.date_input(
+        "結束日期",
+        value=data_max_date,      # 預設選最晚
+        min_value=data_min_date,
+        max_value=data_max_date,
+        format="YYYY-MM-DD"
+    )
+
+# 防呆提示
 if start_date > end_date:
-    st.sidebar.error("⚠️ 開始日期不能晚於結束日期")
-
-# 顯示目前選擇結果 (除錯用，讓使用者安心)
-st.sidebar.caption(f"目前顯示：{start_date} 至 {end_date}")
+    st.sidebar.error("⚠️ 「開始日期」不能晚於「結束日期」")
 
 # 篩選日期區間資料 (全域共用)
 mask_period = (df['周次'].dt.date >= start_date) & (df['周次'].dt.date <= end_date)
@@ -617,4 +610,5 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
 
