@@ -434,8 +434,8 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     with st.container(border=True):
         st.markdown("#### 📊 統計週數")
-        st.markdown(f"# {my_weeks} 週")
-        st.caption("資料區間總計")
+        st.markdown(f"## {my_weeks} 週")
+        st.markdown("資料區間總計")
         
         st.divider()
         # 關鍵修改：拆成兩行 caption，對應右邊的上一名/下一名結構
@@ -537,4 +537,5 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
