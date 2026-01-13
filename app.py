@@ -216,7 +216,7 @@ with col_start:
         value=data_min_date,      
         min_value=data_min_date,
         max_value=data_max_date,
-        format="YYYY-MM-DD"       
+        format="YYYY-MM-DD"        
     )
 
 with col_end:
@@ -476,7 +476,7 @@ else:
                 if rank == 1: return "🥇 "
                 elif rank == 2: return "🥈 "
                 elif rank == 3: return "🥉 "
-                else: return ""   
+                else: return ""    
 
             def get_detailed_neighbors(df_source, target_player, col_sum, col_weeks, mode='avg'):
                 df_sorted = df_source.sort_values(by=col_sum, ascending=False).reset_index()
@@ -504,77 +504,63 @@ else:
 
             st.markdown("### 🏆 本周戰績與排名情報")
             
-            # --- 核心：繪製數據卡片 (支援第1名特效) ---
-def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one=False):
-    # 設定基礎樣式 (確保所有卡片結構高度一致)
-    # 使用 flex 佈局讓內容上下對齊
-    base_style = """
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 10px;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    """
+            # --- 核心：繪製數據卡片 (修正高度不一與移除多餘文字) ---
+            def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one=False):
+                # 基礎 CSS：設定 Flexbox 排版讓內容垂直對齊，並確保有高度屬性
+                base_style = """
+                    border-radius: 10px;
+                    padding: 15px;
+                    margin-bottom: 10px;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                """
 
-    if is_number_one:
-        # === 第一名樣式 ===
-        # 黃金邊框 + 漸層背景
-        container_style = f"""
-            {base_style}
-            border: 3px solid #FFD700;
-            background: linear-gradient(135deg, #262730 0%, #3a3200 100%);
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
-            color: white;
-        """
-        score_color = "#FFD700"  # 金色分數
-        # 已移除 "👑 冠軍霸主" 文字
-    else:
-        # === 普通名次樣式 ===
-        # 關鍵點：給予同樣 3px 的邊框，但顏色設為背景色 (或透明)，
-        # 這樣物理高度就會跟第一名完全一樣！
-        container_style = f"""
-            {base_style}
-            border: 3px solid #262730; 
-            background-color: #262730;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-            color: white;
-        """
-        score_color = "#FF9F1C"  # 橘色分數 (模擬 Streamlit 的 :orange[])
-
-    # 統一 HTML 結構
-    html_content = f"""
-    <div style="{container_style}">
-        <div>
-            <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px;">{title}</div>
-            <div style="font-size: 2em; font-weight: bold; color: {score_color};">{score_str}</div>
-            <div style="font-size: 1.2em; margin-bottom: 5px;">{rank_str}</div>
-        </div>
-        
-        <div>
-            <hr style="margin: 10px 0; border-color: #555;">
-            <div style="font-size: 0.8em; color: #CCC; margin-bottom: 3px;">{prev_txt}</div>
-            <div style="font-size: 0.8em; color: #CCC;">{next_txt}</div>
-        </div>
-    </div>
-    """
-    
-    st.markdown(html_content, unsafe_allow_html=True)
+                if is_number_one:
+                    # 第一名：金色邊框
+                    container_style = f"""
+                        {base_style}
+                        border: 3px solid #FFD700;
+                        background: linear-gradient(135deg, #262730 0%, #3a3200 100%);
+                        box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+                        color: white;
+                    """
+                    score_color = "#FFD700"
                 else:
-                    # 一般樣式
-                    with st.container(border=True):
-                        st.markdown(f"#### {title}")
-                        st.markdown(f"## :orange[{score_str}]")
-                        st.markdown(f"### {rank_str}", unsafe_allow_html=True)
-                        st.divider()
-                        st.caption(prev_txt)
-                        st.caption(next_txt)
+                    # 普通名次：深灰色邊框 (寬度 3px 以對齊第一名的邊框厚度)
+                    # 使用 #444 或 #262730 (背景色) 都可以，這裡用深灰框比較有質感且對齊
+                    container_style = f"""
+                        {base_style}
+                        border: 3px solid #444; 
+                        background-color: #262730;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+                        color: white;
+                    """
+                    score_color = "#FF9F1C"
+
+                # 統一渲染 HTML，不使用 st.container 以確保高度一致
+                html_code = f"""
+                <div style="{container_style}">
+                    <div>
+                        <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px;">{title}</div>
+                        <div style="font-size: 2em; font-weight: bold; color: {score_color};">{score_str}</div>
+                        <div style="font-size: 1.2em; margin-bottom: 5px;">{rank_str}</div>
+                    </div>
+                    <div>
+                        <hr style="margin: 10px 0; border-color: #555;">
+                        <div style="font-size: 0.8em; color: #CCC; margin-bottom: 3px;">{prev_txt}</div>
+                        <div style="font-size: 0.8em; color: #CCC;">{next_txt}</div>
+                    </div>
+                </div>
+                """
+                st.markdown(html_code, unsafe_allow_html=True)
 
             col1, col2, col3, col4 = st.columns(4)
 
             # 1. 統計週數
             with col1:
+                # 這裡使用原生 container 保持簡單，因為週數通常內容較少不需要對齊
                 with st.container(border=True):
                     st.markdown(f"#### 📊 統計週數\n## :orange[{my_weeks} 週]\n### 📅 區間累計"); st.divider(); st.caption(f"📅 **開始**：{start_date}\n📅 **結束**：{end_date}")
 
@@ -582,14 +568,12 @@ def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one
             with col2:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
                 rank_str = f"{get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_flag:,})</span>"
-                # 判定是否第一名
                 draw_stat_card("🚩 旗幟戰", f"{p_flag:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_flag == 1))
 
             # 3. 地下水道
             with col3:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
                 rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_water:,})</span>"
-                # 判定是否第一名
                 draw_stat_card("💧 地下水道", f"{p_water:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_water == 1))
 
             # 4. 公會城
@@ -600,7 +584,7 @@ def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one
                     rank_str = f"👑 :rainbow[完美全勤!!] <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>"
                 else:
                     rank_str = f"{get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>"
-                # 判定是否第一名 或 全勤 (給予全勤者獎勵)
+                
                 is_castle_king = (rank_castle == 1) or (avg_castle_pct == 100)
                 draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, is_number_one=is_castle_king)
 
@@ -648,4 +632,3 @@ def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
-
