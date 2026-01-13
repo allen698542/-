@@ -13,11 +13,24 @@ API_KEY = st.secrets.get("NEXON_API_KEY", None)
 # ==========================================
 # 全域設定：圖表工具列與互動鎖定
 # ==========================================
-# config: 隱藏按鈕
+# 修正說明：
+# 1. displayModeBar: True -> 顯示工具列，這樣才看得到截圖按鈕
+# 2. modeBarButtonsToRemove -> 移除所有縮放、移動的按鈕，只留截圖
+# 3. dragmode: False + fixedrange: True -> 鎖定滑鼠操作，避免誤觸放大
 PLOT_CONFIG = {
-    'displayModeBar': False, # 直接隱藏整條工具列 (比隱藏個別按鈕更乾脆)
-    'staticPlot': False,     # 保持 False，這樣滑鼠移上去才看得到數據
-    'scrollZoom': False,     # 禁用滾輪縮放
+    'displayModeBar': True, 
+    'displaylogo': False,
+    'modeBarButtonsToRemove': [
+        'zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 
+        'autoScale2d', 'resetScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian'
+    ],
+    'toImageButtonOptions': {
+        'format': 'png', # one of png, svg, jpeg, webp
+        'filename': 'chart_image',
+        'height': 600,
+        'width': 1000,
+        'scale': 2 # Multiply title/legend/axis/canvas sizes by this factor
+    }
 }
 
 @st.cache_data(ttl=3600)
@@ -217,13 +230,14 @@ if search_mode == "🏆 全公會排行榜":
     st.markdown("---")
     st.markdown(f"### 📊 公會排行榜 ({start_date} ~ {end_date})")
     
-    # 準備聚合資料
+    # 準備聚合資料 - 這裡多抓一個 '圖片' 欄位，用來顯示在頒獎台
     leaderboard_df = df_period.groupby('暱稱').agg({
         '旗幟戰': 'sum',
         '地下水道': 'sum',
         '公會城每周': 'sum',
         '周次': 'nunique',
-        '職業': 'first'
+        '職業': 'first',
+        '圖片': 'first' # 新增：抓取圖片
     }).reset_index()
     
     tab_rank_flag, tab_rank_water, tab_rank_castle = st.tabs(["🚩 旗幟戰排行", "💧 地下水道排行", "🏰 公會城全勤榜"])
@@ -238,7 +252,7 @@ if search_mode == "🏆 全公會排行榜":
         c_space_l, c2, c1, c3, c_space_r = st.columns([1, 2, 2.2, 2, 1])
         top3 = sorted_df.head(3)
         
-        # 卡片樣式
+        # 卡片樣式 - 增加圖片顯示
         card_style = """
             <div style="
                 background-color: #262730; 
@@ -249,33 +263,64 @@ if search_mode == "🏆 全公會排行榜":
                 margin-bottom: 20px;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             ">
-                <div style="font-size: 3rem; margin-bottom: 5px;">{icon}</div>
-                <div style="font-size: 1.2rem; font-weight: bold; color: #FFF; margin-bottom: 5px;">{name}</div>
+                <div style="font-size: 3rem; line-height: 1;">{icon}</div>
+                {img_tag}
+                <div style="font-size: 1.2rem; font-weight: bold; color: #FFF; margin-bottom: 5px; margin-top: 5px;">{name}</div>
                 <div style="font-size: 1rem; color: #BBB;">{score_label}</div>
                 <div style="font-size: 1.5rem; font-weight: bold; color: {color};">{score}</div>
             </div>
         """
 
+        # 輔助函式：產生圖片標籤
+        def get_img_tag(url):
+            if url and str(url) != "nan" and str(url).strip() != "":
+                return f'<img src="{url}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 10px 0; border: 2px solid #555;">'
+            return ""
+
         if len(top3) > 0:
             p1 = top3.iloc[0]
             val1 = int(p1[col_name])
+            img1 = get_img_tag(p1.get('圖片'))
             with c1:
-                st.markdown(card_style.format(icon="🥇", name=p1['暱稱'], score_label="Score", score=f"{val1:,}", color="#FFD700"), unsafe_allow_html=True)
+                st.markdown(card_style.format(
+                    icon="🥇", 
+                    img_tag=img1,
+                    name=p1['暱稱'], 
+                    score_label="Score", 
+                    score=f"{val1:,}", 
+                    color="#FFD700"
+                ), unsafe_allow_html=True)
                 if not is_attendance: st.caption("👑 冠軍霸主")
 
         if len(top3) > 1:
             p2 = top3.iloc[1]
             val2 = int(p2[col_name])
+            img2 = get_img_tag(p2.get('圖片'))
             with c2:
                 st.write(""); st.write("") 
-                st.markdown(card_style.format(icon="🥈", name=p2['暱稱'], score_label="Score", score=f"{val2:,}", color="#C0C0C0"), unsafe_allow_html=True)
+                st.markdown(card_style.format(
+                    icon="🥈", 
+                    img_tag=img2,
+                    name=p2['暱稱'], 
+                    score_label="Score", 
+                    score=f"{val2:,}", 
+                    color="#C0C0C0"
+                ), unsafe_allow_html=True)
 
         if len(top3) > 2:
             p3 = top3.iloc[2]
             val3 = int(p3[col_name])
+            img3 = get_img_tag(p3.get('圖片'))
             with c3:
                 st.write(""); st.write("") 
-                st.markdown(card_style.format(icon="🥉", name=p3['暱稱'], score_label="Score", score=f"{val3:,}", color="#CD7F32"), unsafe_allow_html=True)
+                st.markdown(card_style.format(
+                    icon="🥉", 
+                    img_tag=img3,
+                    name=p3['暱稱'], 
+                    score_label="Score", 
+                    score=f"{val3:,}", 
+                    color="#CD7F32"
+                ), unsafe_allow_html=True)
 
         st.markdown("---")
         
@@ -293,14 +338,17 @@ if search_mode == "🏆 全公會排行榜":
             color_continuous_scale=color_scale
         )
         
-        # 關鍵修改：鎖定座標軸與關閉拖曳
+        # 關鍵修改：
+        # 1. dragmode=False: 禁用滑鼠拖曳
+        # 2. fixedrange=True: 鎖定 X/Y 軸無法縮放
         fig.update_layout(
-            yaxis={'categoryorder':'total ascending', 'fixedrange': True}, # 鎖定 Y 軸
-            xaxis={'fixedrange': True}, # 鎖定 X 軸
-            dragmode=False # 禁用滑鼠拖曳 (游標不會變十字)
+            yaxis={'categoryorder':'total ascending', 'fixedrange': True}, 
+            xaxis={'fixedrange': True}, 
+            dragmode=False 
         )
         fig.update_traces(texttemplate='%{text:,}', textposition='outside')
         
+        # 套用設定：顯示工具列但移除縮放按鈕
         st.plotly_chart(fig, use_container_width=True, config=PLOT_CONFIG)
         
         # 3. 完整資料表
@@ -348,20 +396,33 @@ else:
     with st.container(border=True):
         if search_mode == "個人查詢 (層級篩選)":
             st.caption("依序選擇：職業群 > 分類 > 職業 > 玩家")
+            
+            # --- 修正 NameError 的關鍵：先初始化所有變數 ---
+            selected_group = None
+            selected_category = None
+            selected_job = None
+            
             col_group, col_cat, col_job, col_player = st.columns(4)
             with col_group:
                 groups = df_hierarchy['group'].unique().tolist()
                 selected_group = st.selectbox("1️⃣ 職業群", groups, index=None, placeholder="請選擇...")
+            
             with col_cat:
                 if selected_group:
                     categories = df_hierarchy[df_hierarchy['group'] == selected_group]['category'].unique().tolist()
                     selected_category = st.selectbox("2️⃣ 分類", categories, index=None, placeholder="請選擇...")
-                else: st.selectbox("2️⃣ 分類", [], disabled=True, placeholder="請先選職業群")
+                else: 
+                    st.selectbox("2️⃣ 分類", [], disabled=True, placeholder="請先選職業群")
+                    selected_category = None # 確保未選擇時也是 None
+            
             with col_job:
                 if selected_category:
                     jobs = df_hierarchy[(df_hierarchy['group'] == selected_group) & (df_hierarchy['category'] == selected_category)]['job'].unique().tolist()
                     selected_job = st.selectbox("3️⃣ 職業", jobs, index=None, placeholder="請選擇...")
-                else: st.selectbox("3️⃣ 職業", [], disabled=True, placeholder="請先選分類")
+                else: 
+                    st.selectbox("3️⃣ 職業", [], disabled=True, placeholder="請先選分類")
+                    selected_job = None # 確保未選擇時也是 None
+            
             with col_player:
                 if selected_job:
                     players_in_job = sorted(df[df['職業'] == selected_job]['暱稱'].unique().tolist())
@@ -507,14 +568,14 @@ else:
                 if chart_type != "公會城每周" and avg_score > 0:
                     fig_line.add_hline(y=avg_score, line_dash="dot", line_color="gray", annotation_text=f"平均: {int(avg_score):,}", annotation_position="bottom right")
 
-                # 關鍵修改：鎖定座標軸與關閉拖曳 (個人走勢圖)
+                # 個人圖表也套用：固定座標軸 + 禁用拖曳 + 顯示簡化版工具列
                 fig_line.update_layout(
                     xaxis=dict(tickformat="%Y-%m-%d", fixedrange=True),
                     yaxis=dict(title=y_label, fixedrange=True),
                     hovermode="x unified",
                     showlegend=True,
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                    dragmode=False # 禁用滑鼠拖曳
+                    dragmode=False 
                 )
                 
                 st.plotly_chart(fig_line, use_container_width=True, config=PLOT_CONFIG)
@@ -529,5 +590,6 @@ else:
                 if not achievement_counts.empty:
                     fig_pie = px.pie(achievement_counts, values='數量', names='狀態', title='個人達成率統計', color='狀態', color_discrete_map={'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}, hole=0.6)
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
+                    # 圓餅圖也套用設定
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
