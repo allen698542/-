@@ -306,9 +306,7 @@ if api_data:
     with col_api_info:
         # 顯示角色詳細資訊
         st.markdown(f"""
-        **職業**: {api_data.get('character_class')}  
         **等級**: Lv. {api_data.get('character_level')}  
-        **伺服器**: {api_data.get('world_name')}
         """)
 elif API_KEY:
     # 有 Key 但抓不到 (可能是 ID 打錯或 API 維修)
@@ -384,6 +382,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
