@@ -336,7 +336,7 @@ with st.container(border=True):
         
         * **職業：** {job_display}
         * **等級：** {display_level}
-        * **資料來源：** 靜態資料庫 (智慧回溯)
+        * **資料來源：** 靜態資料庫 (非即時API回溯法)
         """)
 
 st.markdown("---")
@@ -545,6 +545,7 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
 
