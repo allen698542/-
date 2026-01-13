@@ -1,9 +1,48 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+
 # ==========================================
-# CSS 隱藏選單與浮水印 (強制隱藏)
+# API 串接設定 (新功能)
 # ==========================================
+# 嘗試從 Secrets 讀取 Key，如果沒有設定就不執行 API
+API_KEY = st.secrets.get("NEXON_API_KEY", None)
+
+@st.cache_data(ttl=3600) # 設定快取 1 小時，避免一直扣 API 額度
+def get_maple_character_info(character_name):
+    if not API_KEY:
+        return None, "未設定 API Key"
+    
+    headers = {
+        "x-nxopen-api-key": API_KEY,
+        "accept": "application/json"
+    }
+    
+    try:
+        # 1. 取得 OCID (把暱稱換成 ID)
+        url_id = "https://open.api.nexon.com/maplestory/v1/id"
+        resp_id = requests.get(url_id, headers=headers, params={"character_name": character_name})
+        
+        if resp_id.status_code != 200:
+            return None, "找不到角色或 API 額度不足"
+        
+        ocid = resp_id.json().get("ocid")
+        
+        # 2. 取得角色基本資料
+        # 注意：API 資料通常會有延遲，我們抓「昨天」的資料比較保險
+        yesterday = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+        url_basic = "https://open.api.nexon.com/maplestory/v1/character/basic"
+        resp_basic = requests.get(url_basic, headers=headers, params={"ocid": ocid, "date": yesterday})
+        
+        if resp_basic.status_code == 200:
+            return resp_basic.json(), None # 回傳資料
+        else:
+            return None, "無法讀取角色資料"
+            
+    except Exception as e:
+        return None, f"連線錯誤: {e}"
+
+#====================================================================================================
 st.set_page_config(page_title="公會每周統計", page_icon="🍁", layout="wide")
 
 # ==========================================
@@ -251,6 +290,34 @@ if len(df_filtered) == 0:
 st.markdown(f"### 👤 {final_selected_player} 的個人數據報告")
 st.markdown("---")
 
+# ==================== 新增：API 資訊卡片區 ====================
+# 呼叫上面的函式去抓資料
+api_data, api_error = get_maple_character_info(final_selected_player)
+
+if api_data:
+    # 如果抓到資料，切分版面顯示頭像
+    col_api_img, col_api_info = st.columns([1, 4])
+    
+    with col_api_img:
+        # 顯示角色圖片
+        st.image(api_data.get('character_image'), width=150)
+        
+    with col_api_info:
+        # 顯示角色詳細資訊
+        st.markdown(f"""
+        **職業**: {api_data.get('character_class')}  
+        **等級**: Lv. {api_data.get('character_level')}  
+        **伺服器**: {api_data.get('world_name')}
+        """)
+elif API_KEY:
+    # 有 Key 但抓不到 (可能是 ID 打錯或 API 維修)
+    st.caption(f"⚠️ 無法載入 API 資訊: {api_error} (可能是官方資料延遲或暱稱不符)")
+# ==================== 結束 API 區塊 ====================
+
+# (下面接回原本的 KPI 計算與顯示程式碼)
+# 計算數值
+p_flag = int(df_filtered['旗幟戰'].sum())
+
 # 計算數值
 p_flag = int(df_filtered['旗幟戰'].sum())
 p_water = int(df_filtered['地下水道'].sum())
@@ -316,6 +383,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
