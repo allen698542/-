@@ -368,6 +368,17 @@ avg_flag = int(p_flag / my_weeks) if my_weeks > 0 else 0
 avg_water = int(p_water / my_weeks) if my_weeks > 0 else 0
 avg_castle_pct = int(float(p_castle / my_weeks)*10000)/100 if my_weeks > 0 else 0
 
+# --- 輔助函式：取得排名獎牌 ---
+def get_rank_icon(rank):
+    if rank == 1:
+        return "🥇 " # 金牌
+    elif rank == 2:
+        return "🥈 " # 銀牌
+    elif rank == 3:
+        return "🥉 " # 銅牌
+    else:
+        return ""   # 第四名以後不顯示圖案
+
 # --- 函式：取得詳細鄰居資訊 ---
 def get_detailed_neighbors(df_source, target_player, col_sum, col_weeks, mode='avg'):
     df_sorted = df_source.sort_values(by=col_sum, ascending=False).reset_index()
@@ -386,7 +397,8 @@ def get_detailed_neighbors(df_source, target_player, col_sum, col_weeks, mode='a
         real_rank = int(df_source.loc[neighbor_name][f"{'flag' if col_sum == '旗幟戰' else 'water' if col_sum == '地下水道' else 'castle'}_rank"])
         
         tie_text = " (同分)" if is_neighbor and score == my_score else ""
-
+        
+        # 鄰居顯示邏輯：也可以加上獎牌，或者保持文字就好？這裡維持文字簡潔
         if mode == 'avg':
             avg_val = int(score / weeks) if weeks > 0 else 0
             return f"第 {real_rank} 名{tie_text} : {score:,} (均 {avg_val:,})"
@@ -417,9 +429,8 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     with st.container(border=True):
         st.markdown("#### 📊 統計週數")
-        # 修改：數字變橘色
         st.markdown(f"## :orange[{my_weeks} 週]")
-        # 保持 H3 大小以維持高度對齊，但文字為白色
+        # 這裡維持 📅 符號，與右邊的獎牌形成視覺對稱
         st.markdown("### 📅 區間累計") 
         
         st.divider()
@@ -430,10 +441,11 @@ with col1:
 with col2:
     with st.container(border=True):
         st.markdown("#### 🚩 旗幟戰")
-        # 修改：數字變橘色
         st.markdown(f"## :orange[{p_flag:,}]")
-        # 修改：名次改回白色 (移除 :orange)，但保留字體結構 (H3 + small gray)
-        st.markdown(f"### 第 {rank_flag} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_flag:,})</span>", unsafe_allow_html=True)
+        
+        # 動態取得獎牌
+        rank_icon = get_rank_icon(rank_flag)
+        st.markdown(f"### {rank_icon}第 {rank_flag} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_flag:,})</span>", unsafe_allow_html=True)
         
         prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
         
@@ -445,10 +457,11 @@ with col2:
 with col3:
     with st.container(border=True):
         st.markdown("#### 💧 地下水道")
-        # 修改：數字變橘色
         st.markdown(f"## :orange[{p_water:,}]")
-        # 修改：名次改回白色
-        st.markdown(f"### 第 {rank_water} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_water:,})</span>", unsafe_allow_html=True)
+        
+        # 動態取得獎牌
+        rank_icon = get_rank_icon(rank_water)
+        st.markdown(f"### {rank_icon}第 {rank_water} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_water:,})</span>", unsafe_allow_html=True)
         
         prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
         
@@ -464,15 +477,15 @@ with col4:
             castle_title = "👑 公會城 (全勤)"
             
         st.markdown(f"#### {castle_title}")
-        # 修改：數字變橘色
         st.markdown(f"## :orange[{p_castle} 次]")
         
         if rank_castle == 1 and avg_castle_pct == 100:
-            # 全勤依然保持彩虹色，或者你想改成橘色也可以，這邊先保留彩虹以示特別
-            st.markdown(f"### :rainbow[完美全勤!!] <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>", unsafe_allow_html=True)
+            # 特殊榮耀：完美全勤 (使用皇冠 + 彩虹字)
+            st.markdown(f"### 👑 :rainbow[完美全勤!!] <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>", unsafe_allow_html=True)
         else:
-            # 修改：名次改回白色
-            st.markdown(f"### 第 {rank_castle} 名 <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>", unsafe_allow_html=True)
+            # 一般排名：使用金銀銅牌邏輯
+            rank_icon = get_rank_icon(rank_castle)
+            st.markdown(f"### {rank_icon}第 {rank_castle} 名 <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>", unsafe_allow_html=True)
             
         prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '公會城每周', '周次', mode='pct')
         
@@ -526,6 +539,7 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
 
