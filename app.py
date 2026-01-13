@@ -262,7 +262,7 @@ total_weeks = len(df_filtered)
 # 計算平均值 (避免除以 0，雖然上面有擋但在數學運算上保持嚴謹)
 avg_flag = int(p_flag / total_weeks) if total_weeks > 0 else 0
 avg_water = int(p_water / total_weeks) if total_weeks > 0 else 0
-avg_castle = int(p_castle / total_weeks) if total_weeks > 0 else 0
+avg_castle = float(p_castle / total_weeks) if total_weeks > 0 else 0
 
 # KPI
 col1, col2, col3, col4 = st.columns(4)
@@ -316,6 +316,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
