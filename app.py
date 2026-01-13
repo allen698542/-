@@ -505,29 +505,62 @@ else:
             st.markdown("### 🏆 本周戰績與排名情報")
             
             # --- 核心：繪製數據卡片 (支援第1名特效) ---
-            def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one=False):
-                if is_number_one:
-                    # 傳說黃金卡片 CSS
-                    st.markdown(f"""
-                    <div style="
-                        border: 3px solid #FFD700;
-                        background: linear-gradient(135deg, #262730 0%, #3a3200 100%);
-                        box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
-                        border-radius: 10px;
-                        padding: 15px;
-                        color: white;
-                        margin-bottom: 10px;
-                        height: 100%;
-                    ">
-                        <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px;">{title}</div>
-                        <div style="font-size: 2em; font-weight: bold; color: #FFD700;">{score_str}</div>
-                        <div style="font-size: 1.2em; margin-bottom: 5px;">{rank_str}</div>
-                        <div style="font-size: 0.8em; color: #FFD700; font-weight: bold; margin-bottom: 10px;">👑 冠軍霸主</div>
-                        <hr style="margin: 5px 0; border-color: #555;">
-                        <div style="font-size: 0.8em; color: #CCC; margin-bottom: 3px;">{prev_txt}</div>
-                        <div style="font-size: 0.8em; color: #CCC;">{next_txt}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one=False):
+    # 設定基礎樣式 (確保所有卡片結構高度一致)
+    # 使用 flex 佈局讓內容上下對齊
+    base_style = """
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 10px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    """
+
+    if is_number_one:
+        # === 第一名樣式 ===
+        # 黃金邊框 + 漸層背景
+        container_style = f"""
+            {base_style}
+            border: 3px solid #FFD700;
+            background: linear-gradient(135deg, #262730 0%, #3a3200 100%);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+            color: white;
+        """
+        score_color = "#FFD700"  # 金色分數
+        # 已移除 "👑 冠軍霸主" 文字
+    else:
+        # === 普通名次樣式 ===
+        # 關鍵點：給予同樣 3px 的邊框，但顏色設為背景色 (或透明)，
+        # 這樣物理高度就會跟第一名完全一樣！
+        container_style = f"""
+            {base_style}
+            border: 3px solid #262730; 
+            background-color: #262730;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            color: white;
+        """
+        score_color = "#FF9F1C"  # 橘色分數 (模擬 Streamlit 的 :orange[])
+
+    # 統一 HTML 結構
+    html_content = f"""
+    <div style="{container_style}">
+        <div>
+            <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px;">{title}</div>
+            <div style="font-size: 2em; font-weight: bold; color: {score_color};">{score_str}</div>
+            <div style="font-size: 1.2em; margin-bottom: 5px;">{rank_str}</div>
+        </div>
+        
+        <div>
+            <hr style="margin: 10px 0; border-color: #555;">
+            <div style="font-size: 0.8em; color: #CCC; margin-bottom: 3px;">{prev_txt}</div>
+            <div style="font-size: 0.8em; color: #CCC;">{next_txt}</div>
+        </div>
+    </div>
+    """
+    
+    st.markdown(html_content, unsafe_allow_html=True)
                 else:
                     # 一般樣式
                     with st.container(border=True):
@@ -615,3 +648,4 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
