@@ -361,7 +361,7 @@ if search_mode == "🏆 全公會排行榜":
                 for _ in range(spacer_mid): st.write("")
                 st.markdown(style_2nd3rd.format(
                     icon="🥉", img_tag=get_img_tag(p.get('圖片'), width=130), 
-                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", 
+                    name=p['暱稱'], score_label="分數", score=f"{int(p[col_name]):,}", 
                     color="#CD7F32", border_color="#CD7F32"
                 ), unsafe_allow_html=True)
         with cols[4]:
@@ -370,7 +370,7 @@ if search_mode == "🏆 全公會排行榜":
                 for _ in range(spacer_low): st.write("")
                 st.markdown(style_4th5th.format(
                     icon="5️⃣", img_tag=get_img_tag(p.get('圖片'), width=110), 
-                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#4D96FF"
+                    name=p['暱稱'], score_label="分數", score=f"{int(p[col_name]):,}", color="#4D96FF"
                 ), unsafe_allow_html=True)
 
         st.markdown("---")
@@ -657,6 +657,7 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
 
 
 
