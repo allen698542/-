@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import requests
 import datetime
 
 # ==========================================
@@ -279,59 +278,46 @@ df_period = df[mask_period]
 df_filtered = df_period[df_period['暱稱'] == final_selected_player]
 
 # ==========================================
-# 5. 個人數據儀表板 (含 API 資訊)
+# 5. 個人數據儀表板 (靜態 CSV 版)
 # ==========================================
 
 if len(df_filtered) == 0:
     st.warning(f"玩家 {final_selected_player} 在此日期區間內無資料。")
     st.stop()
 
-# --- 1. 標題與 API 資料 ---
-api_data, api_error = get_maple_character_info(final_selected_player)
+# --- 從資料表中抓取該玩家的「最新」基本資料 ---
+# 因為 df_filtered 是該玩家的所有週次資料，每一行應該都有等級/圖片
+# 我們抓第一筆 (或是按照日期排序抓最新的一筆) 即可
+player_info = df_filtered.sort_values('周次', ascending=False).iloc[0]
 
-header_text = f"👤 {final_selected_player} 的個人數據報告"
-if api_data:
-    level = api_data.get('character_level', '???')
-    header_text = f"👤 {final_selected_player} 的個人數據報告 (Lv. {level})"
+# 取得 CSV 裡面的欄位 (假設 update_tool.py 產生的欄位叫 '等級', '職業', '圖片')
+# 使用 .get 以防欄位不存在時報錯
+current_level = player_info.get('等級', '???')
+current_job = player_info.get('職業', '未知')
+img_url = player_info.get('圖片', None) # 或是 '角色圖片'，看您 update_tool 怎麼寫
 
-st.markdown(f"## {header_text}")
+# 標題
+st.markdown(f"## 👤 {final_selected_player} 的個人數據報告 (Lv. {current_level})")
 
-# --- 2. 玩家檔案卡片 ---
+# --- 玩家檔案卡片 ---
 with st.container(border=True):
-    if api_data:
-        # 處理圖片
-        img_url = api_data.get('character_image')
-        # 處理登入狀態
-        raw_flag = api_data.get('access_flag')
-        
-        if str(raw_flag).lower() == 'true':
-            login_status = "✅ **近期活躍** (7天內有登入)"
-        elif str(raw_flag).lower() == 'false':
-            login_status = "💤 **近期不活躍** (7天未登入)"
+    col_profile_img, col_profile_info = st.columns([1.5, 3.5])
+    
+    with col_profile_img:
+        # 如果有圖片網址且不是 nan (空值)
+        if img_url and str(img_url) != "nan":
+            st.image(img_url, width=130)
         else:
-            login_status = "❓ **無法取得** (需查詢公會 API)"
-
-        col_profile_img, col_profile_info = st.columns([1.5, 3.5])
+            st.markdown("# 👤") # 沒圖片時顯示一個 icon
+            
+    with col_profile_info:
+        st.markdown(f"""
+        #### 📜 角色詳細資料
         
-        with col_profile_img:
-            if img_url:
-                st.image(img_url, width=130)
-            else:
-                st.markdown("# 👤")
-            
-        with col_profile_info:
-            st.markdown(f"""
-            #### 📜 角色詳細資料
-            
-            * **職業：** {api_data.get('character_class')}
-            * **等級：** {api_data.get('character_level')}
-            * **狀態：** {login_status}
-            """)
-            
-    elif API_KEY and api_error:
-        st.warning(f"無法載入官方資訊：{api_error}")
-    else:
-        st.info("未設定 API Key，僅顯示 Excel 紀錄。")
+        * **職業：** {current_job}
+        * **等級：** {current_level}
+        * **資料來源：** 靜態資料庫 (無需 API)
+        """)
 
 st.markdown("---")
 
@@ -539,6 +525,7 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
 
