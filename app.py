@@ -221,45 +221,88 @@ if search_mode == "🏆 全公會排行榜":
     # 三個分頁：旗幟、水道、公會城
     tab_rank_flag, tab_rank_water, tab_rank_castle = st.tabs(["🚩 旗幟戰排行", "💧 地下水道排行", "🏰 公會城全勤榜"])
     
-    # --- 函式：繪製排行榜 ---
+# --- 函式：繪製排行榜 (美化版) ---
     def draw_leaderboard(data, col_name, color_scale, label_name, is_attendance=False):
         # 排序
         sorted_df = data.sort_values(by=col_name, ascending=False).reset_index(drop=True)
-        # 加上排名
         sorted_df['名次'] = sorted_df.index + 1
         
-        # 1. 前三名頒獎台 (Top 3)
-        col1, col2, col3 = st.columns(3)
+        # 1. 前三名頒獎台 (Top 3) - 視覺優化版
+        # 使用 5 個欄位：[空白, 銀牌, 金牌, 銅牌, 空白] 來讓版面置中
+        c_space_l, c2, c1, c3, c_space_r = st.columns([1, 2, 2.2, 2, 1])
+        
         top3 = sorted_df.head(3)
         
-        # 金牌
+        # 定義卡片樣式 (CSS)
+        card_style = """
+            <div style="
+                background-color: #262730; 
+                padding: 15px; 
+                border-radius: 10px; 
+                text-align: center; 
+                border: 1px solid #444;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            ">
+                <div style="font-size: 3rem; margin-bottom: 5px;">{icon}</div>
+                <div style="font-size: 1.2rem; font-weight: bold; color: #FFF; margin-bottom: 5px;">{name}</div>
+                <div style="font-size: 1rem; color: #BBB;">{score_label}</div>
+                <div style="font-size: 1.5rem; font-weight: bold; color: {color};">{score}</div>
+            </div>
+        """
+
+        # --- 第一名 (金牌) ---
         if len(top3) > 0:
             p1 = top3.iloc[0]
             val1 = int(p1[col_name])
-            with col2: # 中間放第一名
-                st.markdown(f"<div style='text-align:center; font-size: 2em;'>🥇</div>", unsafe_allow_html=True)
-                st.metric(label=f"No.1 {p1['暱稱']}", value=f"{val1:,}", delta="冠軍")
-        
-        # 銀牌
+            with c1:
+                # 第一名不加 margin-top，保持最高
+                st.markdown(card_style.format(
+                    icon="🥇", 
+                    name=p1['暱稱'], 
+                    score_label="Score",
+                    score=f"{val1:,}",
+                    color="#FFD700" # 金色
+                ), unsafe_allow_html=True)
+                if not is_attendance:
+                    st.caption("👑 冠軍霸主")
+
+        # --- 第二名 (銀牌) ---
         if len(top3) > 1:
             p2 = top3.iloc[1]
             val2 = int(p2[col_name])
-            with col1: # 左邊放第二名
-                st.markdown(f"<div style='text-align:center; font-size: 1.5em;'>🥈</div>", unsafe_allow_html=True)
-                st.metric(label=f"No.2 {p2['暱稱']}", value=f"{val2:,}")
+            with c2:
+                # 加上 <br> 或是 style margin-top 讓它看起來矮一點 (頒獎台階梯效果)
+                st.write("") 
+                st.write("") 
+                st.markdown(card_style.format(
+                    icon="🥈", 
+                    name=p2['暱稱'], 
+                    score_label="Score",
+                    score=f"{val2:,}",
+                    color="#C0C0C0" # 銀色
+                ), unsafe_allow_html=True)
 
-        # 銅牌
+        # --- 第三名 (銅牌) ---
         if len(top3) > 2:
             p3 = top3.iloc[2]
             val3 = int(p3[col_name])
-            with col3: # 右邊放第三名
-                st.markdown(f"<div style='text-align:center; font-size: 1.5em;'>🥉</div>", unsafe_allow_html=True)
-                st.metric(label=f"No.3 {p3['暱稱']}", value=f"{val3:,}")
+            with c3:
+                # 加上 <br> 或是 style margin-top 讓它看起來矮一點
+                st.write("") 
+                st.write("") 
+                st.markdown(card_style.format(
+                    icon="🥉", 
+                    name=p3['暱稱'], 
+                    score_label="Score",
+                    score=f"{val3:,}",
+                    color="#CD7F32" # 銅色
+                ), unsafe_allow_html=True)
 
         st.markdown("---")
         
-        # 2. 長條圖視覺化 (只取前 15 名避免太擠)
-        top15_df = sorted_df.head(15).copy() # 為了畫圖反轉順序，讓第一名在最上面
+        # 2. 長條圖視覺化 (Top 15)
+        top15_df = sorted_df.head(15).copy()
         
         fig = px.bar(
             top15_df, 
@@ -271,17 +314,15 @@ if search_mode == "🏆 全公會排行榜":
             color=col_name,
             color_continuous_scale=color_scale
         )
-        fig.update_layout(yaxis={'categoryorder':'total ascending'}) # 讓高的在上面
+        fig.update_layout(yaxis={'categoryorder':'total ascending'}) 
         fig.update_traces(texttemplate='%{text:,}', textposition='outside')
         st.plotly_chart(fig, use_container_width=True)
         
-        # 3. 完整資料表 (帶有 Bar 視覺效果)
+        # 3. 完整資料表
         st.markdown("#### 📋 完整名單")
         
-        # 整理顯示欄位
         display_df = sorted_df[['名次', '暱稱', '職業', '周次', col_name]].copy()
         
-        # 如果是公會城，多算一個全勤率
         if is_attendance:
             display_df['全勤率(%)'] = (display_df[col_name] / display_df['周次'] * 100).astype(int)
             val_format = "%d 次"
@@ -297,7 +338,7 @@ if search_mode == "🏆 全公會排行榜":
                     label_name,
                     format=val_format,
                     min_value=0,
-                    max_value=int(sorted_df[col_name].max()),
+                    max_value=int(sorted_df[col_name].max()) if len(sorted_df) > 0 else 100,
                 ),
                 "名次": st.column_config.NumberColumn(format="No. %d")
             }
@@ -710,3 +751,4 @@ else:
                     st.plotly_chart(fig_pie, use_container_width=True)
                 else:
                     st.info("此區間無資料")
+
