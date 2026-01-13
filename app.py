@@ -412,52 +412,106 @@ col3.metric("💧 水道總傷分", f"{p_water:,}", water_label)
 col4.metric("🏰 公會城完成數", f"{p_castle} 次", castle_label)
 
 # ==========================================
-# 7. 圖表與詳細資料區
+# (新) 7. 競爭情報顯示區 (Sandwich View)
 # ==========================================
-tab1, tab2, tab3 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況"])
 
-with tab1:
-    chart_type = st.radio("選擇數據類型", ["旗幟戰", "地下水道", "公會城每周"], horizontal=True)
+# --- 定義一個小函式來抓取前後鄰居 ---
+def get_competitor_info(df_source, target_player, col_name, label_name):
+    # 1. 建立該項目的專屬排名表 (分數高到低)
+    # 注意：這裡要 copy 一份以免影響原始資料
+    df_rank = df_source.copy()
+    df_rank = df_rank.sort_values(by=col_name, ascending=False).reset_index()
     
-    fig_line = px.line(
-        df_filtered,
-        x='周次',
-        y=chart_type,
-        title=f"{final_selected_player} - {chart_type} 趨勢",
-        markers=True,
-    )
-    fig_line.update_layout(hovermode="x unified")
-    st.plotly_chart(fig_line, use_container_width=True)
+    # 2. 找到玩家的位置
+    try:
+        my_idx = df_rank[df_rank['暱稱'] == target_player].index[0]
+    except IndexError:
+        return None # 找不到人
+        
+    my_data = df_rank.iloc[my_idx]
+    my_score = int(my_data[col_name])
     
-    if chart_type == "公會城每周":
-        st.caption("ℹ️ 1 代表有完成，0 代表未完成")
-
-with tab2:
-    display_cols = ['周次', '職業', '暱稱', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']
-    st.dataframe(df_filtered[display_cols], use_container_width=True, hide_index=True)
-
-with tab3:
-    achievement_counts = df_filtered['本周是否達成'].value_counts().reset_index()
-    achievement_counts.columns = ['狀態', '數量']
-    
-    color_map = {'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}
-
-    if not achievement_counts.empty:
-        fig_pie = px.pie(
-            achievement_counts, 
-            values='數量', 
-            names='狀態', 
-            title='個人達成率統計',
-            color='狀態',
-            color_discrete_map=color_map,
-            hole=0.6
-        )
-        achieved_num = achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()
-        fig_pie.add_annotation(text=f"達成<br>{achieved_num}次", showarrow=False, font_size=20)
-        st.plotly_chart(fig_pie, use_container_width=True)
+    # 3. 找上一名 (追趕目標)
+    if my_idx > 0:
+        prev_data = df_rank.iloc[my_idx - 1]
+        prev_name = prev_data['暱稱']
+        prev_score = int(prev_data[col_name])
+        gap_prev = prev_score - my_score
+        prev_text = f"⬆️ 第 {my_idx} 名: {prev_name} (差 {gap_prev:,})"
     else:
-        st.info("此區間無資料")
+        prev_text = "👑 目前是全公會第一！"
 
+    # 4. 找下一名 (被追趕對象)
+    if my_idx < len(df_rank) - 1:
+        next_data = df_rank.iloc[my_idx + 1]
+        next_name = next_data['暱稱']
+        next_score = int(next_data[col_name])
+        gap_next = my_score - next_score
+        next_text = f"⬇️ 第 {my_idx + 2} 名: {next_name} (領先 {gap_next:,})"
+    else:
+        next_text = "🛡️ 目前是最後一名"
+        
+    return my_score, prev_text, next_text
 
+# --- 顯示介面 ---
+st.markdown("### 🏆 本周戰績與排名情報")
 
+# 使用 4 個欄位 (1個基本資訊 + 3個競爭卡片)
+kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
 
+# 1. 基本資料
+with kpi_col1:
+    with st.container(border=True):
+        st.markdown(f"#### 📊 統計週數")
+        st.markdown(f"# {total_weeks} 週")
+        st.caption("資料區間總計")
+
+# 2. 旗幟戰卡片
+with kpi_col2:
+    with st.container(border=True):
+        st.markdown("#### 🚩 旗幟戰")
+        res_flag = get_competitor_info(guild_ranking, final_selected_player, '旗幟戰', 'Flag')
+        if res_flag:
+            score, prev_txt, next_txt = res_flag
+            st.markdown(f"## {score:,}") # 大字分數
+            st.markdown(f"**第 {rank_flag} 名** (均 {avg_flag:,})")
+            st.divider() # 分隔線
+            st.caption(f"{prev_txt}") # 上一名
+            st.caption(f"{next_txt}") # 下一名
+
+# 3. 水道卡片
+with kpi_col3:
+    with st.container(border=True):
+        st.markdown("#### 💧 地下水道")
+        res_water = get_competitor_info(guild_ranking, final_selected_player, '地下水道', 'Water')
+        if res_water:
+            score, prev_txt, next_txt = res_water
+            st.markdown(f"## {score:,}")
+            st.markdown(f"**第 {rank_water} 名** (均 {avg_water:,})")
+            st.divider()
+            st.caption(f"{prev_txt}")
+            st.caption(f"{next_txt}")
+
+# 4. 公會城卡片 (含皇冠邏輯)
+with kpi_col4:
+    with st.container(border=True):
+        # 處理標題 (如果有皇冠就加在標題)
+        title_icon = "👑 " if (rank_castle == 1 and avg_castle_pct == 100) else ""
+        st.markdown(f"#### 🏰 公會城")
+        
+        # 取得前後名次
+        res_castle = get_competitor_info(guild_ranking, final_selected_player, '公會城每周', 'Castle')
+        
+        if res_castle:
+            score, prev_txt, next_txt = res_castle
+            st.markdown(f"## {score} 次")
+            
+            # 中間顯示邏輯 (你的皇冠顯示在這裡)
+            if rank_castle == 1 and avg_castle_pct == 100:
+                st.markdown(f"**👑 完美全勤!!** ({avg_castle_pct}%)")
+            else:
+                st.markdown(f"**第 {rank_castle} 名** ({avg_castle_pct}%)")
+            
+            st.divider()
+            st.caption(f"{prev_txt.replace('差 0', '並列')}") # 公會城常有同分，修飾一下文字
+            st.caption(f"{next_txt.replace('領先 0', '並列')}")
