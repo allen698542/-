@@ -502,17 +502,25 @@ else:
 
             st.markdown("### 🏆 本周戰績與排名情報")
             
-            # --- 核心：繪製數據卡片 (統一使用 HTML 以確保高度與字體一致) ---
-            def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one=False):
+            # --- 核心：繪製數據卡片 (包含金銀銅牌特效) ---
+            def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, rank=999):
                 # 基礎 CSS：加入 flex-grow 和 box-sizing 以確保對齊
                 base_style = "box-sizing: border-box; border-radius: 10px; padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1;"
 
-                if is_number_one:
-                    # 第一名：金色邊框
+                if rank == 1:
+                    # 🥇 第一名：金色 (Gold)
                     container_style = f"{base_style} border: 3px solid #FFD700; background: linear-gradient(135deg, #262730 0%, #3a3200 100%); box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); color: white;"
                     score_color = "#FFD700"
+                elif rank == 2:
+                    # 🥈 第二名：銀色 (Silver)
+                    container_style = f"{base_style} border: 3px solid #C0C0C0; background: linear-gradient(135deg, #262730 0%, #383838 100%); box-shadow: 0 0 15px rgba(192, 192, 192, 0.4); color: white;"
+                    score_color = "#E0E0E0" # 亮銀色文字
+                elif rank == 3:
+                    # 🥉 第三名：銅色 (Bronze)
+                    container_style = f"{base_style} border: 3px solid #CD7F32; background: linear-gradient(135deg, #262730 0%, #3a2500 100%); box-shadow: 0 0 15px rgba(205, 127, 50, 0.4); color: white;"
+                    score_color = "#CD7F32"
                 else:
-                    # 普通名次：深灰色邊框 (寬度 3px 以對齊第一名的邊框厚度)
+                    # 普通名次：深灰色
                     container_style = f"{base_style} border: 3px solid #444; background-color: #262730; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: white;"
                     score_color = "#FF9F1C"
 
@@ -535,9 +543,8 @@ else:
 
             col1, col2, col3, col4 = st.columns(4)
 
-            # 1. 統計週數 (改用 HTML 以匹配右側卡片樣式)
+            # 1. 統計週數
             with col1:
-                # 定義與右側普通卡片相同的樣式
                 left_card_style = "box-sizing: border-box; border-radius: 10px; padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; border: 3px solid #444; background-color: #262730; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: white;"
                 
                 html_left = f"""
@@ -559,29 +566,28 @@ else:
             # 2. 旗幟戰
             with col2:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
-                # 修改：字體放大至 1.0rem，顏色調亮 #BBB
                 rank_str = f"{get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:1.0rem; color:#BBB'>(均 {avg_flag:,})</span>"
-                draw_stat_card("🚩 旗幟戰", f"{p_flag:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_flag == 1))
+                draw_stat_card("🚩 旗幟戰", f"{p_flag:,}", rank_str, prev_txt, next_txt, rank=rank_flag)
 
             # 3. 地下水道
             with col3:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
-                # 修改：字體放大至 1.0rem，顏色調亮 #BBB
                 rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:1.0rem; color:#BBB'>(均 {avg_water:,})</span>"
-                draw_stat_card("💧 地下水道", f"{p_water:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_water == 1))
+                draw_stat_card("💧 地下水道", f"{p_water:,}", rank_str, prev_txt, next_txt, rank=rank_water)
 
             # 4. 公會城
             with col4:
                 castle_title = "👑 公會城 (全勤)" if avg_castle_pct == 100 else "🏰 公會城"
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '公會城每周', '周次', mode='pct')
-                # 修改：字體放大至 1.0rem，顏色調亮 #BBB
+                
                 if avg_castle_pct == 100:
                     rank_str = f"👑 :rainbow[完美全勤!!] <span style='font-size:1.0rem; color:#BBB'>({avg_castle_pct}%)</span>"
+                    display_rank = 1 # 全勤強制金牌特效
                 else:
                     rank_str = f"{get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:1.0rem; color:#BBB'>({avg_castle_pct}%)</span>"
-                
-                is_castle_king = (rank_castle == 1) or (avg_castle_pct == 100)
-                draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, is_number_one=is_castle_king)
+                    display_rank = rank_castle
+
+                draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, rank=display_rank)
 
             tab1, tab2, tab3 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況"])
 
