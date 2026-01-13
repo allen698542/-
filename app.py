@@ -243,7 +243,7 @@ search_mode = st.radio(
 )
 
 # ==========================================
-# 分支 A: 全公會排行榜 (新增 4、5 名)
+# 分支 A: 全公會排行榜 (山峰式佈局優化版)
 # ==========================================
 if search_mode == "🏆 全公會排行榜":
     st.markdown("---")
@@ -260,117 +260,121 @@ if search_mode == "🏆 全公會排行榜":
     
     tab_rank_flag, tab_rank_water, tab_rank_castle = st.tabs(["🚩 旗幟戰排行", "💧 地下水道排行", "🏰 公會城全勤榜"])
     
-    # --- 函式：繪製排行榜 (Top 5 版) ---
+    # --- 函式：繪製排行榜 (Top 5 山峰佈局) ---
     def draw_leaderboard(data, col_name, color_scale, label_name, is_attendance=False):
-        # 排序
         sorted_df = data.sort_values(by=col_name, ascending=False).reset_index(drop=True)
         sorted_df['名次'] = sorted_df.index + 1
         
-        # 輔助函式：產生圖片標籤 (可自訂寬度)
+        # 輔助函式：產生圖片標籤 (支援自訂寬度)
         def get_img_tag(url, width=150):
             if url and str(url) != "nan" and str(url).strip() != "":
-                return f'<img src="{url}" style="width: {width}px; height: auto; border-radius: 10px; object-fit: contain; margin: 10px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">'
+                # 減少 margin 以減少留白
+                return f'<img src="{url}" style="width: {width}px; height: auto; border-radius: 8px; object-fit: contain; margin: 5px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">'
             return ""
 
-        # --- 卡片樣式 ---
-        # 1. 前三名 (大卡片)
-        card_style_big = """
-            <div style="
-                background-color: #262730; 
-                padding: 20px; 
-                border-radius: 15px; 
-                text-align: center; 
-                border: 1px solid #444;
-                margin-bottom: 20px;
-                box-shadow: 0 6px 10px rgba(0,0,0,0.4);
-                height: 100%;
-            ">
-                <div style="font-size: 3rem; line-height: 1; margin-bottom: 10px;">{icon}</div>
-                {img_tag}
-                <div style="font-size: 1.3rem; font-weight: bold; color: #FFF; margin-bottom: 5px; margin-top: 10px;">{name}</div>
-                <div style="font-size: 1rem; color: #BBB;">{score_label}</div>
-                <div style="font-size: 1.6rem; font-weight: bold; color: {color};">{score}</div>
+        # --- 定義三種層級的卡片樣式 ---
+        # 共通樣式：大幅減少 padding，讓卡片更緊湊
+        base_style = """
+            background-color: #262730; 
+            text-align: center; 
+            border: 1px solid #444;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            height: 100%;
+        """
+
+        # 樣式 1: 第一名 (最大、最醒目)
+        style_1st = f"""
+            <div style="{base_style} padding: 12px; border-radius: 15px; border: 2px solid #FFD700;">
+                <div style="font-size: 3.2rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
+                {{img_tag}}
+                <div style="font-size: 1.4rem; font-weight: bold; color: #FFF; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
+                <div style="font-size: 1rem; color: #BBB;">{{score_label}}</div>
+                <div style="font-size: 1.8rem; font-weight: bold; color: {{color}};">{{score}}</div>
             </div>
         """
         
-        # 2. 第四、五名 (小卡片)
-        card_style_small = """
-            <div style="
-                background-color: #262730; 
-                padding: 15px; 
-                border-radius: 12px; 
-                text-align: center; 
-                border: 1px solid #444;
-                margin-bottom: 10px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                height: 100%;
-            ">
-                <div style="font-size: 2rem; line-height: 1; margin-bottom: 5px;">{icon}</div>
-                {img_tag}
-                <div style="font-size: 1.1rem; font-weight: bold; color: #EEE; margin-bottom: 5px; margin-top: 5px;">{name}</div>
-                <div style="font-size: 0.9rem; color: #BBB;">{score_label}</div>
-                <div style="font-size: 1.4rem; font-weight: bold; color: {color};">{score}</div>
+        # 樣式 2: 第二、三名 (中等)
+        style_2nd3rd = f"""
+            <div style="{base_style} padding: 10px; border-radius: 12px;">
+                <div style="font-size: 2.5rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
+                {{img_tag}}
+                <div style="font-size: 1.2rem; font-weight: bold; color: #EEE; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
+                <div style="font-size: 0.9rem; color: #BBB;">{{score_label}}</div>
+                <div style="font-size: 1.5rem; font-weight: bold; color: {{color}};">{{score}}</div>
             </div>
         """
 
-        # --- 顯示 Top 3 (頒獎台) ---
-        top3 = sorted_df.head(3)
-        c_space_l, c2, c1, c3, c_space_r = st.columns([1, 2, 2.2, 2, 1])
+        # 樣式 3: 第四、五名 (最小)
+        style_4th5th = f"""
+            <div style="{base_style} padding: 8px; border-radius: 10px; background-color: #20212b;">
+                <div style="font-size: 2rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
+                {{img_tag}}
+                <div style="font-size: 1.1rem; font-weight: bold; color: #DDD; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
+                <div style="font-size: 0.85rem; color: #BBB;">{{score_label}}</div>
+                <div style="font-size: 1.3rem; font-weight: bold; color: {{color}};">{{score}}</div>
+            </div>
+        """
 
-        if len(top3) > 0:
-            p1 = top3.iloc[0]
-            val1 = int(p1[col_name])
-            img1 = get_img_tag(p1.get('圖片'), width=150)
-            with c1:
-                st.markdown(card_style_big.format(
-                    icon="🥇", img_tag=img1, name=p1['暱稱'], score_label="Score", score=f"{val1:,}", color="#FFD700"
+        # --- 建立 5 個欄位，調整寬度比例以強調中間 ---
+        # 順序：第4名, 第2名, 第1名, 第3名, 第5名
+        # 比例：中間最寬，兩側次之，最外側最窄
+        cols = st.columns([0.9, 1.1, 1.3, 1.1, 0.9])
+        
+        # 定義階梯高度的空白行數
+        spacer_mid = 3 # 2,3名的高度差
+        spacer_low = 6 # 4,5名的高度差
+
+        # --- 填充資料 ---
+        # Col 1: 第 4 名
+        with cols[0]:
+            if len(sorted_df) > 3:
+                p = sorted_df.iloc[3]
+                for _ in range(spacer_low): st.write("") # 增加高度差
+                st.markdown(style_4th5th.format(
+                    icon="4️⃣", img_tag=get_img_tag(p.get('圖片'), width=110), 
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#4D96FF"
+                ), unsafe_allow_html=True)
+
+        # Col 2: 第 2 名
+        with cols[1]:
+            if len(sorted_df) > 1:
+                p = sorted_df.iloc[1]
+                for _ in range(spacer_mid): st.write("") # 增加高度差
+                st.markdown(style_2nd3rd.format(
+                    icon="🥈", img_tag=get_img_tag(p.get('圖片'), width=130), 
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#C0C0C0"
+                ), unsafe_allow_html=True)
+
+        # Col 3: 第 1 名 (C位)
+        with cols[2]:
+            if len(sorted_df) > 0:
+                p = sorted_df.iloc[0]
+                # 不加空白行，保持最高
+                st.markdown(style_1st.format(
+                    icon="🥇", img_tag=get_img_tag(p.get('圖片'), width=150), 
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#FFD700"
                 ), unsafe_allow_html=True)
                 if not is_attendance: st.caption("👑 冠軍霸主")
 
-        if len(top3) > 1:
-            p2 = top3.iloc[1]
-            val2 = int(p2[col_name])
-            img2 = get_img_tag(p2.get('圖片'), width=150)
-            with c2:
-                st.write(""); st.write("") 
-                st.markdown(card_style_big.format(
-                    icon="🥈", img_tag=img2, name=p2['暱稱'], score_label="Score", score=f"{val2:,}", color="#C0C0C0"
+        # Col 4: 第 3 名
+        with cols[3]:
+            if len(sorted_df) > 2:
+                p = sorted_df.iloc[2]
+                for _ in range(spacer_mid): st.write("") # 增加高度差
+                st.markdown(style_2nd3rd.format(
+                    icon="🥉", img_tag=get_img_tag(p.get('圖片'), width=130), 
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#CD7F32"
                 ), unsafe_allow_html=True)
 
-        if len(top3) > 2:
-            p3 = top3.iloc[2]
-            val3 = int(p3[col_name])
-            img3 = get_img_tag(p3.get('圖片'), width=150)
-            with c3:
-                st.write(""); st.write("") 
-                st.markdown(card_style_big.format(
-                    icon="🥉", img_tag=img3, name=p3['暱稱'], score_label="Score", score=f"{val3:,}", color="#CD7F32"
-                ), unsafe_allow_html=True)
-
-        # --- 顯示 Top 4 & Top 5 (新增區塊) ---
-        if len(sorted_df) > 3:
-            st.write("") # 間距
-            # 分割版面：左空、第4名、第5名、右空 (讓卡片置中)
-            c4, c5 = st.columns(2)
-            
-            # 第 4 名
-            p4 = sorted_df.iloc[3]
-            val4 = int(p4[col_name])
-            img4 = get_img_tag(p4.get('圖片'), width=110) # 圖片稍微縮小
-            with c4:
-                st.markdown(card_style_small.format(
-                    icon="4️⃣", img_tag=img4, name=p4['暱稱'], score_label="Score", score=f"{val4:,}", color="#4D96FF" # 淡藍色
-                ), unsafe_allow_html=True)
-            
-            # 第 5 名 (如果有)
+        # Col 5: 第 5 名
+        with cols[4]:
             if len(sorted_df) > 4:
-                p5 = sorted_df.iloc[4]
-                val5 = int(p5[col_name])
-                img5 = get_img_tag(p5.get('圖片'), width=110)
-                with c5:
-                    st.markdown(card_style_small.format(
-                        icon="5️⃣", img_tag=img5, name=p5['暱稱'], score_label="Score", score=f"{val5:,}", color="#4D96FF"
-                    ), unsafe_allow_html=True)
+                p = sorted_df.iloc[4]
+                for _ in range(spacer_low): st.write("") # 增加高度差
+                st.markdown(style_4th5th.format(
+                    icon="5️⃣", img_tag=get_img_tag(p.get('圖片'), width=110), 
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#4D96FF"
+                ), unsafe_allow_html=True)
 
         st.markdown("---")
         
