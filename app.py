@@ -21,7 +21,7 @@ def get_maple_character_info(character_name):
     
     try:
         # 1. 取得 OCID (把暱稱換成 ID)
-        url_id = "https://open.api.nexon.com/maplestory/v1/id"
+        url_id = "https://open.api.nexon.com/maplestorytw/v1/id"
         resp_id = requests.get(url_id, headers=headers, params={"character_name": character_name})
         
         if resp_id.status_code != 200:
@@ -32,7 +32,7 @@ def get_maple_character_info(character_name):
         # 2. 取得角色基本資料
         # 注意：API 資料通常會有延遲，我們抓「昨天」的資料比較保險
         yesterday = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-        url_basic = "https://open.api.nexon.com/maplestory/v1/character/basic"
+        url_basic = "https://open.api.nexon.com/maplestorytw/v1/character/basic"
         resp_basic = requests.get(url_basic, headers=headers, params={"ocid": ocid, "date": yesterday})
         
         if resp_basic.status_code == 200:
@@ -384,6 +384,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
