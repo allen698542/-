@@ -432,7 +432,7 @@ with col1:
 with col2:
     with st.container(border=True):
         st.markdown("#### 🚩 旗幟戰")
-        st.markdown(f"## {p_flag:,}")
+        st.markdown(f"## :orange{p_flag:,}")
         # 修改：使用 H3 標題 + 橘色高亮名次 + 縮小灰色平均值
         st.markdown(f"### :orange[第 {rank_flag} 名] <span style='font-size:0.6em; color:gray'>(均 {avg_flag:,})</span>", unsafe_allow_html=True)
         
@@ -524,5 +524,6 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
