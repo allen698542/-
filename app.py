@@ -3,13 +3,13 @@ import pandas as pd
 import plotly.express as px
 import requests
 import datetime
+
 # ==========================================
-# API 串接設定 (新功能)
+# API 串接設定
 # ==========================================
-# 嘗試從 Secrets 讀取 Key，如果沒有設定就不執行 API
 API_KEY = st.secrets.get("NEXON_API_KEY", None)
 
-@st.cache_data(ttl=3600) # 設定快取 1 小時，避免一直扣 API 額度
+@st.cache_data(ttl=3600)
 def get_maple_character_info(character_name):
     if not API_KEY:
         return None, "未設定 API Key"
@@ -20,7 +20,7 @@ def get_maple_character_info(character_name):
     }
     
     try:
-        # 1. 取得 OCID (把暱稱換成 ID)
+        # 1. 取得 OCID
         url_id = "https://open.api.nexon.com/maplestorytw/v1/id"
         resp_id = requests.get(url_id, headers=headers, params={"character_name": character_name})
         
@@ -30,20 +30,21 @@ def get_maple_character_info(character_name):
         ocid = resp_id.json().get("ocid")
         
         # 2. 取得角色基本資料
-        # 注意：API 資料通常會有延遲，我們抓「昨天」的資料比較保險
         yesterday = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
         url_basic = "https://open.api.nexon.com/maplestorytw/v1/character/basic"
         resp_basic = requests.get(url_basic, headers=headers, params={"ocid": ocid, "date": yesterday})
         
         if resp_basic.status_code == 200:
-            return resp_basic.json(), None # 回傳資料
+            return resp_basic.json(), None
         else:
             return None, "無法讀取角色資料"
             
     except Exception as e:
         return None, f"連線錯誤: {e}"
 
-#====================================================================================================
+# ==========================================
+# 頁面設定
+# ==========================================
 st.set_page_config(page_title="公會每周統計", page_icon="🍁", layout="wide")
 
 # ==========================================
@@ -117,7 +118,6 @@ JOB_HIERARCHY_DATA = [
     {"group": "其他", "category": "劍士", "job": "粉豆"},
     {"group": "其他", "category": "海盜", "job": "雪吉拉"},
     {"group": "其他", "category": "其他", "job": "null"},
-
 ]
 
 df_hierarchy = pd.DataFrame(JOB_HIERARCHY_DATA)
@@ -171,7 +171,7 @@ except Exception as e:
     st.stop()
 
 # ==========================================
-# 3. 介面與搜尋邏輯 (核心修改區)
+# 3. 介面與搜尋邏輯
 # ==========================================
 st.title("🍁 公會每周統計")
 
@@ -189,18 +189,17 @@ if start_date > end_date:
 # --- 搜尋模式切換 ---
 st.markdown("### 🔍 成員查詢面板")
 
-# 使用 Radio Button 切換模式
 search_mode = st.radio(
     "請選擇查詢方式：",
     ["層級篩選 (職業分類)", "直接搜尋 (輸入 ID)"],
     horizontal=True
 )
 
-final_selected_player = None # 最終要查詢的玩家
+final_selected_player = None 
 
 with st.container(border=True):
     
-    # === 模式 A: 層級篩選 (原本的功能) ===
+    # === 模式 A: 層級篩選 ===
     if search_mode == "層級篩選 (職業分類)":
         st.caption("依序選擇：職業群 > 分類 > 職業 > 玩家")
         col_group, col_cat, col_job, col_player = st.columns(4)
@@ -244,7 +243,7 @@ with st.container(border=True):
                 st.selectbox("4️⃣ 玩家 ID", [], disabled=True, placeholder="請先選職業")
                 final_selected_player = None
 
-    # === 模式 B: 直接搜尋 (新功能) ===
+    # === 模式 B: 直接搜尋 ===
     else:
         st.caption("直接輸入關鍵字搜尋玩家 ID")
         col_search_1, col_search_2 = st.columns([1, 3])
@@ -253,10 +252,7 @@ with st.container(border=True):
             st.markdown("**🔎 搜尋玩家**")
         
         with col_search_2:
-            # 取得全伺服器所有玩家名單
             all_players_list = sorted(df['暱稱'].unique().tolist())
-            
-            # 使用 selectbox 讓它可以打字搜尋，也能下拉選擇
             final_selected_player = st.selectbox(
                 "請輸入或選擇玩家 ID：",
                 all_players_list,
@@ -265,7 +261,7 @@ with st.container(border=True):
             )
 
 # ==========================================
-# 4. 資料過濾與顯示
+# 4. 資料過濾與顯示 (核心修改區)
 # ==========================================
 
 # 檢查是否有選到人
@@ -274,65 +270,56 @@ if not final_selected_player:
     st.info("👋 請在上方選擇一位玩家以查看詳細數據。")
     st.stop()
 
-# 開始過濾
-mask = (df['周次'] >= pd.to_datetime(start_date)) & (df['周次'] <= pd.to_datetime(end_date))
-mask = mask & (df['暱稱'] == final_selected_player)
+# --- 修改：分開篩選 (為了計算排名) ---
+# 1. 先篩選出「符合日期區間」的所有資料 (用來算全公會排名)
+mask_period = (df['周次'] >= pd.to_datetime(start_date)) & (df['周次'] <= pd.to_datetime(end_date))
+df_period = df[mask_period] # 這是全公會這段時間的資料
 
-df_filtered = df[mask]
+# 2. 再從上面篩選出「選定玩家」的資料 (用來畫圖)
+df_filtered = df_period[df_period['暱稱'] == final_selected_player]
 
 # ==========================================
-# 5. 個人數據儀表板 (加入登入狀態 check)
+# 5. 個人數據儀表板 (含 API 資訊)
 # ==========================================
 
 if len(df_filtered) == 0:
     st.warning(f"玩家 {final_selected_player} 在此日期區間內無資料。")
     st.stop()
 
-# --- 1. 標題區 (維持您喜歡的樣子) ---
-# 先呼叫 API 抓資料
+# --- 1. 標題與 API 資料 ---
 api_data, api_error = get_maple_character_info(final_selected_player)
 
-# 預設標題 (萬一沒抓到資料)
 header_text = f"👤 {final_selected_player} 的個人數據報告"
-
-# 如果抓到資料，更新標題顯示等級
 if api_data:
     level = api_data.get('character_level', '???')
     header_text = f"👤 {final_selected_player} 的個人數據報告 (Lv. {level})"
 
 st.markdown(f"## {header_text}")
 
-# --- 2. 玩家檔案卡片 (優化版面) ---
+# --- 2. 玩家檔案卡片 ---
 with st.container(border=True):
     if api_data:
-        # === 資料解析區 ===
-        
-        # 1. 處理圖片 (如果沒有就用預設圖)
+        # 處理圖片
         img_url = api_data.get('character_image')
-        
-        # 2. 處理登入狀態 (access_flag)
-        # API 回傳通常是字串 "true"/"false" 或布林值，這裡做個轉換
-        raw_flag = api_data.get('access_flag') # 嘗試抓取
+        # 處理登入狀態
+        raw_flag = api_data.get('access_flag')
         
         if str(raw_flag).lower() == 'true':
             login_status = "✅ **近期活躍** (7天內有登入)"
         elif str(raw_flag).lower() == 'false':
             login_status = "💤 **近期不活躍** (7天未登入)"
         else:
-            # 如果 API 沒給這個欄位 (常見於單純查角色 API)
             login_status = "❓ **無法取得** (需查詢公會 API)"
 
-        # === 顯示區 (左圖右文) ===
-        col_profile_img, col_profile_info = st.columns([1.5, 3.5]) # 調整比例讓右邊寬一點
+        col_profile_img, col_profile_info = st.columns([1.5, 3.5])
         
         with col_profile_img:
             if img_url:
-                st.image(img_url, width=130) # 圖片稍微調小一點點，比較精緻
+                st.image(img_url, width=130)
             else:
                 st.markdown("# 👤")
             
         with col_profile_info:
-            # 使用 HTML 語法稍微加大行距，讓閱讀更舒適
             st.markdown(f"""
             #### 📜 角色詳細資料
             
@@ -348,30 +335,63 @@ with st.container(border=True):
 
 st.markdown("---")
 
-# (下面接回原本的 KPI 計算，完全不用動)
-p_flag = int(df_filtered['旗幟戰'].sum())
+# ==========================================
+# 6. KPI 計算與排名系統 (新增功能)
+# ==========================================
 
-# 計算數值
-p_flag = int(df_filtered['旗幟戰'].sum())
-p_water = int(df_filtered['地下水道'].sum())
+# 1. 準備排名資料：將全公會(df_period)依據ID加總
+guild_ranking = df_period.groupby('暱稱')[['旗幟戰', '地下水道']].sum()
+
+# 2. 計算排名 (method='min' 代表並列名次後跳號，例如兩個第1，下一個是第3)
+guild_ranking['flag_rank'] = guild_ranking['旗幟戰'].rank(ascending=False, method='min')
+guild_ranking['water_rank'] = guild_ranking['地下水道'].rank(ascending=False, method='min')
+
+# 3. 抓取目前玩家的總分與排名
+my_stats = guild_ranking.loc[final_selected_player]
+
+p_flag = int(my_stats['旗幟戰'])
+p_water = int(my_stats['地下水道'])
+rank_flag = int(my_stats['flag_rank'])
+rank_water = int(my_stats['water_rank'])
+
+# 4. 其他數值計算
 p_castle = int(df_filtered['公會城每周'].sum())
+total_weeks = df_filtered['周次'].nunique() # 資料週數
 
-# 取得資料總筆數 (週數)
-total_weeks = len(df_filtered)
-
-# 計算平均值 (避免除以 0，雖然上面有擋但在數學運算上保持嚴謹)
+# 5. 平均值計算
 avg_flag = int(p_flag / total_weeks) if total_weeks > 0 else 0
 avg_water = int(p_water / total_weeks) if total_weeks > 0 else 0
+# 公會城達成率 (顯示小數點後兩位)
 avg_castle = int(float(p_castle / total_weeks)*10000)/100 if total_weeks > 0 else 0
 
-# KPI
+# --- KPI 顯示 (新增排名顯示) ---
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("📊 資料筆數", f"{len(df_filtered)} 週")
-col2.metric("🚩 旗幟戰總分", f"{p_flag:,}",delta=f"平均一周 {avg_flag:,}分", delta_color="off")
-col3.metric("💧 水道總傷分", f"{p_water:,}",delta=f"平均一周 {avg_water:,}分", delta_color="off")
-col4.metric("🏰 公會城完成數", f"{p_castle} 次",delta=f"達成率 {avg_castle:,}%", delta_color="off")
 
-# 圖表
+col1.metric("📊 資料筆數", f"{total_weeks} 週")
+
+# 顯示旗幟 (帶排名)
+col2.metric(
+    "🚩 旗幟戰總分", 
+    f"{p_flag:,}", 
+    f"排名: 第 {rank_flag} 名 (均 {avg_flag:,})"
+)
+
+# 顯示水道 (帶排名)
+col3.metric(
+    "💧 水道總傷分", 
+    f"{p_water:,}", 
+    f"排名: 第 {rank_water} 名 (均 {avg_water:,})"
+)
+
+col4.metric(
+    "🏰 公會城完成數", 
+    f"{p_castle} 次", 
+    f"達成率 {avg_castle:,}%"
+)
+
+# ==========================================
+# 7. 圖表與詳細資料區
+# ==========================================
 tab1, tab2, tab3 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況"])
 
 with tab1:
@@ -414,26 +434,4 @@ with tab3:
         fig_pie.add_annotation(text=f"達成<br>{achieved_num}次", showarrow=False, font_size=20)
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
-
         st.info("此區間無資料")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
