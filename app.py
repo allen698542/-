@@ -143,7 +143,7 @@ JOB_HIERARCHY_DATA = [
 df_hierarchy = pd.DataFrame(JOB_HIERARCHY_DATA)
 
 # ==========================================
-# 1. 密碼保護區 (置中窄版 + 大字體)
+# 1. 密碼保護區
 # ==========================================
 def check_password():
     actual_password = "share1150112"
@@ -243,7 +243,7 @@ search_mode = st.radio(
 )
 
 # ==========================================
-# 分支 A: 全公會排行榜 (山峰式佈局優化版)
+# 分支 A: 全公會排行榜
 # ==========================================
 if search_mode == "🏆 全公會排行榜":
     st.markdown("---")
@@ -260,25 +260,17 @@ if search_mode == "🏆 全公會排行榜":
     
     tab_rank_flag, tab_rank_water, tab_rank_castle = st.tabs(["🚩 旗幟戰排行", "💧 地下水道排行", "🏰 公會城全勤榜"])
     
-    # --- 函式：繪製排行榜 (Top 5 山峰佈局) ---
     def draw_leaderboard(data, col_name, color_scale, label_name, is_attendance=False):
         sorted_df = data.sort_values(by=col_name, ascending=False).reset_index(drop=True)
         sorted_df['名次'] = sorted_df.index + 1
         
-        # 輔助函式：產生圖片標籤 (支援自訂寬度)
         def get_img_tag(url, width=150):
             if url and str(url) != "nan" and str(url).strip() != "":
                 return f'<img src="{url}" style="width: {width}px; height: auto; border-radius: 8px; object-fit: contain; margin: 5px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">'
             return ""
 
-        # --- 定義三種層級的卡片樣式 ---
-        base_style = """
-            text-align: center; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            height: 100%;
-        """
+        base_style = "text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); height: 100%;"
 
-        # 樣式 1: 第一名 (王者：金框 + 漸層背景 + 發光)
         style_1st = f"""
             <div style="{base_style} padding: 12px; border-radius: 15px; 
                 border: 3px solid #FFD700; 
@@ -289,10 +281,10 @@ if search_mode == "🏆 全公會排行榜":
                 <div style="font-size: 1.4rem; font-weight: bold; color: #FFF; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
                 <div style="font-size: 1rem; color: #BBB;">{{score_label}}</div>
                 <div style="font-size: 1.8rem; font-weight: bold; color: {{color}};">{{score}}</div>
+                <div style="font-size: 0.8rem; color: #FFD700; margin-top:5px;">👑 冠軍霸主</div>
             </div>
         """
         
-        # 樣式 2: 第二、三名
         style_2nd3rd = f"""
             <div style="{base_style} padding: 10px; border-radius: 12px; background-color: #262730; border: 2px solid {{border_color}};">
                 <div style="font-size: 2.5rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
@@ -303,7 +295,6 @@ if search_mode == "🏆 全公會排行榜":
             </div>
         """
 
-        # 樣式 3: 第四、五名
         style_4th5th = f"""
             <div style="{base_style} padding: 8px; border-radius: 10px; background-color: #20212b; border: 1px solid #444;">
                 <div style="font-size: 2rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
@@ -318,7 +309,7 @@ if search_mode == "🏆 全公會排行榜":
         spacer_mid = 3 
         spacer_low = 6 
 
-        # Col 1: 第 4 名
+        # 排行榜前五名顯示邏輯
         with cols[0]:
             if len(sorted_df) > 3:
                 p = sorted_df.iloc[3]
@@ -327,8 +318,6 @@ if search_mode == "🏆 全公會排行榜":
                     icon="4️⃣", img_tag=get_img_tag(p.get('圖片'), width=110), 
                     name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#4D96FF"
                 ), unsafe_allow_html=True)
-
-        # Col 2: 第 2 名 (銀色框)
         with cols[1]:
             if len(sorted_df) > 1:
                 p = sorted_df.iloc[1]
@@ -338,8 +327,6 @@ if search_mode == "🏆 全公會排行榜":
                     name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", 
                     color="#C0C0C0", border_color="#C0C0C0"
                 ), unsafe_allow_html=True)
-
-        # Col 3: 第 1 名 (王者特效)
         with cols[2]:
             if len(sorted_df) > 0:
                 p = sorted_df.iloc[0]
@@ -347,8 +334,6 @@ if search_mode == "🏆 全公會排行榜":
                     icon="🥇", img_tag=get_img_tag(p.get('圖片'), width=150), 
                     name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#FFD700"
                 ), unsafe_allow_html=True)
-
-        # Col 4: 第 3 名 (銅色框)
         with cols[3]:
             if len(sorted_df) > 2:
                 p = sorted_df.iloc[2]
@@ -358,8 +343,6 @@ if search_mode == "🏆 全公會排行榜":
                     name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", 
                     color="#CD7F32", border_color="#CD7F32"
                 ), unsafe_allow_html=True)
-
-        # Col 5: 第 5 名
         with cols[4]:
             if len(sorted_df) > 4:
                 p = sorted_df.iloc[4]
@@ -372,19 +355,14 @@ if search_mode == "🏆 全公會排行榜":
         st.markdown("---")
         
         top15_df = sorted_df.head(15).copy()
-        fig = px.bar(top15_df, x=col_name, y='暱稱', orientation='h', text=col_name, title=f"🏆 {label_name} Top 15 (區間總和)", color=col_name, color_continuous_scale=color_scale)
+        fig = px.bar(top15_df, x=col_name, y='暱稱', orientation='h', text=col_name, title=f"🏆 {label_name} Top 15", color=col_name, color_continuous_scale=color_scale)
         fig.update_layout(yaxis={'categoryorder':'total ascending', 'fixedrange': True}, xaxis={'fixedrange': True}, dragmode=False)
         fig.update_traces(texttemplate='%{text:,}', textposition='outside')
         st.plotly_chart(fig, use_container_width=True, config=PLOT_CONFIG)
         
         st.markdown("#### 📋 完整名單")
         display_df = sorted_df[['名次', '暱稱', '職業', '周次', col_name]].copy()
-        if is_attendance:
-            display_df['全勤率(%)'] = (display_df[col_name] / display_df['周次'] * 100).astype(int)
-            val_format = "%d 次"
-        else:
-            val_format = "%d"
-
+        val_format = "%d 次" if is_attendance else "%d"
         st.dataframe(display_df, use_container_width=True, hide_index=True, column_config={col_name: st.column_config.ProgressColumn(label_name, format=val_format, min_value=0, max_value=int(sorted_df[col_name].max()) if len(sorted_df) > 0 else 100,), "名次": st.column_config.NumberColumn(format="No. %d")})
 
     with tab_rank_flag:
@@ -399,6 +377,11 @@ if search_mode == "🏆 全公會排行榜":
 # ==========================================
 else: 
     final_selected_player = None 
+    
+    # 變數初始化，避免 NameError
+    selected_group = None
+    selected_category = None
+    selected_job = None
 
     with st.container(border=True):
         if search_mode == "個人查詢 (層級篩選)":
@@ -413,14 +396,12 @@ else:
                     selected_category = st.selectbox("2️⃣ 分類", categories, index=None, placeholder="請選擇...")
                 else: 
                     st.selectbox("2️⃣ 分類", [], disabled=True, placeholder="請先選職業群")
-                    selected_category = None
             with col_job:
                 if selected_category:
                     jobs = df_hierarchy[(df_hierarchy['group'] == selected_group) & (df_hierarchy['category'] == selected_category)]['job'].unique().tolist()
                     selected_job = st.selectbox("3️⃣ 職業", jobs, index=None, placeholder="請選擇...")
                 else: 
                     st.selectbox("3️⃣ 職業", [], disabled=True, placeholder="請先選分類")
-                    selected_job = None
             with col_player:
                 if selected_job:
                     players_in_job = sorted(df[df['職業'] == selected_job]['暱稱'].unique().tolist())
@@ -523,10 +504,10 @@ else:
 
             st.markdown("### 🏆 本周戰績與排名情報")
             
-            # --- 自訂繪製卡片的函式 (處理第1名特效) ---
+            # --- 核心：繪製數據卡片 (支援第1名特效) ---
             def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one=False):
                 if is_number_one:
-                    # 傳說黃金卡片樣式
+                    # 傳說黃金卡片 CSS
                     st.markdown(f"""
                     <div style="
                         border: 3px solid #FFD700;
@@ -536,17 +517,19 @@ else:
                         padding: 15px;
                         color: white;
                         margin-bottom: 10px;
+                        height: 100%;
                     ">
                         <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px;">{title}</div>
                         <div style="font-size: 2em; font-weight: bold; color: #FFD700;">{score_str}</div>
-                        <div style="font-size: 1.2em; margin-bottom: 10px;">{rank_str}</div>
-                        <hr style="margin: 10px 0; border-color: #555;">
+                        <div style="font-size: 1.2em; margin-bottom: 5px;">{rank_str}</div>
+                        <div style="font-size: 0.8em; color: #FFD700; font-weight: bold; margin-bottom: 10px;">👑 冠軍霸主</div>
+                        <hr style="margin: 5px 0; border-color: #555;">
                         <div style="font-size: 0.8em; color: #CCC; margin-bottom: 3px;">{prev_txt}</div>
                         <div style="font-size: 0.8em; color: #CCC;">{next_txt}</div>
                     </div>
                     """, unsafe_allow_html=True)
                 else:
-                    # 標準樣式
+                    # 一般樣式
                     with st.container(border=True):
                         st.markdown(f"#### {title}")
                         st.markdown(f"## :orange[{score_str}]")
@@ -557,7 +540,7 @@ else:
 
             col1, col2, col3, col4 = st.columns(4)
 
-            # 1. 統計週數 (保持標準)
+            # 1. 統計週數
             with col1:
                 with st.container(border=True):
                     st.markdown(f"#### 📊 統計週數\n## :orange[{my_weeks} 週]\n### 📅 區間累計"); st.divider(); st.caption(f"📅 **開始**：{start_date}\n📅 **結束**：{end_date}")
@@ -566,12 +549,14 @@ else:
             with col2:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
                 rank_str = f"{get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_flag:,})</span>"
+                # 判定是否第一名
                 draw_stat_card("🚩 旗幟戰", f"{p_flag:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_flag == 1))
 
             # 3. 地下水道
             with col3:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
                 rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_water:,})</span>"
+                # 判定是否第一名
                 draw_stat_card("💧 地下水道", f"{p_water:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_water == 1))
 
             # 4. 公會城
@@ -582,8 +567,9 @@ else:
                     rank_str = f"👑 :rainbow[完美全勤!!] <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>"
                 else:
                     rank_str = f"{get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>"
-                # 如果是第一名 或者是 100%全勤，都給予黃金特效 (可選) -> 這邊設定依照排名
-                draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, is_number_one=(rank_castle == 1))
+                # 判定是否第一名 或 全勤 (給予全勤者獎勵)
+                is_castle_king = (rank_castle == 1) or (avg_castle_pct == 100)
+                draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, is_number_one=is_castle_king)
 
             tab1, tab2, tab3 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況"])
 
