@@ -200,71 +200,47 @@ except Exception as e:
     st.stop()
 
 # ==========================================
-# 3. 介面與搜尋邏輯 (含自訂純數字日期選擇器)
+# 3. 介面與搜尋邏輯 (修正版：回歸標準日曆元件)
 # ==========================================
 st.title("🍁 公會每周統計")
 
-# --- 自訂函式：純數字日期選擇器 ---
-def numeric_date_input(label, min_date, max_date, default_date, key_prefix):
-    st.sidebar.markdown(f"**{label}**")
-    
-    # 建立三欄：年(較寬)、月、日
-    c_y, c_m, c_d = st.sidebar.columns([1.3, 1, 1])
-    
-    # 年份選單
-    year_options = list(range(min_date.year, max_date.year + 1))
-    # 確保預設值在範圍內
-    default_year = default_date.year if default_date.year in year_options else year_options[0]
-    
-    selected_year = c_y.selectbox(
-        "年", year_options, 
-        index=year_options.index(default_year), 
-        key=f"{key_prefix}_year",
-        label_visibility="collapsed" # 隱藏標籤，更緊湊
-    )
-    
-    # 月份選單 (1~12)
-    month_options = list(range(1, 13))
-    selected_month = c_m.selectbox(
-        "月", month_options, 
-        index=month_options.index(default_date.month), 
-        key=f"{key_prefix}_month",
-        label_visibility="collapsed"
-    )
-    
-    # 計算該年該月有幾天
-    _, num_days = calendar.monthrange(selected_year, selected_month)
-    day_options = list(range(1, num_days + 1))
-    
-    # 處理天數變更 (例如從31日切換到只有28天的2月)
-    target_day_idx = default_date.day - 1
-    if target_day_idx >= len(day_options):
-        target_day_idx = len(day_options) - 1
-    
-    # 如果使用者剛剛改了月份導致天數變了，我們儘量維持原本的天數或選最後一天
-    # 這裡簡化處理：直接讓使用者選，預設值僅在第一次載入或有對應時生效
-    # 為了更好的體驗，這裡不強制鎖定 index，讓 streamlit 處理
-    selected_day = c_d.selectbox(
-        "日", day_options, 
-        index=target_day_idx if target_day_idx < len(day_options) else 0,
-        key=f"{key_prefix}_day",
-        label_visibility="collapsed"
-    )
-    
-    return datetime.date(selected_year, selected_month, selected_day)
-
-# --- 日期區間設定 (使用純數字選擇器) ---
 st.sidebar.header("📅 日期區間設定")
+
+# 取得資料庫中的最早與最晚日期
 data_min_date = df['周次'].min().date()
 data_max_date = df['周次'].max().date()
 
-# 呼叫自訂選擇器
-start_date = numeric_date_input("開始日期", data_min_date, data_max_date, data_min_date, "start")
-st.sidebar.markdown("⬇️ 至") # 裝飾用箭頭
-end_date = numeric_date_input("結束日期", data_min_date, data_max_date, data_max_date, "end")
+# 使用 Streamlit 標準日期選擇器 (區間模式)
+# value 傳入一個 list [開始, 結束]，這樣介面上只會有一個美觀的日曆
+date_range = st.sidebar.date_input(
+    "選擇查詢區間",
+    value=[data_min_date, data_max_date], # 預設全選
+    min_value=data_min_date,
+    max_value=data_max_date,
+    format="YYYY-MM-DD"  # 強制顯示為數字格式，看起來比較清爽
+)
+
+# 防呆機制：確保使用者選了兩個日期 (有時候使用者只點了一下，還沒點第二下)
+if isinstance(date_range, tuple) or isinstance(date_range, list):
+    if len(date_range) == 2:
+        start_date = date_range[0]
+        end_date = date_range[1]
+    elif len(date_range) == 1:
+        # 如果只選了一個日期，預設開始=結束
+        start_date = date_range[0]
+        end_date = date_range[0]
+    else:
+        start_date = data_min_date
+        end_date = data_max_date
+else:
+    start_date = data_min_date
+    end_date = data_max_date
 
 if start_date > end_date:
     st.sidebar.error("⚠️ 開始日期不能晚於結束日期")
+
+# 顯示目前選擇結果 (除錯用，讓使用者安心)
+st.sidebar.caption(f"目前顯示：{start_date} 至 {end_date}")
 
 # 篩選日期區間資料 (全域共用)
 mask_period = (df['周次'].dt.date >= start_date) & (df['周次'].dt.date <= end_date)
@@ -641,3 +617,4 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
