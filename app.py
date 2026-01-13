@@ -529,7 +529,7 @@ with tab1:
         df_filtered,
         x='周次',
         y=chart_type,
-        title=f"{final_selected_player} - {chart_type} 趨勢分析",
+        title=f"{final_selected_player} - {chart_type} 趨勢",
         markers=True,
     )
 
@@ -539,53 +539,49 @@ with tab1:
         line_width=3,
         marker_size=6,
         marker_color=line_color,
-        name="實際分數" # 設定圖例名稱
+        name="實際分數" 
     )
 
     # ==========================================
-    # ★ 新增功能：計算並繪製「趨勢線」 (只針對有分數的項目)
+    # ★ 趨勢線邏輯：只針對「地下水道」顯示
     # ==========================================
-    if chart_type in ["旗幟戰", "地下水道"] and len(df_filtered) > 1:
+    if chart_type == "地下水道" and len(df_filtered) > 1:
         try:
-            # A. 準備數據：因為日期不能直接算數學，要轉成「距離第一天的天數」
+            # A. 準備數據
             x_dates = df_filtered['周次']
             y_data = df_filtered[chart_type]
             
-            # 將日期轉換為數字 (ordinal) 用來計算斜率
-            # 這裡用一個簡單的方法：轉成 timestamp 數值
+            # 轉成數字計算斜率
             x_numeric = pd.to_numeric(x_dates) 
             
-            # B. 使用 numpy 計算線性迴歸 (y = mx + b)
-            # polyfit(x, y, 1) 代表 1 次方，也就是直線
+            # B. 計算線性迴歸
             slope, intercept = np.polyfit(x_numeric, y_data, 1)
-            
-            # C. 算出趨勢線的 Y 值
             trend_y = slope * x_numeric + intercept
             
-            # D. 將趨勢線畫上去
+            # C. 畫上紅色的趨勢線
             fig_line.add_scatter(
                 x=x_dates,
                 y=trend_y,
                 mode='lines',
-                name='📈 趨勢線', # 圖例名稱
+                name='📈 成長趨勢', 
                 line=dict(
-                    color='red',     # 設定為紅色，像 Excel 一樣顯眼
-                    width=2,         # 稍微細一點
-                    dash='dash'      # 設定為虛線
+                    color='red',     
+                    width=2,         
+                    dash='dash'      
                 ),
-                hoverinfo='skip'     # 滑鼠移過去不用顯示數值，避免擋住主圖
+                hoverinfo='skip'
             )
-        except Exception as e:
-            st.caption(f"數據點不足，無法計算趨勢線")
+        except Exception:
+            pass # 運算失敗就不顯示，不影響主圖
 
     # ==========================================
 
-    # 5. 加上平均線 (保留原本功能，改用不同顏色以免混淆)
+    # 5. 加上平均線 (旗幟戰、地下水道都有)
     avg_score = df_filtered[chart_type].mean()
     if chart_type != "公會城每周" and avg_score > 0:
         fig_line.add_hline(
             y=avg_score, 
-            line_dash="dot", # 改成點狀線，區分趨勢線
+            line_dash="dot", 
             line_color="gray", 
             annotation_text=f"平均: {int(avg_score):,}", 
             annotation_position="bottom right"
@@ -596,9 +592,9 @@ with tab1:
         xaxis_title="",          
         yaxis_title=y_label,
         hovermode="x unified",
-        showlegend=True,         # 開啟圖例，這樣才看得到「實際分數」和「趨勢線」
+        showlegend=True,         # 開啟圖例
         legend=dict(
-            orientation="h",     # 圖例放水平
+            orientation="h",     
             yanchor="bottom",
             y=1.02,
             xanchor="right",
@@ -639,6 +635,7 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
 
