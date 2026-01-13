@@ -11,17 +11,13 @@ import requests
 API_KEY = st.secrets.get("NEXON_API_KEY", None)
 
 # ==========================================
-# 全域設定：圖表工具列 (只保留截圖)
+# 全域設定：圖表工具列與互動鎖定
 # ==========================================
-# 這裡設定要隱藏哪些按鈕
+# config: 隱藏按鈕
 PLOT_CONFIG = {
-    'displayModeBar': True,
-    'displaylogo': False, # 隱藏 Plotly 的 logo
-    'modeBarButtonsToRemove': [
-        'zoom2d', 'pan2d', 'select2d', 'lasso2d', 
-        'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d',
-        'hoverClosestCartesian', 'hoverCompareCartesian', 'toggleSpikelines'
-    ]
+    'displayModeBar': False, # 直接隱藏整條工具列 (比隱藏個別按鈕更乾脆)
+    'staticPlot': False,     # 保持 False，這樣滑鼠移上去才看得到數據
+    'scrollZoom': False,     # 禁用滾輪縮放
 }
 
 @st.cache_data(ttl=3600)
@@ -232,19 +228,17 @@ if search_mode == "🏆 全公會排行榜":
     
     tab_rank_flag, tab_rank_water, tab_rank_castle = st.tabs(["🚩 旗幟戰排行", "💧 地下水道排行", "🏰 公會城全勤榜"])
     
-    # --- 函式：繪製排行榜 (美化版 + 簡化工具列) ---
+    # --- 函式：繪製排行榜 ---
     def draw_leaderboard(data, col_name, color_scale, label_name, is_attendance=False):
         # 排序
         sorted_df = data.sort_values(by=col_name, ascending=False).reset_index(drop=True)
         sorted_df['名次'] = sorted_df.index + 1
         
-        # 1. 前三名頒獎台 (Top 3) - 視覺優化版
-        # 使用 5 個欄位：[空白, 銀牌, 金牌, 銅牌, 空白] 來讓版面置中
+        # 1. 前三名頒獎台
         c_space_l, c2, c1, c3, c_space_r = st.columns([1, 2, 2.2, 2, 1])
-        
         top3 = sorted_df.head(3)
         
-        # 定義卡片樣式 (CSS)
+        # 卡片樣式
         card_style = """
             <div style="
                 background-color: #262730; 
@@ -262,57 +256,30 @@ if search_mode == "🏆 全公會排行榜":
             </div>
         """
 
-        # --- 第一名 (金牌) ---
         if len(top3) > 0:
             p1 = top3.iloc[0]
             val1 = int(p1[col_name])
             with c1:
-                # 第一名不加 margin-top，保持最高
-                st.markdown(card_style.format(
-                    icon="🥇", 
-                    name=p1['暱稱'], 
-                    score_label="Score",
-                    score=f"{val1:,}",
-                    color="#FFD700" # 金色
-                ), unsafe_allow_html=True)
-                if not is_attendance:
-                    st.caption("👑 冠軍霸主")
+                st.markdown(card_style.format(icon="🥇", name=p1['暱稱'], score_label="Score", score=f"{val1:,}", color="#FFD700"), unsafe_allow_html=True)
+                if not is_attendance: st.caption("👑 冠軍霸主")
 
-        # --- 第二名 (銀牌) ---
         if len(top3) > 1:
             p2 = top3.iloc[1]
             val2 = int(p2[col_name])
             with c2:
-                # 加上空白行讓它看起來矮一點 (頒獎台階梯效果)
-                st.write("") 
-                st.write("") 
-                st.markdown(card_style.format(
-                    icon="🥈", 
-                    name=p2['暱稱'], 
-                    score_label="Score",
-                    score=f"{val2:,}",
-                    color="#C0C0C0" # 銀色
-                ), unsafe_allow_html=True)
+                st.write(""); st.write("") 
+                st.markdown(card_style.format(icon="🥈", name=p2['暱稱'], score_label="Score", score=f"{val2:,}", color="#C0C0C0"), unsafe_allow_html=True)
 
-        # --- 第三名 (銅牌) ---
         if len(top3) > 2:
             p3 = top3.iloc[2]
             val3 = int(p3[col_name])
             with c3:
-                # 加上空白行讓它看起來矮一點
-                st.write("") 
-                st.write("") 
-                st.markdown(card_style.format(
-                    icon="🥉", 
-                    name=p3['暱稱'], 
-                    score_label="Score",
-                    score=f"{val3:,}",
-                    color="#CD7F32" # 銅色
-                ), unsafe_allow_html=True)
+                st.write(""); st.write("") 
+                st.markdown(card_style.format(icon="🥉", name=p3['暱稱'], score_label="Score", score=f"{val3:,}", color="#CD7F32"), unsafe_allow_html=True)
 
         st.markdown("---")
         
-        # 2. 長條圖視覺化 (Top 15)
+        # 2. 長條圖 (互動鎖定版)
         top15_df = sorted_df.head(15).copy()
         
         fig = px.bar(
@@ -325,10 +292,15 @@ if search_mode == "🏆 全公會排行榜":
             color=col_name,
             color_continuous_scale=color_scale
         )
-        fig.update_layout(yaxis={'categoryorder':'total ascending'}) 
+        
+        # 關鍵修改：鎖定座標軸與關閉拖曳
+        fig.update_layout(
+            yaxis={'categoryorder':'total ascending', 'fixedrange': True}, # 鎖定 Y 軸
+            xaxis={'fixedrange': True}, # 鎖定 X 軸
+            dragmode=False # 禁用滑鼠拖曳 (游標不會變十字)
+        )
         fig.update_traces(texttemplate='%{text:,}', textposition='outside')
         
-        # 這裡套用全域的 PLOT_CONFIG 來隱藏按鈕
         st.plotly_chart(fig, use_container_width=True, config=PLOT_CONFIG)
         
         # 3. 完整資料表
@@ -374,65 +346,39 @@ else:
     final_selected_player = None 
 
     with st.container(border=True):
-        
-        # === 模式 1: 層級篩選 ===
         if search_mode == "個人查詢 (層級篩選)":
             st.caption("依序選擇：職業群 > 分類 > 職業 > 玩家")
             col_group, col_cat, col_job, col_player = st.columns(4)
-            
             with col_group:
                 groups = df_hierarchy['group'].unique().tolist()
                 selected_group = st.selectbox("1️⃣ 職業群", groups, index=None, placeholder="請選擇...")
-
             with col_cat:
                 if selected_group:
                     categories = df_hierarchy[df_hierarchy['group'] == selected_group]['category'].unique().tolist()
                     selected_category = st.selectbox("2️⃣ 分類", categories, index=None, placeholder="請選擇...")
-                else:
-                    st.selectbox("2️⃣ 分類", [], disabled=True, placeholder="請先選職業群")
-                    selected_category = None
-
+                else: st.selectbox("2️⃣ 分類", [], disabled=True, placeholder="請先選職業群")
             with col_job:
                 if selected_category:
-                    jobs = df_hierarchy[
-                        (df_hierarchy['group'] == selected_group) & 
-                        (df_hierarchy['category'] == selected_category)
-                    ]['job'].unique().tolist()
+                    jobs = df_hierarchy[(df_hierarchy['group'] == selected_group) & (df_hierarchy['category'] == selected_category)]['job'].unique().tolist()
                     selected_job = st.selectbox("3️⃣ 職業", jobs, index=None, placeholder="請選擇...")
-                else:
-                    st.selectbox("3️⃣ 職業", [], disabled=True, placeholder="請先選分類")
-                    selected_job = None
-
+                else: st.selectbox("3️⃣ 職業", [], disabled=True, placeholder="請先選分類")
             with col_player:
                 if selected_job:
                     players_in_job = sorted(df[df['職業'] == selected_job]['暱稱'].unique().tolist())
                     if not players_in_job:
                         st.warning("無數據")
                         final_selected_player = None
-                    else:
-                        final_selected_player = st.selectbox("4️⃣ 玩家 ID", players_in_job, index=None, placeholder="請選擇玩家...")
-                else:
-                    st.selectbox("4️⃣ 玩家 ID", [], disabled=True, placeholder="請先選職業")
-                    final_selected_player = None
+                    else: final_selected_player = st.selectbox("4️⃣ 玩家 ID", players_in_job, index=None, placeholder="請選擇玩家...")
+                else: st.selectbox("4️⃣ 玩家 ID", [], disabled=True, placeholder="請先選職業")
 
-        # === 模式 2: 直接搜尋 ===
         elif search_mode == "個人查詢 (直接搜尋)":
             st.caption("直接輸入關鍵字搜尋玩家 ID")
             col_search_1, col_search_2 = st.columns([1, 3])
-            
-            with col_search_1:
-                st.markdown("**🔎 搜尋玩家**")
-            
+            with col_search_1: st.markdown("**🔎 搜尋玩家**")
             with col_search_2:
                 all_players_list = sorted(df['暱稱'].unique().tolist())
-                final_selected_player = st.selectbox(
-                    "請輸入或選擇玩家 ID：",
-                    all_players_list,
-                    index=None,
-                    placeholder="輸入玩家 ID..."
-                )
+                final_selected_player = st.selectbox("請輸入或選擇玩家 ID：", all_players_list, index=None, placeholder="輸入玩家 ID...")
 
-    # 4. 個人資料過濾與顯示
     if not final_selected_player:
         st.markdown("---")
         st.info("👋 請在上方選擇一位玩家以查看詳細數據。")
@@ -443,8 +389,6 @@ else:
             st.warning(f"玩家 {final_selected_player} 在此日期區間內無資料。")
         else:
             df_sorted = df_filtered.sort_values('周次', ascending=False)
-
-            # 智慧搜尋：不只找最新，還要找「有資料」的那一筆
             player_info = df_sorted.iloc[0]
             current_level = player_info.get('等級', 0)
             img_url = player_info.get('圖片', None)
@@ -456,10 +400,8 @@ else:
                     current_level = player_info.get('等級')
                     img_url = player_info.get('圖片')
 
-            if str(current_level) == "0" or str(current_level) == "nan":
-                display_level = "???"
-            else:
-                display_level = int(float(current_level)) 
+            if str(current_level) == "0" or str(current_level) == "nan": display_level = "???"
+            else: display_level = int(float(current_level)) 
 
             job_display = player_info.get('職業', '未知')
             if str(job_display) == 'nan': job_display = '未知'
@@ -468,43 +410,22 @@ else:
 
             with st.container(border=True):
                 col_profile_img, col_profile_info = st.columns([1.5, 3.5])
-                
                 with col_profile_img:
-                    if img_url and str(img_url) != "nan" and str(img_url).strip() != "":
-                        st.image(img_url, width=130)
-                    else:
-                        st.markdown("# 👤") 
-                        
+                    if img_url and str(img_url) != "nan" and str(img_url).strip() != "": st.image(img_url, width=130)
+                    else: st.markdown("# 👤") 
                 with col_profile_info:
-                    st.markdown(f"""
-                    #### 📜 角色詳細資料
-                    * **職業：** {job_display}
-                    * **等級：** {display_level}
-                    * **資料來源：** 靜態資料庫 (非即時API回溯法)
-                    """)
+                    st.markdown(f"#### 📜 角色詳細資料\n* **職業：** {job_display}\n* **等級：** {display_level}\n* **資料來源：** 靜態資料庫 (非即時API回溯法)")
 
             st.markdown("---")
 
-            # 排名系統
-            guild_stats = df_period.groupby('暱稱').agg({
-                '旗幟戰': 'sum',
-                '地下水道': 'sum',
-                '公會城每周': 'sum',
-                '周次': 'nunique'
-            })
-
+            guild_stats = df_period.groupby('暱稱').agg({'旗幟戰': 'sum', '地下水道': 'sum', '公會城每周': 'sum', '周次': 'nunique'})
             guild_stats['flag_rank'] = guild_stats['旗幟戰'].rank(ascending=False, method='min')
             guild_stats['water_rank'] = guild_stats['地下水道'].rank(ascending=False, method='min')
             guild_stats['castle_rank'] = guild_stats['公會城每周'].rank(ascending=False, method='min')
 
             my_stats = guild_stats.loc[final_selected_player]
-            p_flag = int(my_stats['旗幟戰'])
-            p_water = int(my_stats['地下水道'])
-            p_castle = int(my_stats['公會城每周'])
-            my_weeks = int(my_stats['周次']) 
-            rank_flag = int(my_stats['flag_rank'])
-            rank_water = int(my_stats['water_rank'])
-            rank_castle = int(my_stats['castle_rank'])
+            p_flag = int(my_stats['旗幟戰']); p_water = int(my_stats['地下水道']); p_castle = int(my_stats['公會城每周']); my_weeks = int(my_stats['周次']) 
+            rank_flag = int(my_stats['flag_rank']); rank_water = int(my_stats['water_rank']); rank_castle = int(my_stats['castle_rank'])
 
             avg_flag = int(p_flag / my_weeks) if my_weeks > 0 else 0
             avg_water = int(p_water / my_weeks) if my_weeks > 0 else 0
@@ -521,16 +442,12 @@ else:
                 try:
                     my_score = df_sorted[df_sorted['暱稱'] == target_player][col_sum].values[0]
                     my_idx = df_sorted[df_sorted['暱稱'] == target_player].index[0]
-                except IndexError:
-                    return None, None
+                except IndexError: return None, None
 
                 def format_row(row, idx, is_neighbor=True):
-                    score = int(row[col_sum])
-                    weeks = int(row[col_weeks])
-                    neighbor_name = row['暱稱']
+                    score = int(row[col_sum]); weeks = int(row[col_weeks]); neighbor_name = row['暱稱']
                     real_rank = int(df_source.loc[neighbor_name][f"{'flag' if col_sum == '旗幟戰' else 'water' if col_sum == '地下水道' else 'castle'}_rank"])
                     tie_text = " (同分)" if is_neighbor and score == my_score else ""
-                    
                     if mode == 'avg':
                         avg_val = int(score / weeks) if weeks > 0 else 0
                         return f"第 {real_rank} 名{tie_text} : {score:,} (均 {avg_val:,})"
@@ -538,18 +455,10 @@ else:
                         pct_val = int(float(score / weeks)*10000)/100 if weeks > 0 else 0.0
                         return f"第 {real_rank} 名{tie_text} : {score} ({pct_val}%)"
 
-                if my_idx > 0:
-                    prev_row = df_sorted.iloc[my_idx - 1]
-                    prev_str = f"⬆️ {format_row(prev_row, my_idx)}" 
-                else:
-                    prev_str = "👑 目前第一"
-
-                if my_idx < len(df_sorted) - 1:
-                    next_row = df_sorted.iloc[my_idx + 1]
-                    next_str = f"⬇️ {format_row(next_row, my_idx + 2)}"
-                else:
-                    next_str = "🛡️ 目前墊底"
-                    
+                if my_idx > 0: prev_str = f"⬆️ {format_row(df_sorted.iloc[my_idx - 1], my_idx)}" 
+                else: prev_str = "👑 目前第一"
+                if my_idx < len(df_sorted) - 1: next_str = f"⬇️ {format_row(df_sorted.iloc[my_idx + 1], my_idx + 2)}"
+                else: next_str = "🛡️ 目前墊底"
                 return prev_str, next_str
 
             st.markdown("### 🏆 本周戰績與排名情報")
@@ -557,148 +466,68 @@ else:
 
             with col1:
                 with st.container(border=True):
-                    st.markdown("#### 📊 統計週數")
-                    st.markdown(f"## :orange[{my_weeks} 週]")
-                    st.markdown("### 📅 區間累計") 
-                    st.divider()
-                    st.caption(f"📅 **開始**：{start_date}")
-                    st.caption(f"📅 **結束**：{end_date}")
-
+                    st.markdown(f"#### 📊 統計週數\n## :orange[{my_weeks} 週]\n### 📅 區間累計"); st.divider(); st.caption(f"📅 **開始**：{start_date}\n📅 **結束**：{end_date}")
             with col2:
                 with st.container(border=True):
-                    st.markdown("#### 🚩 旗幟戰")
-                    st.markdown(f"## :orange[{p_flag:,}]")
-                    rank_icon = get_rank_icon(rank_flag)
-                    st.markdown(f"### {rank_icon}第 {rank_flag} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_flag:,})</span>", unsafe_allow_html=True)
+                    st.markdown(f"#### 🚩 旗幟戰\n## :orange[{p_flag:,}]"); st.markdown(f"### {get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_flag:,})</span>", unsafe_allow_html=True)
                     prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
-                    st.divider()
-                    st.caption(prev_txt)
-                    st.caption(next_txt)
-
+                    st.divider(); st.caption(prev_txt); st.caption(next_txt)
             with col3:
                 with st.container(border=True):
-                    st.markdown("#### 💧 地下水道")
-                    st.markdown(f"## :orange[{p_water:,}]")
-                    rank_icon = get_rank_icon(rank_water)
-                    st.markdown(f"### {rank_icon}第 {rank_water} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_water:,})</span>", unsafe_allow_html=True)
+                    st.markdown(f"#### 💧 地下水道\n## :orange[{p_water:,}]"); st.markdown(f"### {get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_water:,})</span>", unsafe_allow_html=True)
                     prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
-                    st.divider()
-                    st.caption(prev_txt)
-                    st.caption(next_txt)
-
+                    st.divider(); st.caption(prev_txt); st.caption(next_txt)
             with col4:
                 with st.container(border=True):
-                    castle_title = "🏰 公會城"
-                    if avg_castle_pct == 100: castle_title = "👑 公會城 (全勤)"
-                    st.markdown(f"#### {castle_title}")
-                    st.markdown(f"## :orange[{p_castle} 次]")
-                    if avg_castle_pct == 100:
-                        st.markdown(f"### 👑 :rainbow[完美全勤!!] <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>", unsafe_allow_html=True)
-                    else:
-                        rank_icon = get_rank_icon(rank_castle)
-                        st.markdown(f"### {rank_icon}第 {rank_castle} 名 <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>", unsafe_allow_html=True)
+                    castle_title = "👑 公會城 (全勤)" if avg_castle_pct == 100 else "🏰 公會城"
+                    st.markdown(f"#### {castle_title}\n## :orange[{p_castle} 次]")
+                    if avg_castle_pct == 100: st.markdown(f"### 👑 :rainbow[完美全勤!!] <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>", unsafe_allow_html=True)
+                    else: st.markdown(f"### {get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>", unsafe_allow_html=True)
                     prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '公會城每周', '周次', mode='pct')
-                    st.divider()
-                    st.caption(prev_txt)
-                    st.caption(next_txt)
+                    st.divider(); st.caption(prev_txt); st.caption(next_txt)
 
-            # 7. 圖表與詳細資料區
             tab1, tab2, tab3 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況"])
 
             with tab1:
                 chart_type = st.radio("選擇數據類型", ["旗幟戰", "地下水道", "公會城每周"], horizontal=True)
-                
-                if chart_type == "旗幟戰":
-                    line_color = "#FF6B6B"  
-                    y_label = "分數"
-                elif chart_type == "地下水道":
-                    line_color = "#4D96FF"  
-                    y_label = "分數"
-                else: 
-                    line_color = "#6BCB77"  
-                    y_label = "完成狀態 (1=有, 0=無)"
+                if chart_type == "旗幟戰": line_color = "#FF6B6B"; y_label = "分數"
+                elif chart_type == "地下水道": line_color = "#4D96FF"; y_label = "分數"
+                else: line_color = "#6BCB77"; y_label = "完成狀態 (1=有, 0=無)"
 
-                fig_line = px.line(
-                    df_filtered,
-                    x='周次',
-                    y=chart_type,
-                    title=f"{final_selected_player} - {chart_type} 趨勢",
-                    markers=True,
-                )
-
-                fig_line.update_traces(
-                    line_color=line_color,
-                    line_width=3,
-                    marker_size=6,
-                    marker_color=line_color,
-                    name="實際分數" 
-                )
+                fig_line = px.line(df_filtered, x='周次', y=chart_type, title=f"{final_selected_player} - {chart_type} 趨勢", markers=True)
+                fig_line.update_traces(line_color=line_color, line_width=3, marker_size=6, marker_color=line_color, name="實際分數")
 
                 if chart_type == "地下水道" and len(df_filtered) > 1:
                     try:
-                        x_dates = df_filtered['周次']
-                        y_data = df_filtered[chart_type]
-                        x_numeric = pd.to_numeric(x_dates) 
-                        slope, intercept = np.polyfit(x_numeric, y_data, 1)
-                        trend_y = slope * x_numeric + intercept
-                        fig_line.add_scatter(
-                            x=x_dates,
-                            y=trend_y,
-                            mode='lines',
-                            name='📈 成長趨勢', 
-                            line=dict(color='red', width=2, dash='dash'),
-                            hoverinfo='skip'
-                        )
-                    except Exception: pass 
+                        slope, intercept = np.polyfit(pd.to_numeric(df_filtered['周次']), df_filtered[chart_type], 1)
+                        fig_line.add_scatter(x=df_filtered['周次'], y=slope * pd.to_numeric(df_filtered['周次']) + intercept, mode='lines', name='📈 成長趨勢', line=dict(color='red', width=2, dash='dash'), hoverinfo='skip')
+                    except: pass 
 
                 avg_score = df_filtered[chart_type].mean()
                 if chart_type != "公會城每周" and avg_score > 0:
-                    fig_line.add_hline(
-                        y=avg_score, 
-                        line_dash="dot", 
-                        line_color="gray", 
-                        annotation_text=f"平均: {int(avg_score):,}", 
-                        annotation_position="bottom right"
-                    )
+                    fig_line.add_hline(y=avg_score, line_dash="dot", line_color="gray", annotation_text=f"平均: {int(avg_score):,}", annotation_position="bottom right")
 
+                # 關鍵修改：鎖定座標軸與關閉拖曳 (個人走勢圖)
                 fig_line.update_layout(
-                    xaxis_title="",          
-                    yaxis_title=y_label,
+                    xaxis=dict(tickformat="%Y-%m-%d", fixedrange=True),
+                    yaxis=dict(title=y_label, fixedrange=True),
                     hovermode="x unified",
                     showlegend=True,
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                    xaxis=dict(tickformat="%Y-%m-%d")
+                    dragmode=False # 禁用滑鼠拖曳
                 )
                 
-                # 套用全域 PLOT_CONFIG (隱藏按鈕)
                 st.plotly_chart(fig_line, use_container_width=True, config=PLOT_CONFIG)
-                
-                if chart_type == "公會城每周":
-                    st.caption("ℹ️ 1 代表有完成，0 代表未完成")
+                if chart_type == "公會城每周": st.caption("ℹ️ 1 代表有完成，0 代表未完成")
 
             with tab2:
-                display_cols = ['周次', '職業', '暱稱', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']
-                st.dataframe(df_filtered[display_cols], use_container_width=True, hide_index=True)
+                st.dataframe(df_filtered[['周次', '職業', '暱稱', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']], use_container_width=True, hide_index=True)
 
             with tab3:
                 achievement_counts = df_filtered['本周是否達成'].value_counts().reset_index()
                 achievement_counts.columns = ['狀態', '數量']
-                color_map = {'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}
-
                 if not achievement_counts.empty:
-                    fig_pie = px.pie(
-                        achievement_counts, 
-                        values='數量', 
-                        names='狀態', 
-                        title='個人達成率統計',
-                        color='狀態',
-                        color_discrete_map=color_map,
-                        hole=0.6
-                    )
-                    achieved_num = achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()
-                    fig_pie.add_annotation(text=f"達成<br>{achieved_num}次", showarrow=False, font_size=20)
-                    
-                    # 套用全域 PLOT_CONFIG (隱藏按鈕)
+                    fig_pie = px.pie(achievement_counts, values='數量', names='狀態', title='個人達成率統計', color='狀態', color_discrete_map={'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}, hole=0.6)
+                    fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
-                else:
-                    st.info("此區間無資料")
+                else: st.info("此區間無資料")
