@@ -559,23 +559,26 @@ else:
             # 2. 旗幟戰
             with col2:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
-                rank_str = f"{get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:0.6rem; color:gray'>(均 {avg_flag:,})</span>"
+                # 修改：字體放大至 1.0rem，顏色調亮 #BBB
+                rank_str = f"{get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:1.0rem; color:#BBB'>(均 {avg_flag:,})</span>"
                 draw_stat_card("🚩 旗幟戰", f"{p_flag:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_flag == 1))
 
             # 3. 地下水道
             with col3:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
-                rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:0.6rem; color:gray'>(均 {avg_water:,})</span>"
+                # 修改：字體放大至 1.0rem，顏色調亮 #BBB
+                rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:1.0rem; color:#BBB'>(均 {avg_water:,})</span>"
                 draw_stat_card("💧 地下水道", f"{p_water:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_water == 1))
 
             # 4. 公會城
             with col4:
                 castle_title = "👑 公會城 (全勤)" if avg_castle_pct == 100 else "🏰 公會城"
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '公會城每周', '周次', mode='pct')
+                # 修改：字體放大至 1.0rem，顏色調亮 #BBB
                 if avg_castle_pct == 100:
-                    rank_str = f"👑 :rainbow[完美全勤!!] <span style='font-size:0.6rem; color:gray'>({avg_castle_pct}%)</span>"
+                    rank_str = f"👑 :rainbow[完美全勤!!] <span style='font-size:1.0rem; color:#BBB'>({avg_castle_pct}%)</span>"
                 else:
-                    rank_str = f"{get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:0.6rem; color:gray'>({avg_castle_pct}%)</span>"
+                    rank_str = f"{get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:1.0rem; color:#BBB'>({avg_castle_pct}%)</span>"
                 
                 is_castle_king = (rank_castle == 1) or (avg_castle_pct == 100)
                 draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, is_number_one=is_castle_king)
