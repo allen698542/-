@@ -143,7 +143,7 @@ JOB_HIERARCHY_DATA = [
 df_hierarchy = pd.DataFrame(JOB_HIERARCHY_DATA)
 
 # ==========================================
-# 1. 密碼保護區 (修改版：置中窄版)
+# 1. 密碼保護區 (置中窄版)
 # ==========================================
 def check_password():
     actual_password = "share1150112"
@@ -153,20 +153,11 @@ def check_password():
         st.session_state.password_correct = False
         
     if not st.session_state.password_correct:
-        # 空行，讓輸入框不要貼在最上面
         st.write(""); st.write(""); st.write("")
-        
-        # 使用 columns 將畫面切成三份 [左(空), 中(輸入框), 右(空)]
-        # 比例 1:1.5:1 可以讓中間稍微寬一點點，但不會全螢幕
         c1, c2, c3 = st.columns([1, 1.5, 1])
-        
         with c2:
-            # 加個外框 (container border) 看起來像登入卡片
             with st.container(border=True):
-                # 使用 HTML 語法放大字體並置中
                 st.markdown("<h3 style='text-align: center;'>🔐 請輸入密碼</h3>", unsafe_allow_html=True)
-                
-                # label_visibility="collapsed" 隱藏原本的小標題
                 password = st.text_input("密碼", type="password", label_visibility="collapsed")
                 
                 if password == actual_password or password == actual_password2:
@@ -212,13 +203,14 @@ except Exception as e:
 # ==========================================
 st.title("🍁 公會每周統計")
 
-# --- 日期區間 (共用) ---
+# --- 日期區間 (修改為數字格式) ---
 st.sidebar.header("📅 日期區間設定")
 min_date = df['周次'].min()
 max_date = df['周次'].max()
 
-start_date = st.sidebar.date_input("開始日期", value=min_date, min_value=min_date, max_value=max_date)
-end_date = st.sidebar.date_input("結束日期", value=max_date, min_value=min_date, max_value=max_date)
+# 這裡加上 format="YYYY/MM/DD"
+start_date = st.sidebar.date_input("開始日期", value=min_date, min_value=min_date, max_value=max_date, format="YYYY/MM/DD")
+end_date = st.sidebar.date_input("結束日期", value=max_date, min_value=min_date, max_value=max_date, format="YYYY/MM/DD")
 
 if start_date > end_date:
     st.sidebar.error("⚠️ 開始日期不能晚於結束日期")
