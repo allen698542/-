@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import datetime
 import numpy as np
+import requests  # ★ 補上這個！
 
 # ==========================================
 # API 串接設定
@@ -148,7 +149,7 @@ if not check_password():
 # ==========================================
 @st.cache_data
 def load_data():
-    #df = pd.read_excel("data.xlsx") 舊的
+    # df = pd.read_excel("data.xlsx") 舊的
     df = pd.read_csv("guild_data.csv")
     
     df.dropna(how='all', inplace=True)
@@ -635,17 +636,3 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
