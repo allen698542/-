@@ -354,7 +354,7 @@ if search_mode == "🏆 全公會排行榜":
                     icon="🥇", img_tag=get_img_tag(p.get('圖片'), width=150), 
                     name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#FFD700"
                 ), unsafe_allow_html=True)
-                if not is_attendance: st.caption("👑 冠軍霸主")
+                # 已移除底部的文字
 
         # Col 4: 第 3 名
         with cols[3]:
