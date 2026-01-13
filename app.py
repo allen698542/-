@@ -502,10 +502,10 @@ else:
 
             st.markdown("### 🏆 本周戰績與排名情報")
             
-            # --- 核心：繪製數據卡片 (字體放大 + 修正 CSS 格式) ---
+            # --- 核心：繪製數據卡片 (統一使用 HTML 以確保高度與字體一致) ---
             def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one=False):
-                # 將 CSS 寫成單行字串，並大幅增加 font-size
-                base_style = "border-radius: 10px; padding: 15px; margin-bottom: 10px; height: 100%; display: flex; flex-direction: column; justify-content: space-between;"
+                # 基礎 CSS：加入 flex-grow 和 box-sizing 以確保對齊
+                base_style = "box-sizing: border-box; border-radius: 10px; padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1;"
 
                 if is_number_one:
                     # 第一名：金色邊框
@@ -535,10 +535,26 @@ else:
 
             col1, col2, col3, col4 = st.columns(4)
 
-            # 1. 統計週數
+            # 1. 統計週數 (改用 HTML 以匹配右側卡片樣式)
             with col1:
-                with st.container(border=True):
-                    st.markdown(f"#### 📊 統計週數\n## :orange[{my_weeks} 週]\n### 📅 區間累計"); st.divider(); st.caption(f"📅 **開始**：{start_date}\n📅 **結束**：{end_date}")
+                # 定義與右側普通卡片相同的樣式
+                left_card_style = "box-sizing: border-box; border-radius: 10px; padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; border: 3px solid #444; background-color: #262730; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: white;"
+                
+                html_left = f"""
+                <div style="{left_card_style}">
+                    <div>
+                        <div style="font-weight: bold; font-size: 1.5rem; margin-bottom: 5px;">📊 統計週數</div>
+                        <div style="font-size: 3.5rem; font-weight: bold; color: #FF9F1C; line-height: 1.2;">{my_weeks} 週</div>
+                        <div style="font-size: 1.5rem; margin-bottom: 5px;">📅 區間累計</div>
+                    </div>
+                    <div>
+                        <hr style="margin: 10px 0; border-color: #555;">
+                        <div style="font-size: 0.9rem; color: #CCC; margin-bottom: 3px;">📅 開始：{start_date}</div>
+                        <div style="font-size: 0.9rem; color: #CCC;">📅 結束：{end_date}</div>
+                    </div>
+                </div>
+                """
+                st.markdown(html_left, unsafe_allow_html=True)
 
             # 2. 旗幟戰
             with col2:
