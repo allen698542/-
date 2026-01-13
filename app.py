@@ -306,6 +306,7 @@ if api_data:
     with col_api_info:
         # 顯示角色詳細資訊
         st.markdown(f"""
+        **職業**: {api_data.get('character_class')}  
         **等級**: Lv. {api_data.get('character_level')}  
         """)
 elif API_KEY:
@@ -382,6 +383,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
