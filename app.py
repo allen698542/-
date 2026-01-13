@@ -275,16 +275,17 @@ if search_mode == "🏆 全公會排行榜":
         # --- 定義三種層級的卡片樣式 ---
         # 共通樣式：大幅減少 padding，讓卡片更緊湊
         base_style = """
-            background-color: #262730; 
             text-align: center; 
-            border: 1px solid #444;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             height: 100%;
         """
 
-        # 樣式 1: 第一名 (最大、最醒目)
+        # 樣式 1: 第一名 (王者：金框 + 漸層背景 + 發光)
         style_1st = f"""
-            <div style="{base_style} padding: 12px; border-radius: 15px; border: 2px solid #FFD700;">
+            <div style="{base_style} padding: 12px; border-radius: 15px; 
+                border: 3px solid #FFD700; 
+                background: linear-gradient(135deg, #262730 0%, #3a3200 100%);
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);">
                 <div style="font-size: 3.2rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
                 {{img_tag}}
                 <div style="font-size: 1.4rem; font-weight: bold; color: #FFF; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
@@ -293,9 +294,9 @@ if search_mode == "🏆 全公會排行榜":
             </div>
         """
         
-        # 樣式 2: 第二、三名 (中等)
+        # 樣式 2: 第二、三名 (中等：可自訂邊框顏色)
         style_2nd3rd = f"""
-            <div style="{base_style} padding: 10px; border-radius: 12px;">
+            <div style="{base_style} padding: 10px; border-radius: 12px; background-color: #262730; border: 2px solid {{border_color}};">
                 <div style="font-size: 2.5rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
                 {{img_tag}}
                 <div style="font-size: 1.2rem; font-weight: bold; color: #EEE; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
@@ -304,9 +305,9 @@ if search_mode == "🏆 全公會排行榜":
             </div>
         """
 
-        # 樣式 3: 第四、五名 (最小)
+        # 樣式 3: 第四、五名 (最小：無特殊框)
         style_4th5th = f"""
-            <div style="{base_style} padding: 8px; border-radius: 10px; background-color: #20212b;">
+            <div style="{base_style} padding: 8px; border-radius: 10px; background-color: #20212b; border: 1px solid #444;">
                 <div style="font-size: 2rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
                 {{img_tag}}
                 <div style="font-size: 1.1rem; font-weight: bold; color: #DDD; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
@@ -316,11 +317,8 @@ if search_mode == "🏆 全公會排行榜":
         """
 
         # --- 建立 5 個欄位，調整寬度比例以強調中間 ---
-        # 順序：第4名, 第2名, 第1名, 第3名, 第5名
-        # 比例：中間最寬，兩側次之，最外側最窄
         cols = st.columns([0.9, 1.1, 1.3, 1.1, 0.9])
         
-        # 定義階梯高度的空白行數
         spacer_mid = 3 # 2,3名的高度差
         spacer_low = 6 # 4,5名的高度差
 
@@ -329,48 +327,48 @@ if search_mode == "🏆 全公會排行榜":
         with cols[0]:
             if len(sorted_df) > 3:
                 p = sorted_df.iloc[3]
-                for _ in range(spacer_low): st.write("") # 增加高度差
+                for _ in range(spacer_low): st.write("")
                 st.markdown(style_4th5th.format(
                     icon="4️⃣", img_tag=get_img_tag(p.get('圖片'), width=110), 
                     name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#4D96FF"
                 ), unsafe_allow_html=True)
 
-        # Col 2: 第 2 名
+        # Col 2: 第 2 名 (銀色框)
         with cols[1]:
             if len(sorted_df) > 1:
                 p = sorted_df.iloc[1]
-                for _ in range(spacer_mid): st.write("") # 增加高度差
+                for _ in range(spacer_mid): st.write("")
                 st.markdown(style_2nd3rd.format(
                     icon="🥈", img_tag=get_img_tag(p.get('圖片'), width=130), 
-                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#C0C0C0"
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", 
+                    color="#C0C0C0", border_color="#C0C0C0"  # 銀色
                 ), unsafe_allow_html=True)
 
-        # Col 3: 第 1 名 (C位)
+        # Col 3: 第 1 名 (王者特效)
         with cols[2]:
             if len(sorted_df) > 0:
                 p = sorted_df.iloc[0]
-                # 不加空白行，保持最高
                 st.markdown(style_1st.format(
                     icon="🥇", img_tag=get_img_tag(p.get('圖片'), width=150), 
                     name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#FFD700"
                 ), unsafe_allow_html=True)
-                # 已移除底部的文字
 
-        # Col 4: 第 3 名
+        # Col 4: 第 3 名 (銅色框)
         with cols[3]:
             if len(sorted_df) > 2:
                 p = sorted_df.iloc[2]
-                for _ in range(spacer_mid): st.write("") # 增加高度差
+                for _ in range(spacer_mid): st.write("")
                 st.markdown(style_2nd3rd.format(
                     icon="🥉", img_tag=get_img_tag(p.get('圖片'), width=130), 
-                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#CD7F32"
+                    name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", 
+                    color="#CD7F32", border_color="#CD7F32" # 銅色
                 ), unsafe_allow_html=True)
 
         # Col 5: 第 5 名
         with cols[4]:
             if len(sorted_df) > 4:
                 p = sorted_df.iloc[4]
-                for _ in range(spacer_low): st.write("") # 增加高度差
+                for _ in range(spacer_low): st.write("")
                 st.markdown(style_4th5th.format(
                     icon="5️⃣", img_tag=get_img_tag(p.get('圖片'), width=110), 
                     name=p['暱稱'], score_label="Score", score=f"{int(p[col_name]):,}", color="#4D96FF"
