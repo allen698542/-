@@ -6,6 +6,35 @@ import numpy as np
 import requests
 
 # ==========================================
+# 頁面設定 (必須在第一行)
+# ==========================================
+st.set_page_config(page_title="公會每周統計", page_icon="🍁", layout="wide")
+
+# ==========================================
+# [新增] 全域 CSS 樣式：定義彩虹文字特效
+# ==========================================
+st.markdown("""
+<style>
+/* 定義彩虹文字特效 */
+.rainbow-text {
+    background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+    animation: rainbow-move 3s linear infinite;
+}
+
+/* 彩虹流動動畫 */
+@keyframes rainbow-move {
+    to {
+        background-position: 200% center;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================================
 # API 串接設定
 # ==========================================
 API_KEY = st.secrets.get("NEXON_API_KEY", None)
@@ -61,11 +90,6 @@ def get_maple_character_info(character_name):
             
     except Exception as e:
         return None, f"連線錯誤: {e}"
-
-# ==========================================
-# 頁面設定
-# ==========================================
-st.set_page_config(page_title="公會每周統計", page_icon="🍁", layout="wide")
 
 # ==========================================
 # 0. 職業階層定義
@@ -474,7 +498,7 @@ else:
                 if rank == 1: return "🥇 "
                 elif rank == 2: return "🥈 "
                 elif rank == 3: return "🥉 "
-                else: return ""    
+                else: return ""     
 
             def get_detailed_neighbors(df_source, target_player, col_sum, col_weeks, mode='avg'):
                 df_sorted = df_source.sort_values(by=col_sum, ascending=False).reset_index()
@@ -581,7 +605,8 @@ else:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '公會城每周', '周次', mode='pct')
                 
                 if avg_castle_pct == 100:
-                    rank_str = f"👑 :rainbow[完美全勤!!] <span style='font-size:1.0rem; color:#BBB'>({avg_castle_pct}%)</span>"
+                    # --- 這裡修正了：使用 class='rainbow-text' 替代 :rainbow[] ---
+                    rank_str = f"👑 <span class='rainbow-text'>完美全勤!!</span> <span style='font-size:1.0rem; color:#BBB'>({avg_castle_pct}%)</span>"
                     display_rank = 1 # 全勤強制金牌特效
                 else:
                     rank_str = f"{get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:1.0rem; color:#BBB'>({avg_castle_pct}%)</span>"
@@ -633,4 +658,3 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
-
