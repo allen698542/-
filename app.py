@@ -167,7 +167,7 @@ with st.container(border=True):
         # Step 1. 職業群
         with col_group:
             groups = df_hierarchy['group'].unique().tolist()
-            selected_group = st.pills("1️⃣ 職業群", groups, selection_mode="single")
+            selected_group = st.selectbox("1️⃣ 職業群", groups, index=None, placeholder="請選擇...")
 
         # Step 2. 分類
         with col_cat:
@@ -307,6 +307,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
