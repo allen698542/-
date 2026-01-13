@@ -509,15 +509,15 @@ else:
 
                 if rank == 1:
                     # 🥇 第一名：金色 (Gold)
-                    container_style = f"{base_style} border: 3px solid #FFD700; background: linear-gradient(135deg, #262730 0%, #3a3200 100%); box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); color: white;"
+                    container_style = f"{base_style} border: 3px solid #FFD700; background: linear-gradient(135deg, #262730 0%, #3a3200 100%); box-shadow: 0 0 35px rgba(255, 215, 0, 0.4); color: white;"
                     score_color = "#FFD700"
                 elif rank == 2:
                     # 🥈 第二名：銀色 (Silver)
-                    container_style = f"{base_style} border: 3px solid #C0C0C0; background: linear-gradient(135deg, #262730 0%, #383838 100%); box-shadow: 0 0 15px rgba(192, 192, 192, 0.4); color: white;"
+                    container_style = f"{base_style} border: 3px solid #C0C0C0; background: linear-gradient(135deg, #262730 0%, #383838 100%); box-shadow: 0 0 35px rgba(192, 192, 192, 0.4); color: white;"
                     score_color = "#E0E0E0" # 亮銀色文字
                 elif rank == 3:
                     # 🥉 第三名：銅色 (Bronze)
-                    container_style = f"{base_style} border: 3px solid #CD7F32; background: linear-gradient(135deg, #262730 0%, #3a2500 100%); box-shadow: 0 0 15px rgba(205, 127, 50, 0.4); color: white;"
+                    container_style = f"{base_style} border: 3px solid #CD7F32; background: linear-gradient(135deg, #262730 0%, #3a2500 100%); box-shadow: 0 0 35px rgba(205, 127, 50, 0.4); color: white;"
                     score_color = "#CD7F32"
                 else:
                     # 普通名次：深灰色
@@ -633,3 +633,4 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
