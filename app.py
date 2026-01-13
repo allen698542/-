@@ -281,44 +281,50 @@ mask = mask & (df['暱稱'] == final_selected_player)
 df_filtered = df[mask]
 
 # ==========================================
-# 5. 個人數據儀表板 (修改後：整合頭像到標題)
+# 5. 個人數據儀表板 (終極優化版)
 # ==========================================
 
 if len(df_filtered) == 0:
     st.warning(f"玩家 {final_selected_player} 在此日期區間內無資料。")
     st.stop()
 
-# --- 1. 呼叫 API 抓取角色資料 ---
+# --- 1. 標題區 ---
+# 使用一個大標題，清楚表明現在看的是誰的報告
+st.markdown(f"## 👤 {final_selected_player} 的個人數據報告")
+
+# --- 2. 呼叫 API & 顯示玩家檔案卡片 ---
 api_data, api_error = get_maple_character_info(final_selected_player)
-character_image_url = None
-character_level_text = ""
 
-if api_data:
-    # 如果成功抓到資料，取得圖片網址和等級
-    character_image_url = api_data.get('character_image')
-    character_level_text = f" (Lv. {api_data.get('character_level')})"
-elif API_KEY and api_error:
-    # 如果有 Key 但抓失敗，顯示錯誤小字 (選填)
-    st.caption(f"⚠️ API 資訊載入失敗: {api_error}")
-
-# --- 2. 使用兩欄式排版：左圖右文 ---
-# 建立兩個欄位，比例為 1:5 (左窄右寬)
-col_header_img, col_header_text = st.columns([1, 5])
-
-with col_header_img:
-    # 左側：顯示角色圖片
-    if character_image_url:
-        # 如果有 API 圖片，就顯示圖片，寬度設為 80px 比較剛好
-        st.image(character_image_url, width=80)
+# 建立一個帶有邊框的容器，讓它看起來像一張卡片
+with st.container(border=True):
+    if api_data:
+        # === 如果成功抓到資料，顯示漂亮的圖文版面 ===
+        # 切分兩欄，左邊放圖，右邊放資訊。比例調整為 2:3 讓左邊空間大一點
+        col_profile_img, col_profile_info = st.columns([2, 3])
+        
+        with col_profile_img:
+            # 左側：放大顯示角色圖片 (寬度設為 150px)
+            st.image(api_data.get('character_image'), width=150)
+            
+        with col_profile_info:
+            # 右側：條列顯示詳細資訊，使用較大的字體
+            # 使用 markdown 語法來排版，讓資訊更清晰
+            st.markdown(f"""
+            ##### 📜 角色資訊
+            
+            * **職業：** {api_data.get('character_class')}
+            * **等級：** {api_data.get('character_level')}
+            * **伺服器：** {api_data.get('world_name')}
+            """)
+            
+    elif API_KEY and api_error:
+        # === 如果有 Key 但抓失敗 (例如 ID 打錯)，顯示提示 ===
+        st.warning(f"無法載入 {final_selected_player} 的官方資訊：{api_error}。下方仍顯示 Excel 紀錄。")
     else:
-        # 如果沒有 API 圖片，顯示原本的紫色人頭 emoji 當備案
-        st.markdown("# 👤")
+        # === 如果沒設定 Key，顯示一個簡單的提示 ===
+        st.info("未設定 API Key，僅顯示 Excel 紀錄。")
 
-with col_header_text:
-    # 右側：顯示標題和等級
-    # 使用 f-string 把 ID 和等級串接起來
-    st.markdown(f"### {final_selected_player} 的個人數據報告 {character_level_text}")
-
+# 在卡片下方加一條分隔線，接著顯示 KPI
 st.markdown("---")
 
 # (下面接回原本的 KPI 計算與顯示程式碼，完全不用動)
