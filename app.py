@@ -199,46 +199,41 @@ except Exception as e:
     st.stop()
 
 # ==========================================
-# 3. 介面與搜尋邏輯 (經典雙欄位版)
+# 3. 介面與搜尋邏輯
 # ==========================================
 st.title("🍁 公會每周統計")
 
 st.sidebar.header("📅 日期區間設定")
 
-# 取得資料庫中的最早與最晚日期
 data_min_date = df['周次'].min().date()
 data_max_date = df['周次'].max().date()
 
-# 使用 columns 將兩個日期選擇器並排，視覺上比較整齊
 col_start, col_end = st.sidebar.columns(2)
 
 with col_start:
     start_date = st.date_input(
         "開始日期",
-        value=data_min_date,      # 預設選最早
+        value=data_min_date,      
         min_value=data_min_date,
         max_value=data_max_date,
-        format="YYYY-MM-DD"       # 顯示格式
+        format="YYYY-MM-DD"       
     )
 
 with col_end:
     end_date = st.date_input(
         "結束日期",
-        value=data_max_date,      # 預設選最晚
+        value=data_max_date,      
         min_value=data_min_date,
         max_value=data_max_date,
         format="YYYY-MM-DD"
     )
 
-# 防呆提示
 if start_date > end_date:
     st.sidebar.error("⚠️ 「開始日期」不能晚於「結束日期」")
 
-# 篩選日期區間資料 (全域共用)
 mask_period = (df['周次'].dt.date >= start_date) & (df['周次'].dt.date <= end_date)
 df_period = df[mask_period]
 
-# --- 功能模式切換 ---
 st.markdown("### 🔍 功能面板")
 
 search_mode = st.radio(
@@ -248,7 +243,7 @@ search_mode = st.radio(
 )
 
 # ==========================================
-# 分支 A: 全公會排行榜
+# 分支 A: 全公會排行榜 (新增 4、5 名)
 # ==========================================
 if search_mode == "🏆 全公會排行榜":
     st.markdown("---")
@@ -265,18 +260,21 @@ if search_mode == "🏆 全公會排行榜":
     
     tab_rank_flag, tab_rank_water, tab_rank_castle = st.tabs(["🚩 旗幟戰排行", "💧 地下水道排行", "🏰 公會城全勤榜"])
     
-    # --- 函式：繪製排行榜 ---
+    # --- 函式：繪製排行榜 (Top 5 版) ---
     def draw_leaderboard(data, col_name, color_scale, label_name, is_attendance=False):
         # 排序
         sorted_df = data.sort_values(by=col_name, ascending=False).reset_index(drop=True)
         sorted_df['名次'] = sorted_df.index + 1
         
-        # 1. 前三名頒獎台
-        c_space_l, c2, c1, c3, c_space_r = st.columns([1, 2, 2.2, 2, 1])
-        top3 = sorted_df.head(3)
-        
-        # 卡片樣式
-        card_style = """
+        # 輔助函式：產生圖片標籤 (可自訂寬度)
+        def get_img_tag(url, width=150):
+            if url and str(url) != "nan" and str(url).strip() != "":
+                return f'<img src="{url}" style="width: {width}px; height: auto; border-radius: 10px; object-fit: contain; margin: 10px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">'
+            return ""
+
+        # --- 卡片樣式 ---
+        # 1. 前三名 (大卡片)
+        card_style_big = """
             <div style="
                 background-color: #262730; 
                 padding: 20px; 
@@ -285,6 +283,7 @@ if search_mode == "🏆 全公會排行榜":
                 border: 1px solid #444;
                 margin-bottom: 20px;
                 box-shadow: 0 6px 10px rgba(0,0,0,0.4);
+                height: 100%;
             ">
                 <div style="font-size: 3rem; line-height: 1; margin-bottom: 10px;">{icon}</div>
                 {img_tag}
@@ -293,57 +292,85 @@ if search_mode == "🏆 全公會排行榜":
                 <div style="font-size: 1.6rem; font-weight: bold; color: {color};">{score}</div>
             </div>
         """
+        
+        # 2. 第四、五名 (小卡片)
+        card_style_small = """
+            <div style="
+                background-color: #262730; 
+                padding: 15px; 
+                border-radius: 12px; 
+                text-align: center; 
+                border: 1px solid #444;
+                margin-bottom: 10px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                height: 100%;
+            ">
+                <div style="font-size: 2rem; line-height: 1; margin-bottom: 5px;">{icon}</div>
+                {img_tag}
+                <div style="font-size: 1.1rem; font-weight: bold; color: #EEE; margin-bottom: 5px; margin-top: 5px;">{name}</div>
+                <div style="font-size: 0.9rem; color: #BBB;">{score_label}</div>
+                <div style="font-size: 1.4rem; font-weight: bold; color: {color};">{score}</div>
+            </div>
+        """
 
-        # 輔助函式：產生圖片標籤 (大圖、非圓形)
-        def get_img_tag(url):
-            if url and str(url) != "nan" and str(url).strip() != "":
-                return f'<img src="{url}" style="width: 150px; height: auto; border-radius: 10px; object-fit: contain; margin: 10px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">'
-            return ""
+        # --- 顯示 Top 3 (頒獎台) ---
+        top3 = sorted_df.head(3)
+        c_space_l, c2, c1, c3, c_space_r = st.columns([1, 2, 2.2, 2, 1])
 
         if len(top3) > 0:
             p1 = top3.iloc[0]
             val1 = int(p1[col_name])
-            img1 = get_img_tag(p1.get('圖片'))
+            img1 = get_img_tag(p1.get('圖片'), width=150)
             with c1:
-                st.markdown(card_style.format(
-                    icon="🥇", 
-                    img_tag=img1,
-                    name=p1['暱稱'], 
-                    score_label="分數", 
-                    score=f"{val1:,}", 
-                    color="#FFD700"
+                st.markdown(card_style_big.format(
+                    icon="🥇", img_tag=img1, name=p1['暱稱'], score_label="Score", score=f"{val1:,}", color="#FFD700"
                 ), unsafe_allow_html=True)
                 if not is_attendance: st.caption("👑 冠軍霸主")
 
         if len(top3) > 1:
             p2 = top3.iloc[1]
             val2 = int(p2[col_name])
-            img2 = get_img_tag(p2.get('圖片'))
+            img2 = get_img_tag(p2.get('圖片'), width=150)
             with c2:
                 st.write(""); st.write("") 
-                st.markdown(card_style.format(
-                    icon="🥈", 
-                    img_tag=img2,
-                    name=p2['暱稱'], 
-                    score_label="分數", 
-                    score=f"{val2:,}", 
-                    color="#C0C0C0"
+                st.markdown(card_style_big.format(
+                    icon="🥈", img_tag=img2, name=p2['暱稱'], score_label="Score", score=f"{val2:,}", color="#C0C0C0"
                 ), unsafe_allow_html=True)
 
         if len(top3) > 2:
             p3 = top3.iloc[2]
             val3 = int(p3[col_name])
-            img3 = get_img_tag(p3.get('圖片'))
+            img3 = get_img_tag(p3.get('圖片'), width=150)
             with c3:
                 st.write(""); st.write("") 
-                st.markdown(card_style.format(
-                    icon="🥉", 
-                    img_tag=img3,
-                    name=p3['暱稱'], 
-                    score_label="分數", 
-                    score=f"{val3:,}", 
-                    color="#CD7F32"
+                st.markdown(card_style_big.format(
+                    icon="🥉", img_tag=img3, name=p3['暱稱'], score_label="Score", score=f"{val3:,}", color="#CD7F32"
                 ), unsafe_allow_html=True)
+
+        # --- 顯示 Top 4 & Top 5 (新增區塊) ---
+        if len(sorted_df) > 3:
+            st.write("") # 間距
+            # 分割版面：左空、第4名、第5名、右空 (讓卡片置中)
+            c4, c5 = st.columns(2)
+            
+            # 第 4 名
+            p4 = sorted_df.iloc[3]
+            val4 = int(p4[col_name])
+            img4 = get_img_tag(p4.get('圖片'), width=110) # 圖片稍微縮小
+            with c4:
+                st.markdown(card_style_small.format(
+                    icon="4️⃣", img_tag=img4, name=p4['暱稱'], score_label="Score", score=f"{val4:,}", color="#4D96FF" # 淡藍色
+                ), unsafe_allow_html=True)
+            
+            # 第 5 名 (如果有)
+            if len(sorted_df) > 4:
+                p5 = sorted_df.iloc[4]
+                val5 = int(p5[col_name])
+                img5 = get_img_tag(p5.get('圖片'), width=110)
+                with c5:
+                    st.markdown(card_style_small.format(
+                        icon="5️⃣", img_tag=img5, name=p5['暱稱'], score_label="Score", score=f"{val5:,}", color="#4D96FF"
+                    ), unsafe_allow_html=True)
 
         st.markdown("---")
         
@@ -485,7 +512,6 @@ else:
             job_display = player_info.get('職業', '未知')
             if str(job_display) == 'nan': job_display = '未知'
 
-            # 這裡已經移除了 (Lv. xxx)
             st.markdown(f"## 👤 {final_selected_player} 的個人數據報告")
 
             with st.container(border=True):
@@ -610,4 +636,3 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
-
