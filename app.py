@@ -269,37 +269,37 @@ if search_mode == "🏆 全公會排行榜":
                 return f'<img src="{url}" style="width: {width}px; height: auto; border-radius: 8px; object-fit: contain; margin: 5px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">'
             return ""
 
-        # 將 CSS 壓縮為單行，避免 HTML 屬性解析錯誤
+        # 使用單行 CSS 並放大字體
         base_style = "text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); height: 100%;"
 
         style_1st = f"""
             <div style="{base_style} padding: 12px; border-radius: 15px; border: 3px solid #FFD700; background: linear-gradient(135deg, #262730 0%, #3a3200 100%); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);">
-                <div style="font-size: 3.2rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
+                <div style="font-size: 3.5rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
                 {{img_tag}}
-                <div style="font-size: 1.4rem; font-weight: bold; color: #FFF; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
-                <div style="font-size: 1rem; color: #BBB;">{{score_label}}</div>
-                <div style="font-size: 1.8rem; font-weight: bold; color: {{color}};">{{score}}</div>
-                <div style="font-size: 0.8rem; color: #FFD700; margin-top:5px;">👑 冠軍霸主</div>
+                <div style="font-size: 1.6rem; font-weight: bold; color: #FFF; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
+                <div style="font-size: 1.1rem; color: #BBB;">{{score_label}}</div>
+                <div style="font-size: 2.2rem; font-weight: bold; color: {{color}};">{{score}}</div>
+                <div style="font-size: 0.9rem; color: #FFD700; margin-top:5px;">👑 冠軍霸主</div>
             </div>
         """
         
         style_2nd3rd = f"""
             <div style="{base_style} padding: 10px; border-radius: 12px; background-color: #262730; border: 2px solid {{border_color}};">
-                <div style="font-size: 2.5rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
+                <div style="font-size: 2.8rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
                 {{img_tag}}
-                <div style="font-size: 1.2rem; font-weight: bold; color: #EEE; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
-                <div style="font-size: 0.9rem; color: #BBB;">{{score_label}}</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: {{color}};">{{score}}</div>
+                <div style="font-size: 1.3rem; font-weight: bold; color: #EEE; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
+                <div style="font-size: 1rem; color: #BBB;">{{score_label}}</div>
+                <div style="font-size: 1.8rem; font-weight: bold; color: {{color}};">{{score}}</div>
             </div>
         """
 
         style_4th5th = f"""
             <div style="{base_style} padding: 8px; border-radius: 10px; background-color: #20212b; border: 1px solid #444;">
-                <div style="font-size: 2rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
+                <div style="font-size: 2.2rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
                 {{img_tag}}
-                <div style="font-size: 1.1rem; font-weight: bold; color: #DDD; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
-                <div style="font-size: 0.85rem; color: #BBB;">{{score_label}}</div>
-                <div style="font-size: 1.3rem; font-weight: bold; color: {{color}};">{{score}}</div>
+                <div style="font-size: 1.2rem; font-weight: bold; color: #DDD; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
+                <div style="font-size: 0.9rem; color: #BBB;">{{score_label}}</div>
+                <div style="font-size: 1.6rem; font-weight: bold; color: {{color}};">{{score}}</div>
             </div>
         """
 
@@ -502,9 +502,9 @@ else:
 
             st.markdown("### 🏆 本周戰績與排名情報")
             
-            # --- 核心：繪製數據卡片 (修正 CSS 換行導致的 HTML 解析錯誤) ---
+            # --- 核心：繪製數據卡片 (字體放大 + 修正 CSS 格式) ---
             def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, is_number_one=False):
-                # 將 CSS 寫成單行字串，防止 Streamlit 解析時出錯
+                # 將 CSS 寫成單行字串，並大幅增加 font-size
                 base_style = "border-radius: 10px; padding: 15px; margin-bottom: 10px; height: 100%; display: flex; flex-direction: column; justify-content: space-between;"
 
                 if is_number_one:
@@ -516,18 +516,18 @@ else:
                     container_style = f"{base_style} border: 3px solid #444; background-color: #262730; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: white;"
                     score_color = "#FF9F1C"
 
-                # 渲染 HTML
+                # 渲染 HTML (font-size 已放大)
                 html_code = f"""
                 <div style="{container_style}">
                     <div>
-                        <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 5px;">{title}</div>
-                        <div style="font-size: 2em; font-weight: bold; color: {score_color};">{score_str}</div>
-                        <div style="font-size: 1.2em; margin-bottom: 5px;">{rank_str}</div>
+                        <div style="font-weight: bold; font-size: 1.5rem; margin-bottom: 5px;">{title}</div>
+                        <div style="font-size: 3.5rem; font-weight: bold; color: {score_color}; line-height: 1.2;">{score_str}</div>
+                        <div style="font-size: 1.5rem; margin-bottom: 5px;">{rank_str}</div>
                     </div>
                     <div>
                         <hr style="margin: 10px 0; border-color: #555;">
-                        <div style="font-size: 0.8em; color: #CCC; margin-bottom: 3px;">{prev_txt}</div>
-                        <div style="font-size: 0.8em; color: #CCC;">{next_txt}</div>
+                        <div style="font-size: 0.9rem; color: #CCC; margin-bottom: 3px;">{prev_txt}</div>
+                        <div style="font-size: 0.9rem; color: #CCC;">{next_txt}</div>
                     </div>
                 </div>
                 """
@@ -543,13 +543,13 @@ else:
             # 2. 旗幟戰
             with col2:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
-                rank_str = f"{get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_flag:,})</span>"
+                rank_str = f"{get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:0.6rem; color:gray'>(均 {avg_flag:,})</span>"
                 draw_stat_card("🚩 旗幟戰", f"{p_flag:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_flag == 1))
 
             # 3. 地下水道
             with col3:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
-                rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:0.6em; color:gray'>(均 {avg_water:,})</span>"
+                rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:0.6rem; color:gray'>(均 {avg_water:,})</span>"
                 draw_stat_card("💧 地下水道", f"{p_water:,}", rank_str, prev_txt, next_txt, is_number_one=(rank_water == 1))
 
             # 4. 公會城
@@ -557,9 +557,9 @@ else:
                 castle_title = "👑 公會城 (全勤)" if avg_castle_pct == 100 else "🏰 公會城"
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '公會城每周', '周次', mode='pct')
                 if avg_castle_pct == 100:
-                    rank_str = f"👑 :rainbow[完美全勤!!] <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>"
+                    rank_str = f"👑 :rainbow[完美全勤!!] <span style='font-size:0.6rem; color:gray'>({avg_castle_pct}%)</span>"
                 else:
-                    rank_str = f"{get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>"
+                    rank_str = f"{get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:0.6rem; color:gray'>({avg_castle_pct}%)</span>"
                 
                 is_castle_king = (rank_castle == 1) or (avg_castle_pct == 100)
                 draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, is_number_one=is_castle_king)
