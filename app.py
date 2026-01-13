@@ -45,7 +45,8 @@ JOB_HIERARCHY_DATA = [
     {"group": "末日反抗軍", "category": "劍士", "job": "爆拳槍神"},
     {"group": "末日反抗軍", "category": "法師", "job": "煉獄巫師"},
     {"group": "末日反抗軍", "category": "弓箭手", "job": "狂豹獵人"},
-    {"group": "末日反抗軍", "category": "盜賊" or "海盜", "job": "傑諾"},
+    {"group": "末日反抗軍", "category": "盜賊", "job": "傑諾"},
+    {"group": "末日反抗軍", "category": "海盜", "job": "傑諾"},
     {"group": "末日反抗軍", "category": "海盜", "job": "機甲戰神"},
     
     {"group": "神之子", "category": "劍士", "job": "神之子"},
@@ -307,6 +308,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
