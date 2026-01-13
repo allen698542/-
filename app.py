@@ -353,14 +353,20 @@ guild_stats['flag_rank'] = guild_stats['旗幟戰'].rank(ascending=False, method
 guild_stats['water_rank'] = guild_stats['地下水道'].rank(ascending=False, method='min')
 guild_stats['castle_rank'] = guild_stats['公會城每周'].rank(ascending=False, method='min')
 
-# 3. 抓取目前玩家的資料
+# ... (前面的程式碼保持不變) ...
+
+# ==========================================
+# 6. KPI 計算與排名系統 (修正高度對齊與同分顯示)
+# ==========================================
+
+# ... (數據計算的部分保持不變，直接從 UI 顯示開始修改) ...
+
+# 3. 抓取目前玩家的資料 (確保變數已計算)
 my_stats = guild_stats.loc[final_selected_player]
 p_flag = int(my_stats['旗幟戰'])
 p_water = int(my_stats['地下水道'])
 p_castle = int(my_stats['公會城每周'])
-# 這裡使用個人在總表中的週數 (避免資料誤差)
 my_weeks = int(my_stats['周次']) 
-
 rank_flag = int(my_stats['flag_rank'])
 rank_water = int(my_stats['water_rank'])
 rank_castle = int(my_stats['castle_rank'])
@@ -370,44 +376,49 @@ avg_flag = int(p_flag / my_weeks) if my_weeks > 0 else 0
 avg_water = int(p_water / my_weeks) if my_weeks > 0 else 0
 avg_castle_pct = int(float(p_castle / my_weeks)*10000)/100 if my_weeks > 0 else 0
 
-# --- 💡 增強版函式：取得前後鄰居的「分數、平均、百分比」 ---
+# --- 💡 修正版函式：增加同分標示 ---
 def get_detailed_neighbors(df_source, target_player, col_sum, col_weeks, mode='avg'):
-    """
-    mode='avg': 顯示 (均 xxx)
-    mode='pct': 顯示 (xx.xx%)
-    """
     # 1. 建立排序後的表 (分數高到低)
     df_sorted = df_source.sort_values(by=col_sum, ascending=False).reset_index()
     
-    # 2. 找到自己的位置索引
+    # 取得當前玩家分數，用於判斷同分
+    my_score = df_sorted[df_sorted['暱稱'] == target_player][col_sum].values[0]
+
     try:
         my_idx = df_sorted[df_sorted['暱稱'] == target_player].index[0]
     except IndexError:
         return None, None
 
     # 內部小函式：格式化文字
-    def format_row(row, idx):
+    def format_row(row, idx, is_neighbor=True):
         score = int(row[col_sum])
         weeks = int(row[col_weeks])
         
+        # 重新計算該鄰居的實際排名 (避免單純用 index 導致並列時名次錯誤)
+        # 這裡直接拿原始 df 的 rank 比較準
+        neighbor_name = row['暱稱']
+        real_rank = int(df_source.loc[neighbor_name][f"{'flag' if col_sum == '旗幟戰' else 'water' if col_sum == '地下水道' else 'castle'}_rank"])
+        
+        # 判斷是否同分
+        tie_text = " (同分)" if is_neighbor and score == my_score else ""
+
         if mode == 'avg':
             avg_val = int(score / weeks) if weeks > 0 else 0
-            return f"第 {idx} 名 : {score:,} (均 {avg_val:,})"
+            return f"第 {real_rank} 名{tie_text} : {score:,} (均 {avg_val:,})"
         else: # percent
             pct_val = int(float(score / weeks)*10000)/100 if weeks > 0 else 0.0
-            return f"第 {idx} 名 : {score} ({pct_val}%)"
+            return f"第 {real_rank} 名{tie_text} : {score} ({pct_val}%)"
 
     # 3. 找上一名
     if my_idx > 0:
         prev_row = df_sorted.iloc[my_idx - 1]
-        prev_str = f"⬆️ {format_row(prev_row, my_idx)}" # 名次剛好是 index (因為 index 從 0 開始，上一名就是目前名次)
+        prev_str = f"⬆️ {format_row(prev_row, my_idx)}" 
     else:
         prev_str = "👑 目前第一"
 
     # 4. 找下一名
     if my_idx < len(df_sorted) - 1:
         next_row = df_sorted.iloc[my_idx + 1]
-        # 下一名的名次是 current_rank (my_idx+1) + 1 = my_idx + 2
         next_str = f"⬇️ {format_row(next_row, my_idx + 2)}"
     else:
         next_str = "🛡️ 目前墊底"
@@ -417,19 +428,19 @@ def get_detailed_neighbors(df_source, target_player, col_sum, col_weeks, mode='a
 # --- 介面顯示區 ---
 st.markdown("### 🏆 本周戰績與排名情報")
 
-# 這裡依然使用 4 欄，但會在第 1 欄增加填充物來平衡高度
 col1, col2, col3, col4 = st.columns(4)
 
-# (1) 週數卡片
+# (1) 週數卡片 - 修正高度結構
 with col1:
     with st.container(border=True):
         st.markdown("#### 📊 統計週數")
         st.markdown(f"# {my_weeks} 週")
         st.caption("資料區間總計")
         
-        # 為了讓高度看起來跟右邊三個一樣，我們加一個分隔線跟空行
         st.divider()
-        st.markdown(f"📅 **區間**：<br>{start_date}<br>至 {end_date}", unsafe_allow_html=True)
+        # 關鍵修改：拆成兩行 caption，對應右邊的上一名/下一名結構
+        st.caption(f"📅 **開始**：{start_date}")
+        st.caption(f"📅 **結束**：{end_date}")
 
 # (2) 旗幟戰卡片
 with col2:
@@ -438,7 +449,6 @@ with col2:
         st.markdown(f"## {p_flag:,}")
         st.markdown(f"**第 {rank_flag} 名** (均 {avg_flag:,})")
         
-        # 取得鄰居資訊 (模式：平均)
         prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
         
         st.divider()
@@ -452,7 +462,6 @@ with col3:
         st.markdown(f"## {p_water:,}")
         st.markdown(f"**第 {rank_water} 名** (均 {avg_water:,})")
         
-        # 取得鄰居資訊 (模式：平均)
         prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
         
         st.divider()
@@ -474,12 +483,13 @@ with col4:
         else:
             st.markdown(f"**第 {rank_castle} 名** ({avg_castle_pct}%)")
             
-        # 取得鄰居資訊 (模式：百分比)
         prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '公會城每周', '周次', mode='pct')
         
         st.divider()
         st.caption(prev_txt)
         st.caption(next_txt)
+
+# ... (後面的圖表部分保持不變) ...
 
 # ==========================================
 # 7. 圖表與詳細資料區
@@ -527,3 +537,4 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
