@@ -505,20 +505,73 @@ with col4:
 tab1, tab2, tab3 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況"])
 
 with tab1:
-    chart_type = st.radio("選擇數據類型", ["旗幟戰", "地下水道", "公會城每周"], horizontal=True)
+    # 1. 選擇數據類型
+    chart_type = st.radio(
+        "選擇數據類型", 
+        ["旗幟戰", "地下水道", "公會城每周"], 
+        horizontal=True
+    )
     
-    fig_line = px.line(
+    # 2. 設定顏色與標題邏輯
+    if chart_type == "旗幟戰":
+        bar_color = "#FF6B6B"  # 紅色系
+        y_label = "分數"
+    elif chart_type == "地下水道":
+        bar_color = "#4D96FF"  # 藍色系
+        y_label = "分數"
+    else: # 公會城
+        bar_color = "#6BCB77"  # 綠色系
+        y_label = "完成狀態 (1=有, 0=無)"
+
+    # 3. 建立長條圖 (Bar Chart)
+    fig_chart = px.bar(
         df_filtered,
         x='周次',
         y=chart_type,
-        title=f"{final_selected_player} - {chart_type} 趨勢",
-        markers=True,
+        title=f"{final_selected_player} - {chart_type} 每週表現",
+        text_auto='.2s',  # 自動顯示數值 (大數字會縮寫，如 10k)
     )
-    fig_line.update_layout(hovermode="x unified")
-    st.plotly_chart(fig_line, use_container_width=True)
+
+    # 4. 美化圖表樣式
+    fig_chart.update_traces(
+        marker_color=bar_color,  # 設定顏色
+        marker_line_width=0,     # 去掉邊框
+        opacity=0.8,             #稍微透明一點比較有質感
+        width=1000*60*60*24*4    # 設定柱子寬度 (約4天寬)，避免只有一筆資料時柱子太肥
+    )
+
+    # 5. 加上「平均線」 (讓圖表更有價值！)
+    # 計算該玩家這段時間的平均分
+    avg_score = df_filtered[chart_type].mean()
     
+    # 只有當分數大於0 (且不是公會城這種0/1狀態) 時才顯示平均線
+    if chart_type != "公會城每周" and avg_score > 0:
+        fig_chart.add_hline(
+            y=avg_score, 
+            line_dash="dash", 
+            line_color="gray", 
+            annotation_text=f"平均: {int(avg_score):,}", 
+            annotation_position="top right"
+        )
+
+    # 6. 設定 X 軸與 Y 軸
+    fig_chart.update_layout(
+        xaxis_title="",          # 省略 X 軸標題 (日期很明顯了)
+        yaxis_title=y_label,
+        hovermode="x unified",   # 滑鼠移上去顯示資訊
+        showlegend=False,        # 隱藏圖例
+        xaxis=dict(
+            tickformat="%Y-%m-%d", # 日期格式
+            dtick="W1"             # 強制每週顯示一個刻度 (避免日期亂跳)
+        )
+    )
+    
+    # 7. 顯示圖表
+    st.plotly_chart(fig_chart, use_container_width=True)
+    
+    # 備註
     if chart_type == "公會城每周":
-        st.caption("ℹ️ 1 代表有完成，0 代表未完成")
+        st.caption("ℹ️ 長條顯示 1 代表該週有完成，0 代表未完成")
 
 with tab2:
     display_cols = ['周次', '職業', '暱稱', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']
@@ -545,6 +598,7 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
 
