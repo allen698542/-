@@ -261,7 +261,7 @@ with st.container(border=True):
             )
 
 # ==========================================
-# 4. 資料過濾與顯示 (核心修改區)
+# 4. 資料過濾與顯示
 # ==========================================
 
 # 檢查是否有選到人
@@ -270,12 +270,12 @@ if not final_selected_player:
     st.info("👋 請在上方選擇一位玩家以查看詳細數據。")
     st.stop()
 
-# --- 修改：分開篩選 (為了計算排名) ---
+# --- 分開篩選 (為了計算排名) ---
 # 1. 先篩選出「符合日期區間」的所有資料 (用來算全公會排名)
 mask_period = (df['周次'] >= pd.to_datetime(start_date)) & (df['周次'] <= pd.to_datetime(end_date))
-df_period = df[mask_period] # 這是全公會這段時間的資料
+df_period = df[mask_period]
 
-# 2. 再從上面篩選出「選定玩家」的資料 (用來畫圖)
+# 2. 再從上面篩選出「選定玩家」的資料 (用來畫圖與顯示個人數值)
 df_filtered = df_period[df_period['暱稱'] == final_selected_player]
 
 # ==========================================
@@ -336,14 +336,14 @@ with st.container(border=True):
 st.markdown("---")
 
 # ==========================================
-# 6. KPI 計算與排名系統 (加入公會城皇冠特效 👑)
+# 6. KPI 計算與排名系統 (含 Top3 特效)
 # ==========================================
 
-# 1. 準備排名資料：將全公會(df_period)依據ID加總
-# 修改：加入 '公會城每周' 進入統計
+# 1. 準備排名資料
+# 這裡將全公會(df_period)依據ID加總
 guild_ranking = df_period.groupby('暱稱')[['旗幟戰', '地下水道', '公會城每周']].sum()
 
-# 2. 計算排名 (method='min' 代表並列名次，例如 5個人都全勤，那這5人都是第1名)
+# 2. 計算排名 (method='min' 代表並列名次處理方式)
 guild_ranking['flag_rank'] = guild_ranking['旗幟戰'].rank(ascending=False, method='min')
 guild_ranking['water_rank'] = guild_ranking['地下水道'].rank(ascending=False, method='min')
 guild_ranking['castle_rank'] = guild_ranking['公會城每周'].rank(ascending=False, method='min')
@@ -365,39 +365,50 @@ total_weeks = df_filtered['周次'].nunique() # 資料週數
 # 5. 平均值計算
 avg_flag = int(p_flag / total_weeks) if total_weeks > 0 else 0
 avg_water = int(p_water / total_weeks) if total_weeks > 0 else 0
-# 公會城達成率
 avg_castle_pct = int(float(p_castle / total_weeks)*10000)/100 if total_weeks > 0 else 0
 
-# --- 👑 皇冠特效邏輯 ---
-# 如果公會城排名是第 1 名，顯示皇冠，否則只顯示排名
-if rank_castle == 1:
-    castle_label = f"👑 完美全勤 (達成率 {avg_castle_pct}%)"
-else:
-    castle_label = f"排名: 第 {rank_castle} 名 (達成率 {avg_castle_pct}%)"
+# --- 🏆 排名特效邏輯區 ---
 
-# --- KPI 顯示 ---
+# (A) 旗幟戰特效
+if rank_flag == 1:
+    flag_label = f"🥇 公會第一 (均 {avg_flag:,})"
+elif rank_flag == 2:
+    flag_label = f"🥈 公會第二 (均 {avg_flag:,})"
+elif rank_flag == 3:
+    flag_label = f"🥉 公會第三 (均 {avg_flag:,})"
+else:
+    flag_label = f"第 {rank_flag} 名 (均 {avg_flag:,})"
+
+# (B) 水道特效
+if rank_water == 1:
+    water_label = f"🥇 公會第一 (均 {avg_water:,})"
+elif rank_water == 2:
+    water_label = f"🥈 公會第二 (均 {avg_water:,})"
+elif rank_water == 3:
+    water_label = f"🥉 公會第三 (均 {avg_water:,})"
+else:
+    water_label = f"第 {rank_water} 名 (均 {avg_water:,})"
+
+# (C) 公會城特效 (第一名給皇冠)
+if rank_castle == 1 and avg_castle_pct == 100:
+    castle_label = f"🥇 公會第一(👑 完美全勤) (達成率 {avg_castle_pct}%)"
+elif rank_castle == 1 and avg_castle_pct < 100:
+    castle_label = f"🥇 公會第一 (達成率 {avg_castle_pct}%)"
+elif rank_castle == 2:
+    castle_label = f"🥈 公會第二 (達成率 {avg_castle_pct}%)"
+elif rank_castle == 3:
+    castle_label = f"🥉 公會第三 (達成率 {avg_castle_pct}%)"
+else:
+    castle_label = f"第 {rank_castle} 名 (達成率 {avg_castle_pct}%)"
+
+# --- 顯示 KPI ---
 col1, col2, col3, col4 = st.columns(4)
 
 col1.metric("📊 資料筆數", f"{total_weeks} 週")
 
-col2.metric(
-    "🚩 旗幟戰總分", 
-    f"{p_flag:,}", 
-    f"排名: 第 {rank_flag} 名 (均 {avg_flag:,})"
-)
-
-col3.metric(
-    "💧 水道總傷分", 
-    f"{p_water:,}", 
-    f"排名: 第 {rank_water} 名 (均 {avg_water:,})"
-)
-
-# 修改：這裡使用上面設定好的 castle_label (帶皇冠)
-col4.metric(
-    "🏰 公會城完成數", 
-    f"{p_castle} 次", 
-    castle_label
-)
+col2.metric("🚩 旗幟戰總分", f"{p_flag:,}", flag_label)
+col3.metric("💧 水道總傷分", f"{p_water:,}", water_label)
+col4.metric("🏰 公會城完成數", f"{p_castle} 次", castle_label)
 
 # ==========================================
 # 7. 圖表與詳細資料區
@@ -445,4 +456,3 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
-
