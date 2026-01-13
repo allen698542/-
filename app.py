@@ -480,13 +480,13 @@ with col3:
 with col4:
     with st.container(border=True):
         castle_title = "🏰 公會城"
-        if rank_castle == 1 and avg_castle_pct == 100:
+        if avg_castle_pct == 100:
             castle_title = "👑 公會城 (全勤)"
             
         st.markdown(f"#### {castle_title}")
         st.markdown(f"## :orange[{p_castle} 次]")
         
-        if rank_castle == 1 and avg_castle_pct == 100:
+        if avg_castle_pct == 100:
             # 特殊榮耀：完美全勤 (使用皇冠 + 彩虹字)
             st.markdown(f"### 👑 :rainbow[完美全勤!!] <span style='font-size:0.6em; color:gray'>({avg_castle_pct}%)</span>", unsafe_allow_html=True)
         else:
@@ -635,6 +635,7 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
 
