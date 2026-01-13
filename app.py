@@ -336,57 +336,67 @@ with st.container(border=True):
 st.markdown("---")
 
 # ==========================================
-# 6. KPI 計算與排名系統 (新增功能)
+# 6. KPI 計算與排名系統 (加入公會城皇冠特效 👑)
 # ==========================================
 
 # 1. 準備排名資料：將全公會(df_period)依據ID加總
-guild_ranking = df_period.groupby('暱稱')[['旗幟戰', '地下水道']].sum()
+# 修改：加入 '公會城每周' 進入統計
+guild_ranking = df_period.groupby('暱稱')[['旗幟戰', '地下水道', '公會城每周']].sum()
 
-# 2. 計算排名 (method='min' 代表並列名次後跳號，例如兩個第1，下一個是第3)
+# 2. 計算排名 (method='min' 代表並列名次，例如 5個人都全勤，那這5人都是第1名)
 guild_ranking['flag_rank'] = guild_ranking['旗幟戰'].rank(ascending=False, method='min')
 guild_ranking['water_rank'] = guild_ranking['地下水道'].rank(ascending=False, method='min')
+guild_ranking['castle_rank'] = guild_ranking['公會城每周'].rank(ascending=False, method='min')
 
 # 3. 抓取目前玩家的總分與排名
 my_stats = guild_ranking.loc[final_selected_player]
 
 p_flag = int(my_stats['旗幟戰'])
 p_water = int(my_stats['地下水道'])
+p_castle = int(my_stats['公會城每周'])
+
 rank_flag = int(my_stats['flag_rank'])
 rank_water = int(my_stats['water_rank'])
+rank_castle = int(my_stats['castle_rank'])
 
 # 4. 其他數值計算
-p_castle = int(df_filtered['公會城每周'].sum())
 total_weeks = df_filtered['周次'].nunique() # 資料週數
 
 # 5. 平均值計算
 avg_flag = int(p_flag / total_weeks) if total_weeks > 0 else 0
 avg_water = int(p_water / total_weeks) if total_weeks > 0 else 0
-# 公會城達成率 (顯示小數點後兩位)
-avg_castle = int(float(p_castle / total_weeks)*10000)/100 if total_weeks > 0 else 0
+# 公會城達成率
+avg_castle_pct = int(float(p_castle / total_weeks)*10000)/100 if total_weeks > 0 else 0
 
-# --- KPI 顯示 (新增排名顯示) ---
+# --- 👑 皇冠特效邏輯 ---
+# 如果公會城排名是第 1 名，顯示皇冠，否則只顯示排名
+if rank_castle == 1:
+    castle_label = f"👑 完美全勤 (達成率 {avg_castle_pct}%)"
+else:
+    castle_label = f"排名: 第 {rank_castle} 名 (達成率 {avg_castle_pct}%)"
+
+# --- KPI 顯示 ---
 col1, col2, col3, col4 = st.columns(4)
 
 col1.metric("📊 資料筆數", f"{total_weeks} 週")
 
-# 顯示旗幟 (帶排名)
 col2.metric(
     "🚩 旗幟戰總分", 
     f"{p_flag:,}", 
     f"排名: 第 {rank_flag} 名 (均 {avg_flag:,})"
 )
 
-# 顯示水道 (帶排名)
 col3.metric(
     "💧 水道總傷分", 
     f"{p_water:,}", 
     f"排名: 第 {rank_water} 名 (均 {avg_water:,})"
 )
 
+# 修改：這裡使用上面設定好的 castle_label (帶皇冠)
 col4.metric(
     "🏰 公會城完成數", 
     f"{p_castle} 次", 
-    f"達成率 {avg_castle:,}%"
+    castle_label
 )
 
 # ==========================================
@@ -435,3 +445,4 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
