@@ -143,20 +143,37 @@ JOB_HIERARCHY_DATA = [
 df_hierarchy = pd.DataFrame(JOB_HIERARCHY_DATA)
 
 # ==========================================
-# 1. 密碼保護區
+# 1. 密碼保護區 (修改版：置中窄版)
 # ==========================================
 def check_password():
     actual_password = "share1150112"
     actual_password2 = "1113"
+    
     if "password_correct" not in st.session_state:
         st.session_state.password_correct = False
+        
     if not st.session_state.password_correct:
-        password = st.text_input("請輸入密碼", type="password")
-        if password == actual_password or password == actual_password2:
-            st.session_state.password_correct = True
-            st.rerun()
-        elif password:
-            st.error("密碼錯誤")
+        # 空行，讓輸入框不要貼在最上面
+        st.write(""); st.write(""); st.write("")
+        
+        # 使用 columns 將畫面切成三份 [左(空), 中(輸入框), 右(空)]
+        # 比例 1:1.5:1 可以讓中間稍微寬一點點，但不會全螢幕
+        c1, c2, c3 = st.columns([1, 1.5, 1])
+        
+        with c2:
+            # 加個外框 (container border) 看起來像登入卡片
+            with st.container(border=True):
+                # 使用 HTML 語法放大字體並置中
+                st.markdown("<h3 style='text-align: center;'>🔐 請輸入密碼</h3>", unsafe_allow_html=True)
+                
+                # label_visibility="collapsed" 隱藏原本的小標題
+                password = st.text_input("密碼", type="password", label_visibility="collapsed")
+                
+                if password == actual_password or password == actual_password2:
+                    st.session_state.password_correct = True
+                    st.rerun()
+                elif password:
+                    st.error("❌ 密碼錯誤")
         return False
     return True
 
@@ -247,7 +264,7 @@ if search_mode == "🏆 全公會排行榜":
         c_space_l, c2, c1, c3, c_space_r = st.columns([1, 2, 2.2, 2, 1])
         top3 = sorted_df.head(3)
         
-        # 卡片樣式 - 增加 padding 讓大圖有空間
+        # 卡片樣式
         card_style = """
             <div style="
                 background-color: #262730; 
@@ -266,12 +283,9 @@ if search_mode == "🏆 全公會排行榜":
             </div>
         """
 
-        # 輔助函式：產生圖片標籤 (修改為大圖、非圓形)
+        # 輔助函式：產生圖片標籤 (大圖、非圓形)
         def get_img_tag(url):
             if url and str(url) != "nan" and str(url).strip() != "":
-                # width: 150px (放大)
-                # border-radius: 10px (微圓角矩形)
-                # object-fit: contain (完整顯示)
                 return f'<img src="{url}" style="width: 150px; height: auto; border-radius: 10px; object-fit: contain; margin: 10px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">'
             return ""
 
@@ -561,7 +575,6 @@ else:
                 if chart_type != "公會城每周" and avg_score > 0:
                     fig_line.add_hline(y=avg_score, line_dash="dot", line_color="gray", annotation_text=f"平均: {int(avg_score):,}", annotation_position="bottom right")
 
-                # 個人圖表也套用：固定座標軸 + 禁用拖曳 + 顯示簡化版工具列
                 fig_line.update_layout(
                     xaxis=dict(tickformat="%Y-%m-%d", fixedrange=True),
                     yaxis=dict(title=y_label, fixedrange=True),
@@ -583,6 +596,5 @@ else:
                 if not achievement_counts.empty:
                     fig_pie = px.pie(achievement_counts, values='數量', names='狀態', title='個人達成率統計', color='狀態', color_discrete_map={'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}, hole=0.6)
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
-                    # 圓餅圖也套用設定
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
