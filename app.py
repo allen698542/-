@@ -309,7 +309,7 @@ if search_mode == "🏆 全公會排行榜":
                     icon="🥇", 
                     img_tag=img1,
                     name=p1['暱稱'], 
-                    score_label="Score", 
+                    score_label="分數", 
                     score=f"{val1:,}", 
                     color="#FFD700"
                 ), unsafe_allow_html=True)
@@ -325,7 +325,7 @@ if search_mode == "🏆 全公會排行榜":
                     icon="🥈", 
                     img_tag=img2,
                     name=p2['暱稱'], 
-                    score_label="Score", 
+                    score_label="分數", 
                     score=f"{val2:,}", 
                     color="#C0C0C0"
                 ), unsafe_allow_html=True)
@@ -340,7 +340,7 @@ if search_mode == "🏆 全公會排行榜":
                     icon="🥉", 
                     img_tag=img3,
                     name=p3['暱稱'], 
-                    score_label="Score", 
+                    score_label="分數", 
                     score=f"{val3:,}", 
                     color="#CD7F32"
                 ), unsafe_allow_html=True)
@@ -610,3 +610,4 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
