@@ -281,40 +281,47 @@ mask = mask & (df['暱稱'] == final_selected_player)
 df_filtered = df[mask]
 
 # ==========================================
-# 5. 個人數據儀表板
+# 5. 個人數據儀表板 (修改後：整合頭像到標題)
 # ==========================================
 
 if len(df_filtered) == 0:
     st.warning(f"玩家 {final_selected_player} 在此日期區間內無資料。")
     st.stop()
 
-st.markdown(f"### 👤 {final_selected_player} 的個人數據報告")
-st.markdown("---")
-
-# ==================== 新增：API 資訊卡片區 ====================
-# 呼叫上面的函式去抓資料
+# --- 1. 呼叫 API 抓取角色資料 ---
 api_data, api_error = get_maple_character_info(final_selected_player)
+character_image_url = None
+character_level_text = ""
 
 if api_data:
-    # 如果抓到資料，切分版面顯示頭像
-    col_api_img, col_api_info = st.columns([1, 4])
-    
-    with col_api_img:
-        # 顯示角色圖片
-        st.image(api_data.get('character_image'), width=150)
-        
-    with col_api_info:
-        # 顯示角色詳細資訊
-        st.markdown(f"""
-        **職業**: {api_data.get('character_class')}  
-        **等級**: Lv. {api_data.get('character_level')}  
-        """)
-elif API_KEY:
-    # 有 Key 但抓不到 (可能是 ID 打錯或 API 維修)
-    st.caption(f"⚠️ 無法載入 API 資訊: {api_error} (可能是官方資料延遲或暱稱不符)")
-# ==================== 結束 API 區塊 ====================
+    # 如果成功抓到資料，取得圖片網址和等級
+    character_image_url = api_data.get('character_image')
+    character_level_text = f" (Lv. {api_data.get('character_level')})"
+elif API_KEY and api_error:
+    # 如果有 Key 但抓失敗，顯示錯誤小字 (選填)
+    st.caption(f"⚠️ API 資訊載入失敗: {api_error}")
 
-# (下面接回原本的 KPI 計算與顯示程式碼)
+# --- 2. 使用兩欄式排版：左圖右文 ---
+# 建立兩個欄位，比例為 1:5 (左窄右寬)
+col_header_img, col_header_text = st.columns([1, 5])
+
+with col_header_img:
+    # 左側：顯示角色圖片
+    if character_image_url:
+        # 如果有 API 圖片，就顯示圖片，寬度設為 80px 比較剛好
+        st.image(character_image_url, width=80)
+    else:
+        # 如果沒有 API 圖片，顯示原本的紫色人頭 emoji 當備案
+        st.markdown("# 👤")
+
+with col_header_text:
+    # 右側：顯示標題和等級
+    # 使用 f-string 把 ID 和等級串接起來
+    st.markdown(f"### {final_selected_player} 的個人數據報告 {character_level_text}")
+
+st.markdown("---")
+
+# (下面接回原本的 KPI 計算與顯示程式碼，完全不用動)
 # 計算數值
 p_flag = int(df_filtered['旗幟戰'].sum())
 
@@ -383,6 +390,7 @@ with tab3:
     else:
 
         st.info("此區間無資料")
+
 
 
 
