@@ -5,7 +5,7 @@ import os
 
 # ================= 設定區 =================
 # 請將這裡換成您的 NEXON API KEY
-API_KEY = "您的_API_KEY_貼在這裡"
+API_KEY = "test_610de0b1b6fc24f5d76920c0cc30d8f1901f340686cafe9296eed000958263abefe8d04e6d233bd35cf2fabdeb93fb0d"
 
 # 檔案名稱設定
 INPUT_FILE = "data.xlsx"       # 您手動輸入的 Excel 檔名
