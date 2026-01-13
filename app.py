@@ -13,10 +13,6 @@ API_KEY = st.secrets.get("NEXON_API_KEY", None)
 # ==========================================
 # 全域設定：圖表工具列與互動鎖定
 # ==========================================
-# 修正說明：
-# 1. displayModeBar: True -> 顯示工具列，這樣才看得到截圖按鈕
-# 2. modeBarButtonsToRemove -> 移除所有縮放、移動的按鈕，只留截圖
-# 3. dragmode: False + fixedrange: True -> 鎖定滑鼠操作，避免誤觸放大
 PLOT_CONFIG = {
     'displayModeBar': True, 
     'displaylogo': False,
@@ -25,11 +21,11 @@ PLOT_CONFIG = {
         'autoScale2d', 'resetScale2d', 'hoverClosestCartesian', 'hoverCompareCartesian'
     ],
     'toImageButtonOptions': {
-        'format': 'png', # one of png, svg, jpeg, webp
+        'format': 'png',
         'filename': 'chart_image',
         'height': 600,
         'width': 1000,
-        'scale': 2 # Multiply title/legend/axis/canvas sizes by this factor
+        'scale': 2
     }
 }
 
@@ -230,14 +226,13 @@ if search_mode == "🏆 全公會排行榜":
     st.markdown("---")
     st.markdown(f"### 📊 公會排行榜 ({start_date} ~ {end_date})")
     
-    # 準備聚合資料 - 這裡多抓一個 '圖片' 欄位，用來顯示在頒獎台
     leaderboard_df = df_period.groupby('暱稱').agg({
         '旗幟戰': 'sum',
         '地下水道': 'sum',
         '公會城每周': 'sum',
         '周次': 'nunique',
         '職業': 'first',
-        '圖片': 'first' # 新增：抓取圖片
+        '圖片': 'first'
     }).reset_index()
     
     tab_rank_flag, tab_rank_water, tab_rank_castle = st.tabs(["🚩 旗幟戰排行", "💧 地下水道排行", "🏰 公會城全勤榜"])
@@ -252,29 +247,32 @@ if search_mode == "🏆 全公會排行榜":
         c_space_l, c2, c1, c3, c_space_r = st.columns([1, 2, 2.2, 2, 1])
         top3 = sorted_df.head(3)
         
-        # 卡片樣式 - 增加圖片顯示
+        # 卡片樣式 - 增加 padding 讓大圖有空間
         card_style = """
             <div style="
                 background-color: #262730; 
-                padding: 15px; 
-                border-radius: 10px; 
+                padding: 20px; 
+                border-radius: 15px; 
                 text-align: center; 
                 border: 1px solid #444;
                 margin-bottom: 20px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                box-shadow: 0 6px 10px rgba(0,0,0,0.4);
             ">
-                <div style="font-size: 3rem; line-height: 1;">{icon}</div>
+                <div style="font-size: 3rem; line-height: 1; margin-bottom: 10px;">{icon}</div>
                 {img_tag}
-                <div style="font-size: 1.2rem; font-weight: bold; color: #FFF; margin-bottom: 5px; margin-top: 5px;">{name}</div>
+                <div style="font-size: 1.3rem; font-weight: bold; color: #FFF; margin-bottom: 5px; margin-top: 10px;">{name}</div>
                 <div style="font-size: 1rem; color: #BBB;">{score_label}</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: {color};">{score}</div>
+                <div style="font-size: 1.6rem; font-weight: bold; color: {color};">{score}</div>
             </div>
         """
 
-        # 輔助函式：產生圖片標籤
+        # 輔助函式：產生圖片標籤 (修改為大圖、非圓形)
         def get_img_tag(url):
             if url and str(url) != "nan" and str(url).strip() != "":
-                return f'<img src="{url}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 10px 0; border: 2px solid #555;">'
+                # width: 150px (放大)
+                # border-radius: 10px (微圓角矩形)
+                # object-fit: contain (完整顯示)
+                return f'<img src="{url}" style="width: 150px; height: auto; border-radius: 10px; object-fit: contain; margin: 10px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">'
             return ""
 
         if len(top3) > 0:
@@ -338,9 +336,6 @@ if search_mode == "🏆 全公會排行榜":
             color_continuous_scale=color_scale
         )
         
-        # 關鍵修改：
-        # 1. dragmode=False: 禁用滑鼠拖曳
-        # 2. fixedrange=True: 鎖定 X/Y 軸無法縮放
         fig.update_layout(
             yaxis={'categoryorder':'total ascending', 'fixedrange': True}, 
             xaxis={'fixedrange': True}, 
@@ -348,7 +343,6 @@ if search_mode == "🏆 全公會排行榜":
         )
         fig.update_traces(texttemplate='%{text:,}', textposition='outside')
         
-        # 套用設定：顯示工具列但移除縮放按鈕
         st.plotly_chart(fig, use_container_width=True, config=PLOT_CONFIG)
         
         # 3. 完整資料表
@@ -397,7 +391,6 @@ else:
         if search_mode == "個人查詢 (層級篩選)":
             st.caption("依序選擇：職業群 > 分類 > 職業 > 玩家")
             
-            # --- 修正 NameError 的關鍵：先初始化所有變數 ---
             selected_group = None
             selected_category = None
             selected_job = None
@@ -413,7 +406,7 @@ else:
                     selected_category = st.selectbox("2️⃣ 分類", categories, index=None, placeholder="請選擇...")
                 else: 
                     st.selectbox("2️⃣ 分類", [], disabled=True, placeholder="請先選職業群")
-                    selected_category = None # 確保未選擇時也是 None
+                    selected_category = None
             
             with col_job:
                 if selected_category:
@@ -421,7 +414,7 @@ else:
                     selected_job = st.selectbox("3️⃣ 職業", jobs, index=None, placeholder="請選擇...")
                 else: 
                     st.selectbox("3️⃣ 職業", [], disabled=True, placeholder="請先選分類")
-                    selected_job = None # 確保未選擇時也是 None
+                    selected_job = None
             
             with col_player:
                 if selected_job:
