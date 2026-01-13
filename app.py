@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import datetime
+import numpy as np
 
 # ==========================================
 # API 串接設定
@@ -523,51 +524,93 @@ with tab1:
         line_color = "#6BCB77"  # 綠色系
         y_label = "完成狀態 (1=有, 0=無)"
 
-    # 3. 建立折線圖 (Line Chart)
+    # 3. 建立基礎折線圖
     fig_line = px.line(
         df_filtered,
         x='周次',
         y=chart_type,
-        title=f"{final_selected_player} - {chart_type} 趨勢",
-        markers=True, # 顯示數據點，讓玩家知道哪邊有資料
+        title=f"{final_selected_player} - {chart_type} 趨勢分析",
+        markers=True,
     )
 
-    # 4. 美化線條樣式
+    # 4. 美化主線條
     fig_line.update_traces(
-        line_color=line_color, # 設定線條顏色
-        line_width=3,          # 線條稍微加粗一點，比較有質感
-        marker_size=6,         # 設定點的大小
-        marker_color=line_color
+        line_color=line_color,
+        line_width=3,
+        marker_size=6,
+        marker_color=line_color,
+        name="實際分數" # 設定圖例名稱
     )
 
-    # 5. 加上「平均線」 (保留這個好功能！)
+    # ==========================================
+    # ★ 新增功能：計算並繪製「趨勢線」 (只針對有分數的項目)
+    # ==========================================
+    if chart_type in ["旗幟戰", "地下水道"] and len(df_filtered) > 1:
+        try:
+            # A. 準備數據：因為日期不能直接算數學，要轉成「距離第一天的天數」
+            x_dates = df_filtered['周次']
+            y_data = df_filtered[chart_type]
+            
+            # 將日期轉換為數字 (ordinal) 用來計算斜率
+            # 這裡用一個簡單的方法：轉成 timestamp 數值
+            x_numeric = pd.to_numeric(x_dates) 
+            
+            # B. 使用 numpy 計算線性迴歸 (y = mx + b)
+            # polyfit(x, y, 1) 代表 1 次方，也就是直線
+            slope, intercept = np.polyfit(x_numeric, y_data, 1)
+            
+            # C. 算出趨勢線的 Y 值
+            trend_y = slope * x_numeric + intercept
+            
+            # D. 將趨勢線畫上去
+            fig_line.add_scatter(
+                x=x_dates,
+                y=trend_y,
+                mode='lines',
+                name='📈 趨勢線', # 圖例名稱
+                line=dict(
+                    color='red',     # 設定為紅色，像 Excel 一樣顯眼
+                    width=2,         # 稍微細一點
+                    dash='dash'      # 設定為虛線
+                ),
+                hoverinfo='skip'     # 滑鼠移過去不用顯示數值，避免擋住主圖
+            )
+        except Exception as e:
+            st.caption(f"數據點不足，無法計算趨勢線")
+
+    # ==========================================
+
+    # 5. 加上平均線 (保留原本功能，改用不同顏色以免混淆)
     avg_score = df_filtered[chart_type].mean()
-    
-    # 只有當分數大於0 (且不是公會城) 時才顯示平均線
     if chart_type != "公會城每周" and avg_score > 0:
         fig_line.add_hline(
             y=avg_score, 
-            line_dash="dash", 
+            line_dash="dot", # 改成點狀線，區分趨勢線
             line_color="gray", 
             annotation_text=f"平均: {int(avg_score):,}", 
-            annotation_position="top right"
+            annotation_position="bottom right"
         )
 
-    # 6. 設定 X 軸與 Y 軸
+    # 6. 設定版面
     fig_line.update_layout(
         xaxis_title="",          
         yaxis_title=y_label,
-        hovermode="x unified",   
-        showlegend=False,
+        hovermode="x unified",
+        showlegend=True,         # 開啟圖例，這樣才看得到「實際分數」和「趨勢線」
+        legend=dict(
+            orientation="h",     # 圖例放水平
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
         xaxis=dict(
-            tickformat="%Y-%m-%d" # 日期格式
+            tickformat="%Y-%m-%d"
         )
     )
     
-    # 7. 顯示圖表
     st.plotly_chart(fig_line, use_container_width=True)
     
-    # 備註
     if chart_type == "公會城每周":
         st.caption("ℹ️ 1 代表有完成，0 代表未完成")
 
@@ -596,6 +639,7 @@ with tab3:
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
         st.info("此區間無資料")
+
 
 
 
