@@ -298,7 +298,7 @@ if search_mode == "🏆 全公會排行榜":
 
         style_1st = f"""
             <div style="{base_style} padding: 12px; border-radius: 15px; border: 3px solid #FFD700; background: linear-gradient(135deg, #262730 0%, #3a3200 100%); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);">
-                <div style="font-size: 3.5rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
+                <div style="font-size: 2.5rem; line-height: 1; margin-bottom: 5px;">{{icon}}</div>
                 {{img_tag}}
                 <div style="font-size: 1.6rem; font-weight: bold; color: #FFF; margin-bottom: 2px; margin-top: 5px;">{{name}}</div>
                 <div style="font-size: 1.1rem; color: #BBB;">{{score_label}}</div>
@@ -552,7 +552,7 @@ else:
                 <div style="{container_style}">
                     <div>
                         <div style="font-weight: bold; font-size: 1.5rem; margin-bottom: 5px;">{title}</div>
-                        <div style="font-size: 3.0rem; font-weight: bold; color: {score_color}; line-height: 1.2;">{score_str}</div>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: {score_color}; line-height: 1.2;">{score_str}</div>
                         <div style="font-size: 1.5rem; margin-bottom: 5px;">{rank_str}</div>
                     </div>
                     <div>
@@ -574,7 +574,7 @@ else:
                 <div style="{left_card_style}">
                     <div>
                         <div style="font-weight: bold; font-size: 1.5rem; margin-bottom: 5px;">📊 統計週數</div>
-                        <div style="font-size: 3.5rem; font-weight: bold; color: #FF9F1C; line-height: 1.2;">{my_weeks} 週</div>
+                        <div style="font-size: 2.5rem; font-weight: bold; color: #FF9F1C; line-height: 1.2;">{my_weeks} 週</div>
                         <div style="font-size: 1.5rem; margin-bottom: 5px;">📅 區間累計</div>
                     </div>
                     <div>
@@ -657,6 +657,7 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
 
 
 
