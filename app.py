@@ -590,13 +590,13 @@ else:
             with col2:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
                 rank_str = f"{get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:1.0rem; color:#BBB'>(均 {avg_flag:,})</span>"
-                draw_stat_card("🚩 旗幟戰", f"{p_flag:,}", rank_str, prev_txt, next_txt, rank=rank_flag)
+                draw_stat_card("🚩 旗幟戰", f"{p_flag:,} 分", rank_str, prev_txt, next_txt, rank=rank_flag)
 
             # 3. 地下水道
             with col3:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
                 rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:1.0rem; color:#BBB'>(均 {avg_water:,})</span>"
-                draw_stat_card("💧 地下水道", f"{p_water:,}", rank_str, prev_txt, next_txt, rank=rank_water)
+                draw_stat_card("💧 地下水道", f"{p_water:,} 分", rank_str, prev_txt, next_txt, rank=rank_water)
 
             # 4. 公會城
             with col4:
@@ -657,6 +657,7 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
 
 
 
