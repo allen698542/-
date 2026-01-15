@@ -568,7 +568,7 @@ else:
 
             # 1. 統計週數
             with col1:
-                left_card_style = "box-sizing: border-box; border-radius: 10px; padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; border: 3px solid #444; background-color: #262730; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: white;"
+                left_card_style = "box-sizing: border-box; border-radius: 10px; padding: 13px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; border: 3px solid #444; background-color: #262730; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: white;"
                 
                 html_left = f"""
                 <div style="{left_card_style}">
@@ -595,7 +595,7 @@ else:
             # 3. 地下水道
             with col3:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
-                rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:2.0rem; color:#BBB'>(均 {avg_water:,})</span>"
+                rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:1.0rem; color:#BBB'>(均 {avg_water:,})</span>"
                 draw_stat_card("💧 地下水道", f"{p_water:,} 分", rank_str, prev_txt, next_txt, rank=rank_water)
 
             # 4. 公會城
@@ -657,6 +657,7 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
 
 
 
