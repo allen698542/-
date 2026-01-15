@@ -552,7 +552,7 @@ else:
                 <div style="{container_style}">
                     <div>
                         <div style="font-weight: bold; font-size: 1.5rem; margin-bottom: 5px;">{title}</div>
-                        <div style="font-size: 3.5rem; font-weight: bold; color: {score_color}; line-height: 1.2;">{score_str}</div>
+                        <div style="font-size: 3.0rem; font-weight: bold; color: {score_color}; line-height: 1.2;">{score_str}</div>
                         <div style="font-size: 1.5rem; margin-bottom: 5px;">{rank_str}</div>
                     </div>
                     <div>
@@ -657,6 +657,7 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
 
 
 
