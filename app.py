@@ -528,7 +528,7 @@ else:
             # --- 核心：繪製數據卡片 (包含金銀銅牌特效) ---
             def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, rank=999):
                 # 基礎 CSS：加入 flex-grow 和 box-sizing 以確保對齊
-                base_style = "box-sizing: border-box; border-radius: 10px; padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1;"
+                base_style = "box-sizing: border-box; border-radius: 10px; padding: 35px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1;"
 
                 if rank == 1:
                     # 🥇 第一名：金色 (Gold)
@@ -657,6 +657,7 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
 
 
 
