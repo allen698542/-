@@ -691,14 +691,22 @@ else:
             
                 # --- 右邊：近兩周達成 ---
                 with col2:
-                    if '近兩周是否達成' in df_filtered.columns:
-                        cnt2 = df_filtered['近兩周是否達成'].value_counts().reset_index()
-                        cnt2.columns = ['狀態', '數量']
-                        if not cnt2.empty:
-                            fig2 = px.pie(cnt2, values='數量', names='狀態', title='周達成率(雙周/會降階)', 
-                                          color='狀態', color_discrete_map={'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}, hole=0.6)
-                            st.plotly_chart(fig2, use_container_width=True)
-                    else:
-                        st.info("資料中未找到 '近兩周是否達成' 欄位")
-
-
+                    if '異動與否' in df_filtered.columns:
+                        # 排除 NA (第一週)，只計算有效的異動資料
+                        valid_changes = df_filtered[df_filtered['異動與否'] != 'NA']
+                        
+                        change_counts = valid_changes['異動與否'].value_counts().reset_index()
+                        change_counts.columns = ['狀態', '數量']
+                        
+                        if not change_counts.empty:
+                            # 設定顏色：異動(警示色)，無異動(藍色系)，其他(灰色)
+                            color_map = {'是': '#FFA15A', '有': '#FFA15A', '異動': '#FFA15A', 
+                                         '否': '#636EFA', '無': '#636EFA', '無異動': '#636EFA'}
+                            
+                            fig_pie_change = px.pie(change_counts, values='數量', names='狀態', 
+                                                    title='職位異動率 (排除首週)', 
+                                                    color='狀態', color_discrete_map=color_map, hole=0.6)
+                            
+                            st.plotly_chart(fig_pie_change, use_container_width=True, config=PLOT_CONFIG)
+                        else:
+                            st.info("排除首週後，無有效異動資料")
