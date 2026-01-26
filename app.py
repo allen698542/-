@@ -734,7 +734,7 @@ else:
 
             # --- 新增的第四個 Tab 內容 ---
             with tab4:
-                st.markdown("### ˙ 職位異動歷史")
+                st.markdown("###  職位異動歷史")
                 if '異動與否' in df_filtered.columns:
                     # 篩選出有「升階」或「降階」的紀錄
                     change_log = df_filtered[df_filtered['異動與否'].isin(['升階', '降階'])].copy()
@@ -784,7 +784,8 @@ else:
                         # 使用 Pandas Styler apply (axis=1 代表逐列掃描)
                         styled_df = display_df.style.apply(highlight_rows, axis=1)
 
-                        # 2. 新增 height 參數 (600px)
+                        # 2. 新增 height 參數 (800px)
+                        df_detail_view = df_filtered.sort_values('變動類型', ascending=False)
                         st.dataframe(
                             styled_df, 
                             use_container_width=True, 
@@ -800,6 +801,7 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
 
