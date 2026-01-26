@@ -401,7 +401,7 @@ elif search_mode == "📂 原始資料查詢":
     st.markdown("### 📂 原始資料庫搜尋")
     
     # 1. 搜尋框
-    search_query = st.text_input("🔍 請輸入關鍵字 (搜尋暱稱、職業、分數、達成狀態...)", placeholder="例如: 英雄, 1000, 達成...")
+    search_query = st.text_input("🔍 請輸入關鍵字 (搜尋暱稱、職業、分數、達成狀態...)", placeholder="例如: 陰陽師, 1000, 達成...")
     
     # 2. 篩選邏輯
     if search_query:
@@ -841,6 +841,7 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
 
