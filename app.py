@@ -613,7 +613,7 @@ else:
 
                 draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, rank=display_rank)
 
-            # --- 修改重點：新增了第四個分頁 ---
+            # --- 修改重點：新增了第四個 Tab 內容 ---
             tab1, tab2, tab3, tab4 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況", "⚖️ 升降階紀錄"])
 
             with tab1:
@@ -733,16 +733,16 @@ else:
                             notes = []
                             # 1. 地下水道
                             if row['地下水道'] > 0:
-                                notes.append(f"水道{int(row['地下水道'])}分")
+                                notes.append(f"地下水道:{int(row['地下水道'])}分")
                             # 2. 旗幟戰
                             if row['旗幟戰'] > 0:
-                                notes.append(f"旗幟戰{int(row['旗幟戰'])}分")
+                                notes.append(f"旗幟:{int(row['旗幟戰'])}分")
                             # 3. 公會城
                             if row['公會城每周'] > 0: # 假設 1 代表有打
                                 notes.append("公會城每周達成")
                             
                             if not notes:
-                                return "近兩周未有完成記錄"
+                                return "未參與任何活動"
                             return " / ".join(notes)
                         
                         change_log['備註'] = change_log.apply(generate_note, axis=1)
@@ -752,8 +752,21 @@ else:
                         display_df = change_log[['周次', '異動與否', '備註']]
                         display_df.columns = ['日期', '變動類型', '備註']
 
+                        # === 新增：針對變動類型欄位進行顏色樣式設定 ===
+                        def highlight_changes(val):
+                            if val == '升階':
+                                # 綠色文字 + 淡淡的綠底
+                                return 'color: #00CC96; background-color: #E6FFF5; font-weight: bold;' 
+                            elif val == '降階':
+                                # 紅色文字 + 淡淡的紅底
+                                return 'color: #EF553B; background-color: #FFE6E6; font-weight: bold;'
+                            return ''
+
+                        # 使用 Pandas Styler applymap (或者 map 在新版pandas) 進行樣式套用
+                        styled_df = display_df.style.map(highlight_changes, subset=['變動類型'])
+
                         st.dataframe(
-                            display_df, 
+                            styled_df, 
                             use_container_width=True, 
                             hide_index=True,
                             column_config={
@@ -766,4 +779,3 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
-
