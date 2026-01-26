@@ -685,7 +685,7 @@ else:
                         cnt1 = df_filtered['本周是否達成'].value_counts().reset_index()
                         cnt1.columns = ['狀態', '數量']
                         if not cnt1.empty:
-                            fig1 = px.pie(cnt1, values='數量', names='狀態', title='周達成率(單周)', 
+                            fig1 = px.pie(cnt1, values='數量', names='狀態', title='周達成率(單周/不會降階)', 
                                           color='狀態', color_discrete_map={'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}, hole=0.6)
                             st.plotly_chart(fig1, use_container_width=True)
             
@@ -695,9 +695,10 @@ else:
                         cnt2 = df_filtered['近兩周是否達成'].value_counts().reset_index()
                         cnt2.columns = ['狀態', '數量']
                         if not cnt2.empty:
-                            fig2 = px.pie(cnt2, values='數量', names='狀態', title='周達成率(雙周)', 
+                            fig2 = px.pie(cnt2, values='數量', names='狀態', title='周達成率(雙周/會降階)', 
                                           color='狀態', color_discrete_map={'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}, hole=0.6)
                             st.plotly_chart(fig2, use_container_width=True)
                     else:
                         st.info("資料中未找到 '近兩周是否達成' 欄位")
+
 
