@@ -626,9 +626,35 @@ else:
 
                 if chart_type == "地下水道" and len(df_filtered) > 1:
                     try:
-                        slope, intercept = np.polyfit(pd.to_numeric(df_filtered['周次']), df_filtered[chart_type], 1)
-                        fig_line.add_scatter(x=df_filtered['周次'], y=slope * pd.to_numeric(df_filtered['周次']) + intercept, mode='lines', name='📈 成長趨勢', line=dict(color='red', width=2, dash='dash'), hoverinfo='skip')
-                    except: pass 
+                        # --- 修改開始 ---
+                        # 1. 將日期轉換為「距離第一天的天數」，這樣算出來的斜率單位就是「分/天」
+                        base_date = df_filtered['周次'].min()
+                        x_days = (df_filtered['周次'] - base_date).dt.days
+                        y_scores = df_filtered[chart_type]
+                        
+                        # 2. 計算線性回歸 (1代表一次方程式 y = ax + b)
+                        slope_daily, intercept = np.polyfit(x_days, y_scores, 1)
+                        
+                        # 3. 將「每天進步」轉換為「每週進步」(乘以 7)
+                        slope_weekly = slope_daily * 7
+                        
+                        # 4. 計算趨勢線的 Y 軸數值
+                        y_trend = slope_daily * x_days + intercept
+                        
+                        # 5. 設定顯示文字 (加上正負號與千分位逗號)
+                        trend_label = f'📈 趨勢 (週成長: {int(slope_weekly):+,})'
+                        
+                        fig_line.add_scatter(
+                            x=df_filtered['周次'], 
+                            y=y_trend, 
+                            mode='lines', 
+                            name=trend_label, # 這裡會顯示計算出來的斜率
+                            line=dict(color='red', width=2, dash='dash'), 
+                            hoverinfo='name+y'
+                        )
+                        # --- 修改結束 ---
+                    except Exception as e:
+                        pass
 
                 avg_score = df_filtered[chart_type].mean()
                 if chart_type != "公會城每周" and avg_score > 0:
@@ -657,6 +683,7 @@ else:
                     fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
                     st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
                 else: st.info("此區間無資料")
+
 
 
 
