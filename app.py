@@ -198,7 +198,7 @@ if not check_password():
 # ==========================================
 # 2. 讀取與處理資料
 # ==========================================
-@st.cache_data
+@st.cache_data(ttl=600)
 def load_data():
     df = pd.read_csv("guild_data.csv")
     
@@ -752,18 +752,22 @@ else:
                         display_df = change_log[['周次', '異動與否', '備註']]
                         display_df.columns = ['日期', '變動類型', '備註']
 
-                        # === 新增：針對變動類型欄位進行顏色樣式設定 ===
-                        def highlight_changes(val):
-                            if val == '升階':
-                                # 綠色文字 + 淡淡的綠底
-                                return 'color: #00EC00; background-color: #006000;' 
-                            elif val == '降階':
-                                # 紅色文字 + 淡淡的紅底
-                                return 'color: #F08080; background-color: #800000;'
-                            return ''
+                        # === 核心修改：整行變色邏輯 ===
+                        def highlight_rows(row):
+                            # 預設樣式 (無)
+                            styles = [''] * len(row)
+                            
+                            if row['變動類型'] == '升階':
+                                # 整行綠色背景 + 綠色文字 + 粗體
+                                return ['background-color: #006000; color: #00EC00; font-weight: bold;'] * len(row)
+                            elif row['變動類型'] == '降階':
+                                # 整行紅色背景 + 紅色文字 + 粗體
+                                return ['background-color: #800000; color: #F08080; font-weight: bold;'] * len(row)
+                            
+                            return styles
 
-                        # 使用 Pandas Styler applymap (或者 map 在新版pandas) 進行樣式套用
-                        styled_df = display_df.style.map(highlight_changes, subset=['變動類型'])
+                        # 使用 Pandas Styler apply (axis=1 代表逐列掃描)
+                        styled_df = display_df.style.apply(highlight_rows, axis=1)
 
                         st.dataframe(
                             styled_df, 
@@ -779,9 +783,3 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
-
-
-
-
-
-
