@@ -700,7 +700,7 @@ else:
                         if not cnt1.empty:
                             fig1 = px.pie(cnt1, values='數量', names='狀態', title='周達成率(單周/不會降階)', 
                                           color='狀態', color_discrete_map={'達成': '#28FF28', '未達成': '#FF2D2D', 'NA': '#636EFA'}, hole=0.6)
-                            st.plotly_chart(fig1, use_container_width=True)
+                            st.plotly_chart(fig1, use_container_width=True, height=800,)
             
                 # --- 右邊：近兩周達成 ---
                 with col2:
@@ -800,6 +800,7 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
 
