@@ -720,7 +720,7 @@ else:
                 
                 # --- 加入 column_config 來格式化日期 ---
                 st.dataframe(
-                    df_detail_view[['周次', '職業', '暱稱', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']], 
+                    df_detail_view[['周次', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']], 
                     use_container_width=True, 
                     hide_index=True,
                     height=800,
@@ -841,3 +841,4 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
