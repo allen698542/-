@@ -58,7 +58,7 @@ PLOT_CONFIG = {
     }
 }
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=600)
 def get_maple_character_info(character_name):
     if not API_KEY:
         return None, "未設定 API Key"
@@ -728,21 +728,24 @@ else:
                     change_log = df_filtered[df_filtered['異動與否'].isin(['升階', '降階'])].copy()
                     
                     if not change_log.empty:
+                        # 1. 新增排序邏輯：由新到舊
+                        change_log = change_log.sort_values('周次', ascending=False)
+
                         # --- 核心修改：建立「備註」欄位 ---
                         def generate_note(row):
                             notes = []
                             # 1. 地下水道
                             if row['地下水道'] > 0:
-                                notes.append(f"水道{int(row['地下水道'])}分")
+                                notes.append(f"地下水道:{int(row['地下水道'])}分")
                             # 2. 旗幟戰
                             if row['旗幟戰'] > 0:
-                                notes.append(f"旗幟{int(row['旗幟戰'])}分")
+                                notes.append(f"旗幟:{int(row['旗幟戰'])}分")
                             # 3. 公會城
                             if row['公會城每周'] > 0: # 假設 1 代表有打
                                 notes.append("公會城每周達成")
                             
                             if not notes:
-                                return "近兩周無記錄"
+                                return "未參與任何活動"
                             return " / ".join(notes)
                         
                         change_log['備註'] = change_log.apply(generate_note, axis=1)
@@ -759,20 +762,22 @@ else:
                             
                             if row['變動類型'] == '升階':
                                 # 整行綠色背景 + 綠色文字 + 粗體
-                                return ['background-color: #006000; color: #00EC00;'] * len(row)
+                                return ['background-color: #006000; color: #00EC00; font-weight: bold;'] * len(row)
                             elif row['變動類型'] == '降階':
                                 # 整行紅色背景 + 紅色文字 + 粗體
-                                return ['background-color: #800000; color: #F08080;'] * len(row)
+                                return ['background-color: #800000; color: #F08080; font-weight: bold;'] * len(row)
                             
                             return styles
 
                         # 使用 Pandas Styler apply (axis=1 代表逐列掃描)
                         styled_df = display_df.style.apply(highlight_rows, axis=1)
 
+                        # 2. 新增 height 參數 (600px)
                         st.dataframe(
                             styled_df, 
                             use_container_width=True, 
                             hide_index=True,
+                            height=600,
                             column_config={
                                 "日期": st.column_config.DateColumn("日期", format="YYYY-MM-DD"),
                                 "變動類型": st.column_config.TextColumn("變動類型", help="升階或降階"),
@@ -783,5 +788,3 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
-
-
