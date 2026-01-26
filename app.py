@@ -674,7 +674,8 @@ else:
                 if chart_type == "公會城每周": st.caption("ℹ️ 1 代表有完成，0 代表未完成")
 
             with tab2:
-                st.dataframe(df_filtered[['周次', '職業', '暱稱', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']], use_container_width=True, hide_index=True, height=800)
+                df_detail_view = df_filtered.sort_values('周次', ascending=False)
+                st.dataframe(df_detail_view[['周次', '職業', '暱稱', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']], use_container_width=True, hide_index=True, height=800)
 
             with tab3:
                 st.markdown("### 📊 達成率分析對比")
@@ -788,6 +789,7 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
 
