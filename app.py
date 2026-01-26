@@ -756,10 +756,10 @@ else:
                         def highlight_changes(val):
                             if val == '升階':
                                 # 綠色文字 + 淡淡的綠底
-                                return 'color: #00EC00; background-color: #006000; font-weight: bold;' 
+                                return 'color: #00EC00; background-color: #006000;' 
                             elif val == '降階':
                                 # 紅色文字 + 淡淡的紅底
-                                return 'color: #F08080; background-color: #800000; font-weight: bold;'
+                                return 'color: #F08080; background-color: #800000;'
                             return ''
 
                         # 使用 Pandas Styler applymap (或者 map 在新版pandas) 進行樣式套用
@@ -779,6 +779,7 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
 
