@@ -701,7 +701,7 @@ else:
                         if not change_counts.empty:
                             # 2. 設定你指定的顏色映射
                             color_map = {
-                                '升階': '#00CC96',  # 綠色
+                                '升階': '#28FF28',  # 綠色
                                 '降階': '#EF553B',  # 紅色
                                 '否': '#636EFA'     # 藍色
                             }
@@ -718,3 +718,4 @@ else:
                             )
                             
                             st.plotly_chart(fig_pie_change, use_container_width=True, config=PLOT_CONFIG)
+
