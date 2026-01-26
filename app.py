@@ -676,25 +676,27 @@ else:
                 st.dataframe(df_filtered[['周次', '職業', '暱稱', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']], use_container_width=True, hide_index=True)
 
             with tab3:
-                achievement_counts = df_filtered['本周是否達成'].value_counts().reset_index()
-                achievement_counts.columns = ['狀態', '數量']
-                if not achievement_counts.empty:
-                    fig_pie = px.pie(achievement_counts, values='數量', names='狀態', title='個人達成率統計', color='狀態', color_discrete_map={'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}, hole=0.6)
-                    fig_pie.add_annotation(text=f"達成<br>{achievement_counts[achievement_counts['狀態']=='達成']['數量'].sum()}次", showarrow=False, font_size=20)
-                    st.plotly_chart(fig_pie, use_container_width=True, config=PLOT_CONFIG)
-                else: st.info("此區間無資料")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                st.markdown("### 📊 達成率分析對比")
+                col1, col2 = st.columns(2) # 切分成兩欄
+                
+                # --- 左邊：本周達成 ---
+                with col1:
+                    if '本周是否達成' in df_filtered.columns:
+                        cnt1 = df_filtered['本周是否達成'].value_counts().reset_index()
+                        cnt1.columns = ['狀態', '數量']
+                        if not cnt1.empty:
+                            fig1 = px.pie(cnt1, values='數量', names='狀態', title='本周達成率', 
+                                          color='狀態', color_discrete_map={'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}, hole=0.6)
+                            st.plotly_chart(fig1, use_container_width=True)
+            
+                # --- 右邊：近兩周達成 ---
+                with col2:
+                    if '近兩周是否達成' in df_filtered.columns:
+                        cnt2 = df_filtered['近兩周是否達成'].value_counts().reset_index()
+                        cnt2.columns = ['狀態', '數量']
+                        if not cnt2.empty:
+                            fig2 = px.pie(cnt2, values='數量', names='狀態', title='近兩周達成率', 
+                                          color='狀態', color_discrete_map={'達成': '#00CC96', '未達成': '#EF553B', 'NA': '#636EFA'}, hole=0.6)
+                            st.plotly_chart(fig2, use_container_width=True)
+                    else:
+                        st.info("資料中未找到 '近兩周是否達成' 欄位")
