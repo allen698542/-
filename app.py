@@ -759,10 +759,10 @@ else:
                             
                             if row['變動類型'] == '升階':
                                 # 整行綠色背景 + 綠色文字 + 粗體
-                                return ['background-color: #006000; color: #00EC00; font-weight: bold;'] * len(row)
+                                return ['background-color: #006000; color: #00EC00;'] * len(row)
                             elif row['變動類型'] == '降階':
                                 # 整行紅色背景 + 紅色文字 + 粗體
-                                return ['background-color: #800000; color: #F08080; font-weight: bold;'] * len(row)
+                                return ['background-color: #800000; color: #F08080;'] * len(row)
                             
                             return styles
 
@@ -783,3 +783,4 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
