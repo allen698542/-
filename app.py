@@ -421,7 +421,7 @@ elif search_mode == "原始資料查詢":
     else:
         df_display = df_period
         #搜尋前先自動計算 df_period 的長度
-        st.info(f"💡 顯示目前日期區間內的所有資料，目前共有 {len(df_display)} 筆資料")
+        st.info(f"💡 顯示目前日期區間內的所有資料，目前共有 {len(df_display)} 筆資料，上限 1048576 筆")
 
     # 3. 資料處理：排序
     df_display = df_display.sort_values('周次', ascending=False)
@@ -851,6 +851,7 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
 
