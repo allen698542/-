@@ -728,22 +728,38 @@ else:
                     change_log = df_filtered[df_filtered['異動與否'].isin(['升階', '降階'])].copy()
                     
                     if not change_log.empty:
-                        # 整理要顯示的欄位，讓表格乾淨一點
-                        # 顯示：周次、異動類型、以及當時的分數表現作為參考
-                        display_cols = ['周次', '異動與否', '旗幟戰', '地下水道', '本周是否達成']
+                        # --- 核心修改：建立「備註」欄位 ---
+                        def generate_note(row):
+                            notes = []
+                            # 1. 地下水道
+                            if row['地下水道'] > 0:
+                                notes.append(f"地下水道:{int(row['地下水道'])}分")
+                            # 2. 旗幟戰
+                            if row['旗幟戰'] > 0:
+                                notes.append(f"旗幟:{int(row['旗幟戰'])}分")
+                            # 3. 公會城
+                            if row['公會城每周'] > 0: # 假設 1 代表有打
+                                notes.append("公會城每周達成")
+                            
+                            if not notes:
+                                return "未參與任何活動"
+                            return " / ".join(notes)
                         
-                        # 格式化一下周次顯示 (去掉時間，只留日期)
+                        change_log['備註'] = change_log.apply(generate_note, axis=1)
                         change_log['周次'] = change_log['周次'].dt.date
                         
+                        # 整理要顯示的欄位: 日期 / 變動類型 / 備註
+                        display_df = change_log[['周次', '異動與否', '備註']]
+                        display_df.columns = ['日期', '變動類型', '備註']
+
                         st.dataframe(
-                            change_log[display_cols], 
+                            display_df, 
                             use_container_width=True, 
                             hide_index=True,
                             column_config={
-                                "異動與否": st.column_config.TextColumn("變動類型", help="升階或降階"),
-                                "周次": st.column_config.DateColumn("日期", format="YYYY-MM-DD"),
-                                "旗幟戰": st.column_config.NumberColumn("當時旗幟分數"),
-                                "地下水道": st.column_config.NumberColumn("當時水道分數"),
+                                "日期": st.column_config.DateColumn("日期", format="YYYY-MM-DD"),
+                                "變動類型": st.column_config.TextColumn("變動類型", help="升階或降階"),
+                                "備註": st.column_config.TextColumn("備註", width="large"),
                             }
                         )
                     else:
