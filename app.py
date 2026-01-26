@@ -32,12 +32,12 @@ st.markdown("""
     }
 }
 
-/* === 核心修改：防止表格滾動時帶動整個頁面 ===
-   overscroll-behavior: contain; 
-   這行指令會告訴瀏覽器：當這個區域滾到盡頭時，
-   不要把滾動動作傳遞給外層(整個網頁)。
+/* === 核心修改：防止表格滾動時帶動整個頁面 (Scroll Chaining) ===
+   原本只寫 div[data-testid="stDataFrame"] 會失效，因為捲軸是在內層。
+   改用 [data-testid="stDataFrame"] div 鎖定所有內部 div，
+   這樣只要遇到有捲軸的層級，就會強制阻止滾動傳遞。
 */
-div[data-testid="stDataFrame"] {
+[data-testid="stDataFrame"] div {
     overscroll-behavior: contain;
 }
 </style>
@@ -425,19 +425,19 @@ elif search_mode == "📂 原始資料查詢":
     # 3. 資料處理：排序
     df_display = df_display.sort_values('周次', ascending=False)
     
-    # --- 核心修改：設定顯示欄位與順序 (排除圖片與等級) ---
+    # --- 核心修改：依照指定順序設定顯示欄位 (排除圖片與等級) ---
     target_cols = [
         '周次', '暱稱', '職業', '旗幟戰', '地下水道', '公會城每周', 
         '本周是否達成', '近兩周是否達成', '異動與否'
     ]
-    # 防呆：確保欄位存在才顯示 (避免資料庫結構不同時報錯)
+    # 防呆：確保欄位存在才顯示
     cols_to_show = [col for col in target_cols if col in df_display.columns]
 
     st.dataframe(
         df_display[cols_to_show], # 只顯示指定欄位
         use_container_width=True, 
         hide_index=True,
-        height=600,
+        height=800,
         column_config={
             "周次": st.column_config.DateColumn("周次", format="YYYY-MM-DD")
         }
