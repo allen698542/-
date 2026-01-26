@@ -260,9 +260,10 @@ df_period = df[mask_period]
 
 st.markdown("### 🔍 功能面板")
 
+# --- 修改重點：新增第四個選項 ---
 search_mode = st.radio(
     "請選擇功能：",
-    ["個人查詢 (層級篩選)", "個人查詢 (直接搜尋)", "🏆 全公會排行榜"],
+    ["個人查詢 (層級篩選)", "個人查詢 (直接搜尋)", "🏆 全公會排行榜", "📂 原始資料查詢"],
     horizontal=True
 )
 
@@ -394,7 +395,41 @@ if search_mode == "🏆 全公會排行榜":
         draw_leaderboard(leaderboard_df, '公會城每周', 'Greens', '公會城參與數', is_attendance=True)
 
 # ==========================================
-# 分支 B: 個人查詢模式
+# 分支 B: 原始資料查詢 (新增的功能)
+# ==========================================
+elif search_mode == "📂 原始資料查詢":
+    st.markdown("---")
+    st.markdown("### 📂 原始資料庫搜尋")
+    
+    # 1. 搜尋框
+    search_query = st.text_input("🔍 請輸入關鍵字 (搜尋暱稱、職業、分數、達成狀態...)", placeholder="例如: 英雄, 1000, 達成...")
+    
+    # 2. 篩選邏輯
+    if search_query:
+        # 將資料轉為文字，檢查是否包含關鍵字 (case=False 不分大小寫)
+        mask = df_period.astype(str).apply(lambda x: x.str.contains(search_query, case=False, na=False)).any(axis=1)
+        df_display = df_period[mask]
+        st.success(f"🔍 搜尋結果：共找到 {len(df_display)} 筆資料")
+    else:
+        df_display = df_period
+        st.info("💡 顯示目前日期區間內的所有資料")
+
+    # 3. 顯示表格
+    # 這裡依照日期由新到舊排序
+    df_display = df_display.sort_values('周次', ascending=False)
+    
+    st.dataframe(
+        df_display, 
+        use_container_width=True, 
+        hide_index=True,
+        height=800,  # 設定為大表格
+        column_config={
+            "周次": st.column_config.DateColumn("周次", format="YYYY-MM-DD")
+        }
+    )
+
+# ==========================================
+# 分支 C: 個人查詢模式
 # ==========================================
 else: 
     final_selected_player = None 
@@ -734,7 +769,7 @@ else:
 
             # --- 新增的第四個 Tab 內容 ---
             with tab4:
-                st.markdown("###  職位異動歷史")
+                st.markdown("### ⚖️ 職位異動歷史")
                 if '異動與否' in df_filtered.columns:
                     # 篩選出有「升階」或「降階」的紀錄
                     change_log = df_filtered[df_filtered['異動與否'].isin(['升階', '降階'])].copy()
@@ -774,10 +809,10 @@ else:
                             
                             if row['變動類型'] == '升階':
                                 # 整行綠色背景 + 綠色文字 + 粗體
-                                return ['background-color: #006000; color: #00EC00; font-weight: bold;'] * len(row)
+                                return ['background-color: #E6FFF5; color: #00CC96; font-weight: bold;'] * len(row)
                             elif row['變動類型'] == '降階':
                                 # 整行紅色背景 + 紅色文字 + 粗體
-                                return ['background-color: #800000; color: #F08080; font-weight: bold;'] * len(row)
+                                return ['background-color: #FFE6E6; color: #EF553B; font-weight: bold;'] * len(row)
                             
                             return styles
 
@@ -800,15 +835,3 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
-
-
-
-
-
-
-
-
-
-
-
-
