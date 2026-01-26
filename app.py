@@ -789,16 +789,16 @@ else:
                             notes = []
                             # 1. 地下水道
                             if row['地下水道'] > 0:
-                                notes.append(f"地下水道:{int(row['地下水道'])}分")
+                                notes.append(f"地下水道{int(row['地下水道'])}分")
                             # 2. 旗幟戰
                             if row['旗幟戰'] > 0:
-                                notes.append(f"旗幟:{int(row['旗幟戰'])}分")
+                                notes.append(f"旗幟{int(row['旗幟戰'])}分")
                             # 3. 公會城
                             if row['公會城每周'] > 0: # 假設 1 代表有打
                                 notes.append("公會城每周達成")
                             
                             if not notes:
-                                return "未參與任何活動"
+                                return "近兩周未有記錄"
                             return " / ".join(notes)
                         
                         change_log['備註'] = change_log.apply(generate_note, axis=1)
@@ -841,5 +841,6 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
