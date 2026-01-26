@@ -437,7 +437,7 @@ elif search_mode == "📂 原始資料查詢":
         df_display[cols_to_show], # 只顯示指定欄位
         use_container_width=True, 
         hide_index=True,
-        height=800,
+        height=600,
         column_config={
             "周次": st.column_config.DateColumn("周次", format="YYYY-MM-DD")
         }
@@ -839,7 +839,7 @@ else:
                             styled_df, 
                             use_container_width=True, 
                             hide_index=True,
-                            height=800,
+                            height=600,
                             column_config={
                                 "日期": st.column_config.DateColumn("日期", format="YYYY-MM-DD"),
                                 "變動類型": st.column_config.TextColumn("變動類型", help="升階或降階"),
@@ -850,3 +850,4 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
