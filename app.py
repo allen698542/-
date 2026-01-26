@@ -670,7 +670,7 @@ else:
                     dragmode=False 
                 )
                 
-                st.plotly_chart(fig_line, use_container_width=True, config=PLOT_CONFIG)
+                st.plotly_chart(fig_line, use_container_width=True, config=PLOT_CONFIG, height=600)
                 if chart_type == "公會城每周": st.caption("ℹ️ 1 代表有完成，0 代表未完成")
 
             with tab2:
@@ -800,6 +800,7 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
 
