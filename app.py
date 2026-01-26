@@ -734,7 +734,7 @@ else:
 
             # --- 新增的第四個 Tab 內容 ---
             with tab4:
-                st.markdown("### ⚖️ 職位異動歷史")
+                st.markdown("### ˙ 職位異動歷史")
                 if '異動與否' in df_filtered.columns:
                     # 篩選出有「升階」或「降階」的紀錄
                     change_log = df_filtered[df_filtered['異動與否'].isin(['升階', '降階'])].copy()
@@ -800,6 +800,7 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
 
