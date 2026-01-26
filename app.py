@@ -719,6 +719,3 @@ else:
                             
                             st.plotly_chart(fig_pie_change, use_container_width=True, config=PLOT_CONFIG)
 
-
-
-
