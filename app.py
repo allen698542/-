@@ -785,7 +785,6 @@ else:
                         styled_df = display_df.style.apply(highlight_rows, axis=1)
 
                         # 2. 新增 height 參數 (800px)
-                        df_detail_view = df_filtered.sort_values('變動類型', ascending=False)
                         st.dataframe(
                             styled_df, 
                             use_container_width=True, 
@@ -801,6 +800,7 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
 
 
