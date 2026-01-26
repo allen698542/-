@@ -756,7 +756,7 @@ else:
                         def highlight_changes(val):
                             if val == '升階':
                                 # 綠色文字 + 淡淡的綠底
-                                return 'color: #006000; background-color: #00EC00; font-weight: bold;' 
+                                return 'color: #00EC00; background-color: #006000; font-weight: bold;' 
                             elif val == '降階':
                                 # 紅色文字 + 淡淡的紅底
                                 return 'color: #EF553B; background-color: #FFE6E6; font-weight: bold;'
@@ -779,4 +779,5 @@ else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
+
 
