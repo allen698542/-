@@ -613,7 +613,8 @@ else:
 
                 draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, rank=display_rank)
 
-            tab1, tab2, tab3 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況"])
+            # --- 修改重點：新增了第四個分頁 ---
+            tab1, tab2, tab3, tab4 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況", "⚖️ 升降階紀錄"])
 
             with tab1:
                 chart_type = st.radio("選擇數據類型", ["旗幟戰", "地下水道", "公會城每周"], horizontal=True)
@@ -719,3 +720,33 @@ else:
                             
                             st.plotly_chart(fig_pie_change, use_container_width=True, config=PLOT_CONFIG)
 
+            # --- 新增的第四個 Tab 內容 ---
+            with tab4:
+                st.markdown("### ⚖️ 職位異動歷史")
+                if '異動與否' in df_filtered.columns:
+                    # 篩選出有「升階」或「降階」的紀錄
+                    change_log = df_filtered[df_filtered['異動與否'].isin(['升階', '降階'])].copy()
+                    
+                    if not change_log.empty:
+                        # 整理要顯示的欄位，讓表格乾淨一點
+                        # 顯示：周次、異動類型、以及當時的分數表現作為參考
+                        display_cols = ['周次', '異動與否', '旗幟戰', '地下水道', '本周是否達成']
+                        
+                        # 格式化一下周次顯示 (去掉時間，只留日期)
+                        change_log['周次'] = change_log['周次'].dt.date
+                        
+                        st.dataframe(
+                            change_log[display_cols], 
+                            use_container_width=True, 
+                            hide_index=True,
+                            column_config={
+                                "異動與否": st.column_config.TextColumn("變動類型", help="升階或降階"),
+                                "周次": st.column_config.DateColumn("日期", format="YYYY-MM-DD"),
+                                "旗幟戰": st.column_config.NumberColumn("當時旗幟分數"),
+                                "地下水道": st.column_config.NumberColumn("當時水道分數"),
+                            }
+                        )
+                    else:
+                        st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
+                else:
+                    st.warning("資料中找不到 '異動與否' 欄位。")
