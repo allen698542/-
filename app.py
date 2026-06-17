@@ -11,7 +11,7 @@ import requests
 st.set_page_config(page_title="公會每周統計", page_icon="🍁", layout="wide")
 
 # ==========================================
-# [新增] 全域 CSS 樣式：定義彩虹文字特效 & 滾動鎖定
+# [新增] 全域 CSS 樣式：定義彩虹文字特效 & 強制滾動鎖定
 # ==========================================
 st.markdown("""
 <style>
@@ -32,13 +32,12 @@ st.markdown("""
     }
 }
 
-/* === 核心修改：防止表格滾動時帶動整個頁面 (Scroll Chaining) ===
-   原本只寫 div[data-testid="stDataFrame"] 會失效，因為捲軸是在內層。
-   改用 [data-testid="stDataFrame"] div 鎖定所有內部 div，
-   這樣只要遇到有捲軸的層級，就會強制阻止滾動傳遞。
+/* === 終極版修改：強制防止表格滾動時帶動整個頁面 ===
+   使用 none 並加上 !important 強制覆蓋 Streamlit 預設行為
 */
-[data-testid="stDataFrame"] div {
-    overscroll-behavior: contain;
+div[data-testid="stDataFrame"], 
+div[data-testid="stDataFrame"] * {
+    overscroll-behavior: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -271,14 +270,14 @@ st.markdown("### 🔍 功能面板")
 
 search_mode = st.radio(
     "請選擇功能：",
-    ["個人查詢 (層級篩選)", "個人查詢 (直接搜尋)", "全公會排行榜", "原始資料查詢"],
+    ["個人查詢 (層級篩選)", "個人查詢 (直接搜尋)", "🏆 全公會排行榜", "📂 原始資料查詢"],
     horizontal=True
 )
 
 # ==========================================
 # 分支 A: 全公會排行榜
 # ==========================================
-if search_mode == "全公會排行榜":
+if search_mode == "🏆 全公會排行榜":
     st.markdown("---")
     st.markdown(f"### 📊 公會排行榜 ({start_date} ~ {end_date})")
     
@@ -403,42 +402,38 @@ if search_mode == "全公會排行榜":
         draw_leaderboard(leaderboard_df, '公會城每周', 'Greens', '公會城參與數', is_attendance=True)
 
 # ==========================================
-# 分支 B: 原始資料查詢 (新增的功能)
+# 分支 B: 原始資料查詢
 # ==========================================
-elif search_mode == "原始資料查詢":
+elif search_mode == "📂 原始資料查詢":
     st.markdown("---")
-    st.markdown("### 原始資料庫搜尋")
+    st.markdown("### 📂 原始資料庫搜尋")
     
     # 1. 搜尋框
     search_query = st.text_input("🔍 請輸入關鍵字 (搜尋暱稱、職業、分數、達成狀態...)", placeholder="例如: 陰陽師, 1000, 達成...")
     
     # 2. 篩選邏輯
     if search_query:
-        # 將資料轉為文字，檢查是否包含關鍵字 (case=False 不分大小寫)
         mask = df_period.astype(str).apply(lambda x: x.str.contains(search_query, case=False, na=False)).any(axis=1)
         df_display = df_period[mask]
         st.success(f"🔍 搜尋結果：共找到 {len(df_display)} 筆資料")
     else:
         df_display = df_period
-        #搜尋前先自動計算 df_period 的長度
-        st.info(f"💡 顯示目前日期區間內的所有資料，目前共有 {len(df_display)} 筆資料，上限 1048576 筆")
+        st.info(f"💡 顯示目前日期區間內的所有資料，目前共有 {len(df_display)} 筆資料")
 
-    # 3. 資料處理：排序
+    # 3. 資料處理：排序並重置索引 (解決 unhashable type Error)
     df_display = df_display.sort_values('周次', ascending=False).reset_index(drop=True)
     
-    # --- 核心修改：依照指定順序設定顯示欄位 (排除圖片與等級) ---
     target_cols = [
         '周次', '暱稱', '職業', '旗幟戰', '地下水道', '公會城每周', 
         '本周是否達成', '近兩周是否達成', '異動與否'
     ]
-    # 防呆：確保欄位存在才顯示
     cols_to_show = [col for col in target_cols if col in df_display.columns]
 
     st.dataframe(
-        df_display[cols_to_show], # 只顯示指定欄位
+        df_display[cols_to_show], 
         use_container_width=True, 
         hide_index=True,
-        height=600,
+        height=800,
         column_config={
             "周次": st.column_config.DateColumn("周次", format="YYYY-MM-DD")
         }
@@ -502,18 +497,19 @@ else:
         else:
             df_sorted = df_filtered.sort_values('周次', ascending=False)
             player_info = df_sorted.iloc[0]
-            current_level = player_info.get('等級', 0)
-            img_url = player_info.get('圖片', None)
+            
+            # === 修正圖片消失問題：往回找歷史紀錄中的第一個有效等級與圖片 ===
+            valid_levels = df_sorted[pd.to_numeric(df_sorted['等級'], errors='coerce') > 0]
+            if not valid_levels.empty:
+                display_level = int(float(valid_levels.iloc[0]['等級']))
+            else:
+                display_level = "???"
 
-            if pd.to_numeric(current_level, errors='coerce') == 0 or pd.isna(current_level):
-                valid_rows = df_sorted[pd.to_numeric(df_sorted['等級'], errors='coerce') > 0]
-                if not valid_rows.empty:
-                    player_info = valid_rows.iloc[0] 
-                    current_level = player_info.get('等級')
-                    img_url = player_info.get('圖片')
-
-            if str(current_level) == "0" or str(current_level) == "nan": display_level = "???"
-            else: display_level = int(float(current_level)) 
+            valid_imgs = df_sorted[df_sorted['圖片'].notna() & (df_sorted['圖片'].astype(str).str.strip() != '') & (df_sorted['圖片'].astype(str).str.lower() != 'nan')]
+            if not valid_imgs.empty:
+                img_url = valid_imgs.iloc[0]['圖片']
+            else:
+                img_url = None
 
             job_display = player_info.get('職業', '未知')
             if str(job_display) == 'nan': job_display = '未知'
@@ -523,7 +519,7 @@ else:
             with st.container(border=True):
                 col_profile_img, col_profile_info = st.columns([1.5, 3.5])
                 with col_profile_img:
-                    if img_url and str(img_url) != "nan" and str(img_url).strip() != "": st.image(img_url, width=130)
+                    if img_url: st.image(img_url, width=130)
                     else: st.markdown("# 👤") 
                 with col_profile_info:
                     st.markdown(f"#### 📜 角色詳細資料\n* **職業：** {job_display}\n* **等級：** {display_level}\n* **資料來源：** 靜態資料庫 (非即時API回溯法)")
@@ -576,29 +572,22 @@ else:
 
             st.markdown("### 🏆 本周戰績與排名情報")
             
-            # --- 核心：繪製數據卡片 (包含金銀銅牌特效) ---
             def draw_stat_card(title, score_str, rank_str, prev_txt, next_txt, rank=999):
-                # 基礎 CSS：加入 flex-grow 和 box-sizing 以確保對齊
                 base_style = "box-sizing: border-box; border-radius: 10px; padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1;"
 
                 if rank == 1:
-                    # 🥇 第一名：金色 (Gold)
                     container_style = f"{base_style} border: 3px solid #FFD700; background: linear-gradient(135deg, #262730 0%, #3a3200 100%); box-shadow: 0 0 55px rgba(255, 215, 0, 0.4); color: white;"
                     score_color = "#FFD700"
                 elif rank == 2:
-                    # 🥈 第二名：銀色 (Silver)
                     container_style = f"{base_style} border: 3px solid #C0C0C0; background: linear-gradient(135deg, #262730 0%, #383838 100%); box-shadow: 0 0 55px rgba(192, 192, 192, 0.4); color: white;"
-                    score_color = "#E0E0E0" # 亮銀色文字
+                    score_color = "#E0E0E0" 
                 elif rank == 3:
-                    # 🥉 第三名：銅色 (Bronze)
                     container_style = f"{base_style} border: 3px solid #CD7F32; background: linear-gradient(135deg, #262730 0%, #3a2500 100%); box-shadow: 0 0 55px rgba(205, 127, 50, 0.4); color: white;"
                     score_color = "#CD7F32"
                 else:
-                    # 普通名次：深灰色
                     container_style = f"{base_style} border: 3px solid #444; background-color: #262730; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: white;"
                     score_color = "#FF9F1C"
 
-                # 渲染 HTML (font-size 已放大)
                 html_code = f"""
                 <div style="{container_style}">
                     <div>
@@ -617,10 +606,8 @@ else:
 
             col1, col2, col3, col4 = st.columns(4)
 
-            # 1. 統計週數
             with col1:
                 left_card_style = "box-sizing: border-box; border-radius: 10px; padding: 15px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; flex-grow: 1; border: 3px solid #444; background-color: #262730; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: white;"
-                
                 html_left = f"""
                 <div style="{left_card_style}">
                     <div>
@@ -637,34 +624,29 @@ else:
                 """
                 st.markdown(html_left, unsafe_allow_html=True)
 
-            # 2. 旗幟戰
             with col2:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '旗幟戰', '周次', mode='avg')
                 rank_str = f"{get_rank_icon(rank_flag)}第 {rank_flag} 名 <span style='font-size:1.0rem; color:#BBB'>(均 {avg_flag:,})</span>"
                 draw_stat_card("🚩 旗幟戰", f"{p_flag:,} 分", rank_str, prev_txt, next_txt, rank=rank_flag)
 
-            # 3. 地下水道
             with col3:
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '地下水道', '周次', mode='avg')
                 rank_str = f"{get_rank_icon(rank_water)}第 {rank_water} 名 <span style='font-size:1.0rem; color:#BBB'>(均 {avg_water:,})</span>"
                 draw_stat_card("💧 地下水道", f"{p_water:,} 分", rank_str, prev_txt, next_txt, rank=rank_water)
 
-            # 4. 公會城
             with col4:
                 castle_title = "👑 公會城 (全勤)" if avg_castle_pct == 100 else "🏰 公會城"
                 prev_txt, next_txt = get_detailed_neighbors(guild_stats, final_selected_player, '公會城每周', '周次', mode='pct')
                 
                 if avg_castle_pct == 100:
-                    # --- 這裡修正了：使用 class='rainbow-text' 替代 :rainbow[] ---
                     rank_str = f"👑 <span class='rainbow-text'>完美全勤!!</span> <span style='font-size:1.0rem; color:#BBB'>({avg_castle_pct}%)</span>"
-                    display_rank = 1 # 全勤強制金牌特效
+                    display_rank = 1 
                 else:
                     rank_str = f"{get_rank_icon(rank_castle)}第 {rank_castle} 名 <span style='font-size:1.0rem; color:#BBB'>({avg_castle_pct}%)</span>"
                     display_rank = rank_castle
 
                 draw_stat_card(castle_title, f"{p_castle} 次", rank_str, prev_txt, next_txt, rank=display_rank)
 
-            # --- 修改重點：新增了第四個 Tab 內容 ---
             tab1, tab2, tab3, tab4 = st.tabs(["📈 個人走勢圖", "📋 詳細記錄", "🍩 達成狀況", "⚖️ 升降階紀錄"])
 
             with tab1:
@@ -678,33 +660,24 @@ else:
 
                 if chart_type == "地下水道" and len(df_filtered) > 1:
                     try:
-                        # --- 修改開始 ---
-                        # 1. 將日期轉換為「距離第一天的天數」，這樣算出來的斜率單位就是「分/天」
                         base_date = df_filtered['周次'].min()
                         x_days = (df_filtered['周次'] - base_date).dt.days
                         y_scores = df_filtered[chart_type]
                         
-                        # 2. 計算線性回歸 (1代表一次方程式 y = ax + b)
                         slope_daily, intercept = np.polyfit(x_days, y_scores, 1)
-                        
-                        # 3. 將「每天進步」轉換為「每週進步」(乘以 7)
                         slope_weekly = slope_daily * 7
-                        
-                        # 4. 計算趨勢線的 Y 軸數值
                         y_trend = slope_daily * x_days + intercept
                         
-                        # 5. 設定顯示文字 (加上正負號與千分位逗號)
                         trend_label = f'📈 趨勢 (週成長: {int(slope_weekly):+,})'
                         
                         fig_line.add_scatter(
                             x=df_filtered['周次'], 
                             y=y_trend, 
                             mode='lines', 
-                            name=trend_label, # 這裡會顯示計算出來的斜率
+                            name=trend_label,
                             line=dict(color='red', width=2, dash='dash'), 
                             hoverinfo='name+y'
                         )
-                        # --- 修改結束 ---
                     except Exception as e:
                         pass
 
@@ -725,10 +698,7 @@ else:
                 if chart_type == "公會城每周": st.caption("ℹ️ 1 代表有完成，0 代表未完成")
 
             with tab2:
-                #先排序再顯示 (由新到舊)
-                df_detail_view = df_filtered.sort_values('周次', ascending=False)
-                
-                # --- 加入 column_config 來格式化日期 ---
+                df_detail_view = df_filtered.sort_values('周次', ascending=False).reset_index(drop=True)
                 st.dataframe(
                     df_detail_view[['周次', '旗幟戰', '地下水道', '公會城每周', '本周是否達成']], 
                     use_container_width=True, 
@@ -741,9 +711,8 @@ else:
 
             with tab3:
                 st.markdown("### 📊 達成率分析對比")
-                col1, col2 = st.columns(2) # 切分成兩欄
+                col1, col2 = st.columns(2)
                 
-                # --- 左邊：本周達成 ---
                 with col1:
                     if '本周是否達成' in df_filtered.columns:
                         cnt1 = df_filtered['本周是否達成'].value_counts().reset_index()
@@ -753,106 +722,73 @@ else:
                                           color='狀態', color_discrete_map={'達成': '#28FF28', '未達成': '#FF2D2D', 'NA': '#636EFA'}, hole=0.6)
                             st.plotly_chart(fig1, use_container_width=True, height=600,)
             
-                # --- 右邊：近兩周達成 ---
                 with col2:
                     if '異動與否' in df_filtered.columns:
-                        # 1. 排除 NA
                         valid_changes = df_filtered[df_filtered['異動與否'] != 'NA']
-                        
                         change_counts = valid_changes['異動與否'].value_counts().reset_index()
                         change_counts.columns = ['狀態', '數量']
                         
                         if not change_counts.empty:
-                            # 2. 設定你指定的顏色映射
                             color_map = {
-                                '升階': '#28FF28',  # 綠色
-                                '降階': '#FF2D2D',  # 紅色
-                                '否': '#0080FF'     # 藍色
+                                '升階': '#28FF28', 
+                                '降階': '#FF2D2D', 
+                                '否': '#0080FF'    
                             }
-                            
                             fig_pie_change = px.pie(
                                 change_counts, 
                                 values='數量', 
                                 names='狀態', 
                                 title='職位異動統計 (排除首週)', 
                                 color='狀態', 
-                                # 這裡會依照上面的設定自動填色，如果出現沒定義的字(例如:平調)會自動配其他顏色
                                 color_discrete_map=color_map, 
                                 hole=0.6
                             )
-                            
                             st.plotly_chart(fig_pie_change, use_container_width=True, config=PLOT_CONFIG, height=600)
 
-            # --- 新增的第四個 Tab 內容 ---
             with tab4:
                 st.markdown("### ⚖️ 職位異動歷史")
                 if '異動與否' in df_filtered.columns:
-                    # 篩選出有「升階」或「降階」的紀錄
                     change_log = df_filtered[df_filtered['異動與否'].isin(['升階', '降階'])].copy()
                     
                     if not change_log.empty:
-                        # 1. 新增排序邏輯：由新到舊
                         change_log = change_log.sort_values('周次', ascending=False)
 
-                        # --- 核心修改：建立「備註」欄位 ---
                         def generate_note(row):
                             notes = []
-                            # 1. 地下水道
-                            if row['地下水道'] > 0:
-                                notes.append(f"地下水道{int(row['地下水道'])}分")
-                            # 2. 旗幟戰
-                            if row['旗幟戰'] > 0:
-                                notes.append(f"旗幟{int(row['旗幟戰'])}分")
-                            # 3. 公會城
-                            if row['公會城每周'] > 0: # 假設 1 代表有打
-                                notes.append("公會城每周達成")
-                            
-                            if not notes:
-                                return "近兩周未有記錄"
+                            if row['地下水道'] > 0: notes.append(f"地下水道{int(row['地下水道'])}分")
+                            if row['旗幟戰'] > 0: notes.append(f"旗幟{int(row['旗幟戰'])}分")
+                            if row['公會城每周'] > 0: notes.append("公會城每周達成")
+                            if not notes: return "近兩周未有記錄"
                             return " / ".join(notes)
                         
                         change_log['備註'] = change_log.apply(generate_note, axis=1)
-                        change_log['周次'] = change_log['周次'].dt.date
                         
-                        # 整理要顯示的欄位: 日期 / 變動類型 / 備註
+                        # 解決衝突：將日期轉成字串，就不需用 column_config
+                        change_log['周次'] = change_log['周次'].dt.strftime('%Y-%m-%d')
+                        
                         display_df = change_log[['周次', '異動與否', '備註']]
                         display_df.columns = ['日期', '變動類型', '備註']
 
-                        # === 核心修改：整行變色邏輯 ===
+                        # 重置索引，防止 Styler 崩潰
+                        display_df = display_df.reset_index(drop=True)
+
                         def highlight_rows(row):
-                            # 預設樣式 (無)
                             styles = [''] * len(row)
-                            
                             if row['變動類型'] == '升階':
-                                # 整行綠色背景 + 綠色文字 + 粗體
                                 return ['background-color: #006000; color: #00EC00; font-weight: bold;'] * len(row)
                             elif row['變動類型'] == '降階':
-                                # 整行紅色背景 + 紅色文字 + 粗體
                                 return ['background-color: #800000; color: #F08080; font-weight: bold;'] * len(row)
-                            
                             return styles
 
-                        # 使用 Pandas Styler apply (axis=1 代表逐列掃描)
                         styled_df = display_df.style.apply(highlight_rows, axis=1)
 
-                        # 2. 新增 height 參數 (800px)
+                        # 移除 column_config 和 hide_index 避免與 Styler 衝突
                         st.dataframe(
                             styled_df, 
                             use_container_width=True, 
-                            hide_index=True,
-                            height=600,
-                            column_config={
-                                "日期": st.column_config.DateColumn("日期", format="YYYY-MM-DD"),
-                                "變動類型": st.column_config.TextColumn("變動類型", help="升階或降階"),
-                                "備註": st.column_config.TextColumn("備註", width="large"),
-                            }
+                            height=800
                         )
                     else:
                         st.info("此玩家目前沒有「升階」或「降階」的紀錄。")
                 else:
                     st.warning("資料中找不到 '異動與否' 欄位。")
-
-
-
-
-
