@@ -424,7 +424,7 @@ elif search_mode == "原始資料查詢":
         st.info(f"💡 顯示目前日期區間內的所有資料，目前共有 {len(df_display)} 筆資料，上限 1048576 筆")
 
     # 3. 資料處理：排序
-    df_display = df_display.sort_values('周次', ascending=False)
+    df_display = df_display.sort_values('周次', ascending=False).reset_index(drop=True)
     
     # --- 核心修改：依照指定順序設定顯示欄位 (排除圖片與等級) ---
     target_cols = [
