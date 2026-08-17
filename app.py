@@ -217,9 +217,9 @@ def main():
             nav_cols = st.columns(4, gap="small")
             nav_items = [
                 ("home", "首頁", ":material/home:"),
-                ("player", "玩家資料", ":material/person_search:"),
-                ("ranking", "公會排行", ":material/leaderboard:"),
-                ("archive", "資料查詢", ":material/database:"),
+                ("player", "玩家", ":material/person_search:"),
+                ("ranking", "排行", ":material/leaderboard:"),
+                ("archive", "資料", ":material/database:"),
             ]
             for column, (page_key, label, icon) in zip(nav_cols, nav_items):
                 with column:

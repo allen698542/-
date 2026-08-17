@@ -256,7 +256,9 @@ def _render_focus_cards(rows, card_type, image_lookup=None):
             value = f'{int(row["地下水道"]):,}<small> 分</small>'
             meta = "本週地下水道"
             css_class = "water"
-            image_class, image_html = "", ""
+            image_class, image_html = _safe_image_tag(
+                player_raw, image_lookup, css_class
+            )
         elif card_type == "growth":
             value = f'+{int(row["分數增加"]):,}<small> 分</small>'
             meta = f'{int(row["上週分數"]):,} → {int(row["本週分數"]):,}'
@@ -323,7 +325,9 @@ def render_home_page(df, quality):
             df, previous_week, latest_week
         )
 
-    growth_image_lookup = _build_focus_image_lookup(df, diff_top3, ratio_top3)
+    focus_image_lookup = _build_focus_image_lookup(
+        df, water_top3, diff_top3, ratio_top3
+    )
 
     st.html(
         f'''
@@ -355,7 +359,7 @@ def render_home_page(df, quality):
             <strong>本週最高紀錄</strong>
         </div>''',
     )
-    _render_focus_cards(water_top3, "water")
+    _render_focus_cards(water_top3, "water", focus_image_lookup)
 
     st.html(
         f'''<div class="focus-change-card">
@@ -377,7 +381,7 @@ def render_home_page(df, quality):
                 <strong>分數增加 TOP 3</strong>
             </div>''',
             )
-        _render_focus_cards(diff_top3, "growth", growth_image_lookup)
+        _render_focus_cards(diff_top3, "growth", focus_image_lookup)
 
         st.html(
             '''<div class="focus-subheading ratio-heading">
@@ -385,7 +389,7 @@ def render_home_page(df, quality):
                 <strong>比例增加 TOP 3</strong>
             </div>''',
             )
-        _render_focus_cards(ratio_top3, "ratio", growth_image_lookup)
+        _render_focus_cards(ratio_top3, "ratio", focus_image_lookup)
 
         st.caption(
             "成長比較說明：A = 上週、B = 本週。B−A 可包含上週 0 分；"

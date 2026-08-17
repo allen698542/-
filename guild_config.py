@@ -54,8 +54,18 @@ html, body {
     background: #111318 !important;
     color: #F2F3F5 !important;
 }
-[data-testid="stHeader"] {
-    background: rgba(17,19,24,0.97) !important;
+/*
+ * 本站使用自己的頁面導覽，不需要 Streamlit 固定 Header。
+ * 手機內嵌檢視中，這個 Header 會透明覆蓋在第一列內容上方，
+ * 因此直接隱藏，避免導覽按鈕被遮住一半。
+ */
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"] {
+    display: none !important;
+}
+#MainMenu {
+    visibility: hidden !important;
 }
 
 /* 頁內手機導覽：桌機隱藏，手機再顯示。網站沒有使用 sidebar，隱藏其折疊按鈕。 */
@@ -68,7 +78,7 @@ html, body {
 
 .block-container {
     max-width: 1180px;
-    padding-top: 2.1rem;
+    padding-top: 1.15rem;
     padding-bottom: 4rem;
 }
 
@@ -719,6 +729,7 @@ div[data-testid="stDataFrame"] * {
     filter: blur(18px);
     opacity: 0.48;
 }
+.focus-character.water::before { background: rgba(90,143,196,0.44); }
 .focus-character.growth::before { background: rgba(101,165,122,0.42); }
 .focus-character.ratio::before { background: rgba(124,143,208,0.44); }
 .focus-character img {
@@ -861,6 +872,67 @@ div[data-testid="stDataFrame"] * {
         min-height: 44px !important;
         padding: 0.38rem 0.08rem !important;
         font-size: 0.72rem !important;
+    }
+}
+
+
+/* ============================================================
+   v11：導覽穩定性修正
+   - Streamlit Header 已隱藏，不再蓋住第一列導覽。
+   - 導覽文字縮短，手機維持單行四格。
+   ============================================================ */
+.st-key-site_nav {
+    overflow: visible !important;
+}
+.st-key-site_nav [data-testid="stHorizontalBlock"] {
+    align-items: stretch !important;
+}
+.st-key-site_nav [data-testid="stColumn"] {
+    min-width: 0 !important;
+}
+.st-key-site_nav [data-testid="stButton"],
+.st-key-site_nav [data-testid="stButton"] > div {
+    height: 100% !important;
+}
+.st-key-site_nav [data-testid="stButton"] button {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+@media (max-width: 768px) {
+    .block-container {
+        padding-top: 0.75rem !important;
+    }
+    .st-key-site_nav {
+        margin-top: 0 !important;
+        margin-bottom: 1rem !important;
+    }
+    .st-key-site_nav [data-testid="stButton"] button {
+        min-height: 46px !important;
+        font-size: 0.84rem !important;
+        padding-left: 0.08rem !important;
+        padding-right: 0.08rem !important;
+    }
+    .st-key-site_nav [data-testid="stButton"] button svg {
+        width: 1.05rem !important;
+        height: 1.05rem !important;
+        flex: 0 0 auto !important;
+    }
+}
+
+@media (max-width: 420px) {
+    .st-key-site_nav {
+        padding: 0.25rem !important;
+        gap: 0 !important;
+    }
+    .st-key-site_nav [data-testid="stHorizontalBlock"] {
+        gap: 0.22rem !important;
+    }
+    .st-key-site_nav [data-testid="stButton"] button {
+        min-height: 43px !important;
+        font-size: 0.76rem !important;
+        border-radius: 8px !important;
     }
 }
 
