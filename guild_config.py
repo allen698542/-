@@ -107,7 +107,7 @@ CUSTOM_CSS = """
     margin: 0.8rem 0 1.2rem 0;
     border-left: 3px solid var(--guild-accent);
     border-radius: 8px;
-    background: rgba(199,154,82,0.08);
+    background: linear-gradient(90deg, rgba(199,154,82,0.11), rgba(199,154,82,0.035));
 }
 .ranking-callout strong {
     font-size: 1.15rem;
@@ -126,6 +126,102 @@ CUSTOM_CSS = """
     background: var(--guild-panel);
     font-size: 0.88rem;
 }
+
+
+/* 區塊標題：比原生 H3 更像一般網站區段，也避免過度空白。 */
+.section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin: 1.8rem 0 0.9rem 0;
+}
+.section-heading-line {
+    width: 4px;
+    height: 2.1rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #E1B86F, #9F7337);
+    box-shadow: 0 0 18px rgba(199,154,82,0.18);
+}
+.section-heading h2 {
+    margin: 0;
+    font-size: 1.38rem;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+}
+.section-heading span {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--guild-text-soft);
+    font-size: 0.86rem;
+}
+
+/* 統計摘要：CSS grid 自動適應桌機 / 平板 / 手機，避免固定寬度卡片截字。 */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin: 0.7rem 0 1rem 0;
+}
+.stat-grid:has(.stat-card:nth-child(3):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.stat-card {
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+    padding: 1.05rem 1.1rem 1rem 1.1rem;
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 14px;
+    background:
+        linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
+}
+.stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #737B88;
+}
+.stat-card.accent::before { background: #C79A52; }
+.stat-card.blue::before { background: #5A8FC4; }
+.stat-card.green::before { background: #65A57A; }
+.stat-card.neutral::before { background: #7D8490; }
+.stat-label {
+    color: #C8CDD5;
+    font-size: 0.82rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+}
+.stat-value {
+    margin: 0.42rem 0 0.35rem 0;
+    color: #F4F1EA;
+    font-size: clamp(1.45rem, 2.15vw, 2.05rem);
+    font-weight: 720;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    overflow-wrap: anywhere;
+}
+.stat-meta {
+    color: #9299A5;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.rank-context {
+    display: grid;
+    grid-template-columns: 1.1fr 1.45fr 1.45fr;
+    gap: 0.5rem 1rem;
+    padding: 0.78rem 1rem;
+    margin: 0.45rem 0 1.2rem 0;
+    border: 1px solid rgba(90,143,196,0.18);
+    border-radius: 10px;
+    background: rgba(90,143,196,0.055);
+    color: #AEB4BE;
+    font-size: 0.82rem;
+}
+.rank-context strong { color: #D8DDE5; }
 
 /* 表格自己滾動，不把整頁一起帶走。 */
 div[data-testid="stDataFrame"],
@@ -151,6 +247,23 @@ section[data-testid="stSidebar"] {
     .page-heading h1 { font-size: 1.7rem; }
     .site-hero p,
     .page-heading p { font-size: 0.92rem; }
+    .stat-grid,
+    .stat-grid:has(.stat-card:nth-child(3):last-child) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .rank-context {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .stat-grid,
+    .stat-grid:has(.stat-card:nth-child(3):last-child) {
+        grid-template-columns: 1fr;
+    }
+    .stat-card { padding: 0.95rem 1rem; }
+    .stat-value { font-size: 1.65rem; }
+    .section-heading { margin-top: 1.45rem; }
 }
 </style>
 """

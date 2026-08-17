@@ -97,6 +97,42 @@ def render_name_chips(names):
     st.markdown(f'<div class="name-chip-wrap">{chips}</div>', unsafe_allow_html=True)
 
 
+
+def render_section_title(title, subtitle=None):
+    subtitle_html = (
+        f'<span>{html.escape(str(subtitle))}</span>' if subtitle else ''
+    )
+    st.markdown(
+        f'''        <div class="section-heading">
+            <div class="section-heading-line"></div>
+            <div>
+                <h2>{html.escape(str(title))}</h2>
+                {subtitle_html}
+            </div>
+        </div>
+        ''',
+        unsafe_allow_html=True,
+    )
+
+
+def render_stat_grid(cards):
+    """cards: [(css_class, label, value, meta)]"""
+    html_cards = []
+    for css_class, label, value, meta in cards:
+        html_cards.append(
+            f'''            <div class="stat-card {html.escape(css_class)}">
+                <div class="stat-label">{html.escape(str(label))}</div>
+                <div class="stat-value">{html.escape(str(value))}</div>
+                <div class="stat-meta">{html.escape(str(meta))}</div>
+            </div>
+            '''
+        )
+    st.markdown(
+        '<div class="stat-grid">' + ''.join(html_cards) + '</div>',
+        unsafe_allow_html=True,
+    )
+
+
 # ============================================================
 # 首頁
 # ============================================================
@@ -123,13 +159,14 @@ def render_home_page(df, quality):
         unsafe_allow_html=True,
     )
 
-    summary = st.container(horizontal=True, gap="small")
-    render_summary_card(summary, "最新週次", latest_week.strftime("%Y-%m-%d"), "每週更新一次", width=250)
-    render_summary_card(summary, "本週記錄玩家", f"{latest_players} 人", "目前週次有資料的玩家", width=250)
-    render_summary_card(summary, "旗幟戰滿分", f"{flag_perfect} 人", "本週達到 1,000 分", width=250)
-    render_summary_card(summary, "公會城完成率", f"{castle_rate}%", f"{castle_done} 人完成", width=250)
+    render_stat_grid([
+        ("neutral", "最新週次", latest_week.strftime("%Y-%m-%d"), "每週更新一次"),
+        ("blue", "本週記錄玩家", f"{latest_players} 人", "目前週次有資料的玩家"),
+        ("accent", "旗幟戰滿分", f"{flag_perfect} 人", "本週達到 1,000 分"),
+        ("green", "公會城完成率", f"{castle_rate}%", f"{castle_done} 人完成"),
+    ])
 
-    st.markdown("### 本週焦點")
+    render_section_title("本週焦點", "快速查看最新一週的重要紀錄")
     highlights = st.container(horizontal=True, gap="small")
 
     water_card = highlights.container(border=True, width=510)
@@ -157,7 +194,7 @@ def render_top_rank_cards(sorted_df, col_name, label_name):
     if sorted_df.empty:
         return
 
-    st.markdown("### 前三名")
+    render_section_title("前三名", "本區間地下水道最高分玩家")
     cards = st.container(horizontal=True, gap="small")
 
     top3 = sorted_df.head(3)
@@ -176,7 +213,7 @@ def render_top_rank_cards(sorted_df, col_name, label_name):
 
 
 def render_capped_metric_summary(data, metric, selected_week_count):
-    """旗幟戰、公會城這類有明確上限的項目，不硬做 Top 3。"""
+    """旗幟戰、公會城改用達成率概況，避免大量同分的 Top 3 失去意義。"""
     if data.empty:
         st.info("這個週次範圍沒有資料。")
         return
@@ -191,55 +228,91 @@ def render_capped_metric_summary(data, metric, selected_week_count):
         [metric, "周次"],
         ascending=[False, False],
     ).reset_index(drop=True)
-    sorted_df["名次"] = sorted_df[metric].rank(ascending=False, method="min").astype(int)
+    sorted_df["名次"] = sorted_df[metric].rank(
+        ascending=False, method="min"
+    ).astype(int)
 
-    perfect_df = sorted_df.loc[sorted_df[metric] == theoretical_max].copy()
-    count = len(perfect_df)
+    sorted_df["區間達成率"] = (
+        sorted_df[metric] / theoretical_max * 100
+        if theoretical_max else 0
+    )
+    sorted_df["區間達成率"] = sorted_df["區間達成率"].clip(0, 100).round(1)
 
-    st.markdown(
-        f"""
-        <div class="ranking-callout">
-            <strong>{label}玩家：{count} 人</strong><br>
-            本區間共 {selected_week_count} 週，{label}基準為 {theoretical_max:,} {unit}。
-            有多人同分時會保留「並列名次」，不額外用其他項目強制拆名次。
-        </div>
-        """,
-        unsafe_allow_html=True,
+    perfect_df = sorted_df.loc[sorted_df[metric] >= theoretical_max].copy()
+    perfect_count = len(perfect_df)
+    active_mask = sorted_df[metric] > 0
+    active_count = int(active_mask.sum())
+    zero_count = int((~active_mask).sum())
+    avg_rate = (
+        float(sorted_df.loc[active_mask, "區間達成率"].mean())
+        if active_count else 0
     )
 
-    if count:
-        render_name_chips(perfect_df["暱稱"].tolist())
+    render_stat_grid([
+        ("accent", f"{label}玩家", f"{perfect_count} 人", f"{theoretical_max:,} {unit} / {selected_week_count} 週"),
+        ("blue", "有參與玩家", f"{active_count} 人", f"共 {len(sorted_df)} 位玩家有週次紀錄"),
+        ("neutral", "0 分 / 未完成", f"{zero_count} 人", "完整名單仍會保留這些玩家"),
+        ("green", "參與者平均達成率", f"{avg_rate:.1f}%", "只計算本區間有實際參與的玩家"),
+    ])
 
-    st.markdown("### 成績分布")
-    distribution = (
-        sorted_df.groupby(metric, as_index=False)
-        .size()
-        .rename(columns={"size": "玩家數"})
-        .sort_values(metric)
+    if perfect_count:
+        render_section_title(f"{label}名單", f"本區間共有 {perfect_count} 位玩家達成 {label}")
+        names = perfect_df["暱稱"].tolist()
+        render_name_chips(names[:28])
+        if len(names) > 28:
+            with st.expander(f"查看其餘 {len(names) - 28} 位玩家"):
+                render_name_chips(names[28:])
+
+    render_section_title(
+        "參與玩家達成率分布",
+        f"主圖只分析有實際參與的 {active_count} 位玩家；另外 {zero_count} 位 0 分 / 未完成玩家已在上方單獨列出",
     )
-    distribution["顯示分數"] = distribution[metric].map(lambda value: f"{int(value):,}")
 
-    fig = px.bar(
-        distribution,
-        x="顯示分數",
-        y="玩家數",
-        text="玩家數",
-    )
-    fig.update_layout(
-        xaxis={"title": f"{metric}（{unit}）", "fixedrange": True},
-        yaxis={"title": "玩家數", "fixedrange": True},
-        margin=dict(l=10, r=10, t=15, b=20),
-        height=380,
-        dragmode=False,
-    )
-    fig.update_traces(textposition="outside")
-    st.plotly_chart(fig, width="stretch", config=PLOT_CONFIG)
+    active_df = sorted_df.loc[active_mask].copy()
+    if active_df.empty:
+        st.info("本區間沒有可繪製的參與紀錄。")
+    else:
+        rate = active_df["區間達成率"]
+        labels = ["100%", "75–99%", "50–74%", "1–49%"]
+        active_df["達成區間"] = np.select(
+            [
+                rate >= 100,
+                rate >= 75,
+                rate >= 50,
+            ],
+            labels[:-1],
+            default="1–49%",
+        )
 
-    display_df = sorted_df[["名次", "暱稱", "職業", "周次", metric]].copy()
-    if theoretical_max > 0:
-        display_df["區間達成率"] = (display_df[metric] / theoretical_max * 100).round(1)
+        distribution = (
+            active_df["達成區間"]
+            .value_counts()
+            .reindex(labels, fill_value=0)
+            .rename_axis("達成區間")
+            .reset_index(name="玩家數")
+        )
 
-    st.markdown("### 完整名單")
+        fig = px.bar(
+            distribution,
+            x="玩家數",
+            y="達成區間",
+            orientation="h",
+            text="玩家數",
+            category_orders={"達成區間": list(reversed(labels))},
+        )
+        fig.update_layout(
+            xaxis={"title": "玩家數", "fixedrange": True, "rangemode": "tozero"},
+            yaxis={"title": None, "fixedrange": True},
+            margin=dict(l=10, r=30, t=15, b=20),
+            height=300,
+            dragmode=False,
+            bargap=0.3,
+        )
+        fig.update_traces(textposition="outside", cliponaxis=False)
+        st.plotly_chart(fig, width="stretch", config=PLOT_CONFIG)
+
+    render_section_title("完整名單", "可依名次、分數與區間達成率查看所有玩家")
+    display_df = sorted_df[["名次", "暱稱", "職業", "周次", metric, "區間達成率"]].copy()
     st.dataframe(
         display_df,
         width="stretch",
@@ -249,7 +322,12 @@ def render_capped_metric_summary(data, metric, selected_week_count):
             "名次": st.column_config.NumberColumn("名次", format="%d"),
             "周次": st.column_config.NumberColumn("記錄週數", format="%d"),
             metric: st.column_config.NumberColumn(metric, format="%d"),
-            "區間達成率": st.column_config.NumberColumn("區間達成率", format="%.1f%%"),
+            "區間達成率": st.column_config.ProgressColumn(
+                "區間達成率",
+                format="%.1f%%",
+                min_value=0,
+                max_value=100,
+            ),
         },
     )
 
@@ -285,7 +363,7 @@ def draw_water_leaderboard(data):
         )
         render_name_chips(sorted_df.loc[sorted_df[col_name] == top_score, "暱稱"].tolist())
 
-    st.markdown("### Top 15")
+    render_section_title("Top 15", "依地下水道累積分數排序")
     top15_df = sorted_df.head(15).copy()
     fig = px.bar(
         top15_df,
@@ -402,53 +480,87 @@ def render_raw_data_page(df_period, quality=None):
 # 玩家頁面
 # ============================================================
 def render_player_selector(df):
-    st.markdown("### 選擇玩家")
+    render_section_title("選擇玩家", "可直接搜尋 ID，或依職業逐步縮小名單")
 
-    selected_group = None
+    mode = st.segmented_control(
+        "查詢方式",
+        ["直接搜尋", "依職業篩選"],
+        default="直接搜尋",
+        selection_mode="single",
+        key="player_search_mode",
+    ) or "直接搜尋"
+
+    if mode == "直接搜尋":
+        players = sorted(df["暱稱"].dropna().unique().tolist())
+        return st.selectbox(
+            "玩家 ID",
+            players,
+            index=None,
+            placeholder="輸入玩家 ID 或展開名單",
+            help="輸入部分文字即可搜尋。",
+            key="player_direct_select",
+        )
+
+    filter_box = st.container(border=True)
+    filter_box.caption("依序選擇職業群、分類與職業；最後直接從符合條件的玩家名單中選擇，不需要另外輸入 ID。")
+
+    row = filter_box.container(horizontal=True, gap="small")
+    groups = JOB_HIERARCHY["group"].unique().tolist()
+    group_box = row.container(width=245)
+    selected_group = group_box.selectbox(
+        "1. 職業群",
+        groups,
+        index=None,
+        placeholder="選擇職業群",
+        key="filter_group",
+    )
+
     selected_category = None
     selected_job = None
 
-    with st.expander("不知道玩家名稱？使用職業篩選", expanded=False):
-        groups = JOB_HIERARCHY["group"].unique().tolist()
-        selected_group = st.selectbox(
-            "職業群",
-            groups,
+    cat_box = row.container(width=245)
+    if selected_group:
+        categories = (
+            JOB_HIERARCHY.loc[
+                JOB_HIERARCHY["group"] == selected_group, "category"
+            ]
+            .unique()
+            .tolist()
+        )
+        selected_category = cat_box.selectbox(
+            "2. 分類",
+            categories,
             index=None,
-            placeholder="全部職業群",
+            placeholder="選擇分類",
+            key="filter_category",
+        )
+    else:
+        cat_box.selectbox(
+            "2. 分類", [], disabled=True, placeholder="先選職業群", key="filter_category_disabled"
         )
 
-        if selected_group:
-            categories = (
-                JOB_HIERARCHY.loc[
-                    JOB_HIERARCHY["group"] == selected_group,
-                    "category",
-                ]
-                .unique()
-                .tolist()
-            )
-            selected_category = st.selectbox(
-                "分類",
-                categories,
-                index=None,
-                placeholder="全部分類",
-            )
-
-        if selected_group and selected_category:
-            jobs = (
-                JOB_HIERARCHY.loc[
-                    (JOB_HIERARCHY["group"] == selected_group)
-                    & (JOB_HIERARCHY["category"] == selected_category),
-                    "job",
-                ]
-                .unique()
-                .tolist()
-            )
-            selected_job = st.selectbox(
-                "職業",
-                jobs,
-                index=None,
-                placeholder="全部職業",
-            )
+    job_box = row.container(width=245)
+    if selected_group and selected_category:
+        jobs = (
+            JOB_HIERARCHY.loc[
+                (JOB_HIERARCHY["group"] == selected_group)
+                & (JOB_HIERARCHY["category"] == selected_category),
+                "job",
+            ]
+            .unique()
+            .tolist()
+        )
+        selected_job = job_box.selectbox(
+            "3. 職業",
+            jobs,
+            index=None,
+            placeholder="選擇職業",
+            key="filter_job",
+        )
+    else:
+        job_box.selectbox(
+            "3. 職業", [], disabled=True, placeholder="先選分類", key="filter_job_disabled"
+        )
 
     player_source = df
     if selected_job:
@@ -462,18 +574,42 @@ def render_player_selector(df):
         player_source = df.loc[df["職業"].isin(valid_jobs)]
     elif selected_group:
         valid_jobs = JOB_HIERARCHY.loc[
-            JOB_HIERARCHY["group"] == selected_group,
-            "job",
+            JOB_HIERARCHY["group"] == selected_group, "job"
         ].tolist()
         player_source = df.loc[df["職業"].isin(valid_jobs)]
 
     players = sorted(player_source["暱稱"].dropna().unique().tolist())
-    return st.selectbox(
-        "玩家",
+
+    result_box = filter_box.container()
+    if not selected_group:
+        result_box.info("先選擇職業群後，這裡會顯示符合條件的玩家。")
+        return None
+
+    result_box.caption(f"目前符合條件：{len(players)} 位玩家")
+    if not players:
+        result_box.warning("目前條件下找不到玩家。")
+        return None
+
+    if len(players) == 1:
+        result_box.success(f"已找到玩家：{players[0]}")
+        return players[0]
+
+    # 已選到具體職業且人數不多時，直接把玩家做成可點選按鈕，
+    # 比再開一個下拉選單更直覺；人數多時才退回可搜尋下拉選單。
+    if selected_job and len(players) <= 18:
+        return result_box.pills(
+            "4. 選擇玩家",
+            players,
+            selection_mode="single",
+            key="player_filtered_pills",
+        )
+
+    return result_box.selectbox(
+        "4. 玩家",
         players,
         index=None,
-        placeholder="輸入或選擇玩家 ID",
-        help="可以直接輸入玩家 ID 搜尋；職業篩選不是必填。",
+        placeholder=f"從 {len(players)} 位玩家中選擇",
+        key="player_filtered_select",
     )
 
 
@@ -513,44 +649,30 @@ def render_player_summary(
     flag_pct = round(p_flag / flag_possible * 100, 1) if flag_possible else 0
     castle_pct = round(p_castle / selected_week_count * 100, 1) if selected_week_count else 0
 
-    st.markdown("### 區間摘要")
-    cards = st.container(horizontal=True, gap="small")
+    render_section_title("區間摘要", f"{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d}")
 
-    render_summary_card(
-        cards,
-        "記錄週數",
-        f"{my_weeks} / {selected_week_count} 週",
-        f"{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d}",
-    )
+    water_rank = rank_label(guild_stats, player, "地下水道")
+    castle_status = "全勤" if castle_pct >= 100 else rank_label(guild_stats, player, "公會城每周")
+    flag_status = "滿分" if flag_pct >= 100 else f"達成率 {flag_pct}%"
 
-    render_summary_card(
-        cards,
-        "旗幟戰",
-        f"{p_flag:,} / {flag_possible:,}",
-        f"{rank_label(guild_stats, player, '旗幟戰')} · {flag_pct}%",
-    )
+    render_stat_grid([
+        ("neutral", "記錄週數", f"{my_weeks} / {selected_week_count} 週", "區間內有留下紀錄的週數"),
+        ("accent", "旗幟戰", f"{p_flag:,} 分", f"{flag_status} · 理論滿分 {flag_possible:,}"),
+        ("blue", "地下水道", f"{p_water:,} 分", f"{water_rank} · 週均 {avg_water:,}"),
+        ("green", "公會城", f"{p_castle} / {selected_week_count} 次", f"{castle_status} · {castle_pct}%"),
+    ])
 
     prev_text, next_text = get_detailed_neighbors(
-        guild_stats,
-        player,
-        "地下水道",
-        mode="avg",
+        guild_stats, player, "地下水道", mode="avg"
     )
-    render_summary_card(
-        cards,
-        "地下水道",
-        f"{p_water:,} 分",
-        f"{rank_label(guild_stats, player, '地下水道')} · 週均 {avg_water:,}",
-        prev_text,
-        next_text,
-    )
-
-    attendance_text = "全勤" if castle_pct == 100 else rank_label(guild_stats, player, "公會城每周")
-    render_summary_card(
-        cards,
-        "公會城",
-        f"{p_castle} / {selected_week_count} 次",
-        f"{attendance_text} · {castle_pct}%",
+    st.markdown(
+        f'''        <div class="rank-context">
+            <span><strong>地下水道排名位置</strong></span>
+            <span>{html.escape(prev_text)}</span>
+            <span>{html.escape(next_text)}</span>
+        </div>
+        ''',
+        unsafe_allow_html=True,
     )
 
 
@@ -585,7 +707,7 @@ def render_player_page(df, df_period, start_date, end_date, selected_week_count)
         selected_week_count,
     )
 
-    st.markdown("### 詳細資料")
+    render_section_title("詳細資料", "切換查看走勢、每週記錄、達成狀況與升降階")
     detail_view = st.segmented_control(
         "內容",
         ["走勢", "每週記錄", "達成狀況", "升降階"],
