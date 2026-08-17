@@ -210,18 +210,23 @@ def main():
     def render_mobile_navigation():
         """
         Streamlit 的 top navigation 位在 app header；某些手機內嵌瀏覽器會把
-        header 隱藏，因此另外提供只在窄螢幕顯示的頁內導覽。
+        header 隱藏，因此另外提供只在窄螢幕顯示的四等分頁內導覽。
         """
-        with st.container(
-            key="mobile_nav",
-            horizontal=True,
-            horizontal_alignment="center",
-            gap="xsmall",
-        ):
-            st.page_link(page_refs["home"], label="首頁", width="content")
-            st.page_link(page_refs["player"], label="玩家", width="content")
-            st.page_link(page_refs["ranking"], label="排行", width="content")
-            st.page_link(page_refs["archive"], label="資料", width="content")
+        with st.container(key="mobile_nav"):
+            nav_cols = st.columns(4, gap="small")
+            nav_items = [
+                ("home", "首頁"),
+                ("player", "玩家"),
+                ("ranking", "排行"),
+                ("archive", "資料"),
+            ]
+            for column, (page_key, label) in zip(nav_cols, nav_items):
+                with column:
+                    st.page_link(
+                        page_refs[page_key],
+                        label=label,
+                        width="stretch",
+                    )
 
     def home_page():
         render_mobile_navigation()

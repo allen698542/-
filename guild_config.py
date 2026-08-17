@@ -58,8 +58,11 @@ html, body {
     background: rgba(17,19,24,0.97) !important;
 }
 
-/* 頁內手機導覽：桌機隱藏，手機再顯示。 */
+/* 頁內手機導覽：桌機隱藏，手機再顯示。網站沒有使用 sidebar，隱藏其折疊按鈕。 */
 .st-key-mobile_nav {
+    display: none !important;
+}
+[data-testid="stSidebarCollapsedControl"] {
     display: none !important;
 }
 
@@ -161,10 +164,38 @@ html, body {
     min-height: 184px;
     padding: 1.05rem 1.1rem 1rem 1.1rem;
     border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 15px;
+    border-radius: 16px;
     background: linear-gradient(145deg, #1B1F27 0%, #15181E 100%);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
+.focus-rank-card:hover {
+    transform: translateY(-2px);
+}
+.focus-rank-card.water {
+    border-color: rgba(90,143,196,0.24);
+    background:
+        radial-gradient(circle at 88% 8%, rgba(90,143,196,0.21), transparent 34%),
+        linear-gradient(145deg, #1B2230 0%, #15181E 72%);
+}
+.focus-rank-card.growth {
+    border-color: rgba(101,165,122,0.24);
+    background:
+        radial-gradient(circle at 88% 8%, rgba(101,165,122,0.22), transparent 34%),
+        linear-gradient(145deg, #1A2420 0%, #15191A 72%);
+}
+.focus-rank-card.ratio {
+    border-color: rgba(124,143,208,0.25);
+    background:
+        radial-gradient(circle at 88% 8%, rgba(124,143,208,0.23), transparent 34%),
+        linear-gradient(145deg, #1D2130 0%, #16181F 72%);
+}
+.focus-rank-card.rank-1 {
+    box-shadow: 0 13px 34px rgba(0,0,0,0.20);
+}
+.focus-rank-card.water.rank-1 { border-color: rgba(90,143,196,0.38); }
+.focus-rank-card.growth.rank-1 { border-color: rgba(101,165,122,0.38); }
+.focus-rank-card.ratio.rank-1 { border-color: rgba(124,143,208,0.40); }
 .focus-rank-card::before {
     content: "";
     position: absolute;
@@ -188,18 +219,18 @@ html, body {
     align-items: center;
     padding: 0.28rem 0.55rem;
     border-radius: 999px;
-    background: rgba(90,143,196,0.13);
-    color: #B6CEE6;
+    background: linear-gradient(135deg, rgba(90,143,196,0.22), rgba(90,143,196,0.10));
+    color: #C5D9EC;
     font-size: 0.73rem;
     font-weight: 750;
 }
 .focus-rank-card.growth .focus-rank-badge {
-    background: rgba(101,165,122,0.13);
-    color: #A9D4B6;
+    background: linear-gradient(135deg, rgba(101,165,122,0.23), rgba(101,165,122,0.10));
+    color: #B9DFC4;
 }
 .focus-rank-card.ratio .focus-rank-badge {
-    background: rgba(124,143,208,0.14);
-    color: #BDC7EC;
+    background: linear-gradient(135deg, rgba(124,143,208,0.24), rgba(124,143,208,0.11));
+    color: #CAD2F4;
 }
 .focus-rank-card-name {
     margin-top: 0.9rem;
@@ -252,10 +283,13 @@ html, body {
     gap: 1.2rem;
     margin: 0.35rem 0 1rem 0;
     padding: 1rem 1.1rem;
-    border: 1px solid rgba(199,154,82,0.18);
+    border: 1px solid rgba(199,154,82,0.25);
     border-left: 3px solid #C79A52;
-    border-radius: 14px;
-    background: linear-gradient(145deg, #1B1E24, #16191F);
+    border-radius: 15px;
+    background:
+        radial-gradient(circle at 90% 18%, rgba(199,154,82,0.18), transparent 34%),
+        linear-gradient(145deg, #211F1B 0%, #17191F 72%);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.14);
 }
 .focus-change-label {
     color: #F1F3F6;
@@ -346,6 +380,29 @@ html, body {
     font-size: 0.86rem;
 }
 
+/* 首頁「本週焦點」是主要內容區段，層級比一般小節再高一級。 */
+.section-heading.focus-main {
+    margin-top: 2.35rem;
+    margin-bottom: 1.15rem;
+    padding: 0.15rem 0;
+}
+.section-heading.focus-main .section-heading-line {
+    width: 5px;
+    height: 3rem;
+    background: linear-gradient(180deg, #F0C777 0%, #C08A3E 100%);
+    box-shadow: 0 0 22px rgba(199,154,82,0.24);
+}
+.section-heading.focus-main h2 {
+    font-size: clamp(1.65rem, 2.5vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+}
+.section-heading.focus-main span {
+    margin-top: 0.3rem;
+    font-size: 0.9rem;
+    color: #AEB6C2;
+}
+
 /* 統計摘要：CSS grid 自動適應桌機 / 平板 / 手機，避免固定寬度卡片截字。 */
 .stat-grid {
     display: grid;
@@ -431,12 +488,43 @@ div[data-testid="stDataFrame"] * {
         top: 0.35rem;
         z-index: 999;
         margin: 0 0 0.9rem 0;
-        padding: 0.4rem 0.45rem;
-        border: 1px solid rgba(255,255,255,0.10);
-        border-radius: 12px;
-        background: rgba(23,26,32,0.96);
-        box-shadow: 0 8px 26px rgba(0,0,0,0.24);
-        backdrop-filter: blur(8px);
+        padding: 0.42rem;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 13px;
+        background: rgba(20,23,29,0.98);
+        box-shadow: 0 10px 28px rgba(0,0,0,0.28);
+        backdrop-filter: blur(10px);
+    }
+    .st-key-mobile_nav [data-testid="stColumn"] {
+        min-width: 0 !important;
+    }
+    .st-key-mobile_nav a,
+    .st-key-mobile_nav a * {
+        color: #F2F4F7 !important;
+        opacity: 1 !important;
+        text-decoration: none !important;
+    }
+    .st-key-mobile_nav a {
+        min-height: 46px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.55rem 0.2rem !important;
+        border: 1px solid rgba(255,255,255,0.09) !important;
+        border-radius: 9px !important;
+        background: linear-gradient(180deg, #20252E 0%, #1A1E25 100%) !important;
+        font-weight: 720 !important;
+        font-size: 0.88rem !important;
+    }
+    .st-key-mobile_nav a:hover {
+        border-color: rgba(199,154,82,0.42) !important;
+        background: linear-gradient(180deg, #29271F 0%, #1C1E23 100%) !important;
+    }
+    .st-key-mobile_nav a[aria-current="page"],
+    .st-key-mobile_nav a[data-active="true"] {
+        border-color: rgba(225,184,111,0.62) !important;
+        background: linear-gradient(180deg, rgba(199,154,82,0.28) 0%, rgba(199,154,82,0.10) 100%) !important;
+        box-shadow: inset 0 -2px 0 #D6A95D !important;
     }
     .site-hero {
         padding: 1.55rem 1.25rem;
@@ -458,6 +546,15 @@ div[data-testid="stDataFrame"] * {
     .focus-rank-card {
         min-height: 0;
     }
+    .focus-rank-card:hover {
+        transform: none;
+    }
+    .section-heading.focus-main {
+        margin-top: 1.8rem;
+    }
+    .section-heading.focus-main h2 {
+        font-size: 1.7rem;
+    }
     .focus-change-card {
         grid-template-columns: 1fr;
         gap: 0.8rem;
@@ -478,8 +575,13 @@ div[data-testid="stDataFrame"] * {
     .focus-rank-card-value { font-size: 1.75rem; }
     .st-key-mobile_nav {
         border-radius: 10px;
-        padding: 0.32rem 0.35rem;
+        padding: 0.32rem;
     }
+    .st-key-mobile_nav a {
+        min-height: 43px !important;
+        font-size: 0.82rem !important;
+    }
+    .section-heading.focus-main h2 { font-size: 1.62rem; }
 }
 </style>
 """

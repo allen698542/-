@@ -98,12 +98,13 @@ def render_name_chips(names):
 
 
 
-def render_section_title(title, subtitle=None):
+def render_section_title(title, subtitle=None, *, variant=None):
     subtitle_html = (
         f'<span>{html.escape(str(subtitle))}</span>' if subtitle else ''
     )
+    extra_class = f' {html.escape(str(variant))}' if variant else ''
     st.markdown(
-        f'''        <div class="section-heading">
+        f'''        <div class="section-heading{extra_class}">
             <div class="section-heading-line"></div>
             <div>
                 <h2>{html.escape(str(title))}</h2>
@@ -113,7 +114,6 @@ def render_section_title(title, subtitle=None):
         ''',
         unsafe_allow_html=True,
     )
-
 
 def render_stat_grid(cards):
     """cards: [(css_class, label, value, meta)]"""
@@ -232,7 +232,7 @@ def _render_focus_cards(rows, card_type):
             css_class = "ratio"
 
         cards.append(
-            f'''<div class="focus-rank-card {css_class}">
+            f'''<div class="focus-rank-card {css_class} rank-{rank}">
                 <div class="focus-rank-card-top">
                     <span class="focus-rank-badge">第 {rank} 名</span>
                 </div>
@@ -300,7 +300,7 @@ def render_home_page(df, quality):
         comparison_subtitle += (
             f" · 成長比較 {previous_week:%Y-%m-%d} → {latest_week:%Y-%m-%d}"
         )
-    render_section_title("本週焦點", comparison_subtitle)
+    render_section_title("本週焦點", comparison_subtitle, variant="focus-main")
 
     st.markdown(
         '''<div class="focus-subheading">
