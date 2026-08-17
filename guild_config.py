@@ -1,0 +1,117 @@
+import pandas as pd
+
+CSV_FILENAME = "guild_data.csv"
+
+REQUIRED_COLUMNS = [
+    "周次", "暱稱", "職業", "旗幟戰", "地下水道", "公會城每周",
+    "本周是否達成", "近兩周是否達成", "異動與否", "等級", "圖片",
+]
+
+NUMERIC_COLUMNS = ["旗幟戰", "地下水道", "公會城每周"]
+
+SEARCH_COLUMNS = [
+    "周次", "暱稱", "職業", "旗幟戰", "地下水道", "公會城每周",
+    "本周是否達成", "近兩周是否達成", "異動與否", "等級",
+]
+
+PLOT_CONFIG = {
+    "displayModeBar": True,
+    "displaylogo": False,
+    "modeBarButtonsToRemove": [
+        "zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d", "zoomOut2d",
+        "autoScale2d", "resetScale2d", "hoverClosestCartesian", "hoverCompareCartesian",
+    ],
+    "toImageButtonOptions": {
+        "format": "png",
+        "filename": "chart_image",
+        "height": 600,
+        "width": 1000,
+        "scale": 2,
+    },
+}
+
+CUSTOM_CSS = """
+<style>
+.rainbow-text {
+    background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+    animation: rainbow-move 3s linear infinite;
+}
+
+@keyframes rainbow-move {
+    to { background-position: 200% center; }
+}
+
+div[data-testid="stDataFrame"],
+div[data-testid="stDataFrame"] * {
+    overscroll-behavior: none !important;
+}
+</style>
+"""
+
+JOB_HIERARCHY_ROWS = [
+    ('冒險家', '劍士', '英雄'),
+    ('冒險家', '劍士', '聖騎士'),
+    ('冒險家', '劍士', '黑騎士'),
+    ('冒險家', '法師', '大魔導士(火、毒)'),
+    ('冒險家', '法師', '大魔導士(冰、雷)'),
+    ('冒險家', '法師', '主教'),
+    ('冒險家', '弓箭手', '箭神'),
+    ('冒險家', '弓箭手', '神射手'),
+    ('冒險家', '弓箭手', '開拓者'),
+    ('冒險家', '盜賊', '夜使者'),
+    ('冒險家', '盜賊', '暗影神偷'),
+    ('冒險家', '盜賊', '影武者'),
+    ('冒險家', '海盜', '拳霸'),
+    ('冒險家', '海盜', '槍神'),
+    ('冒險家', '海盜', '重砲指揮官'),
+    ('英雄團', '劍士', '狂狼勇士'),
+    ('英雄團', '法師', '龍魔導士'),
+    ('英雄團', '法師', '夜光'),
+    ('英雄團', '弓箭手', '精靈遊俠'),
+    ('英雄團', '盜賊', '幻影俠盜'),
+    ('英雄團', '海盜', '隱月'),
+    ('皇家騎士團', '劍士', '聖魂劍士'),
+    ('皇家騎士團', '劍士', '米哈逸'),
+    ('皇家騎士團', '法師', '烈焰巫師'),
+    ('皇家騎士團', '弓箭手', '破風使者'),
+    ('皇家騎士團', '盜賊', '暗夜行者'),
+    ('皇家騎士團', '海盜', '閃雷悍將'),
+    ('末日反抗軍', '劍士', '惡魔殺手'),
+    ('末日反抗軍', '劍士', '惡魔復仇者'),
+    ('末日反抗軍', '劍士', '爆拳槍神'),
+    ('末日反抗軍', '法師', '煉獄巫師'),
+    ('末日反抗軍', '弓箭手', '狂豹獵人'),
+    ('末日反抗軍', '盜賊', '傑諾'),
+    ('末日反抗軍', '海盜', '傑諾'),
+    ('末日反抗軍', '海盜', '機甲戰神'),
+    ('神之子', '劍士', '神之子'),
+    ('超新星', '劍士', '凱撒'),
+    ('超新星', '弓箭手', '凱殷'),
+    ('超新星', '盜賊', '卡蒂娜'),
+    ('超新星', '海盜', '天使破壞者'),
+    ('雷普族', '劍士', '阿戴爾'),
+    ('雷普族', '法師', '伊利恩'),
+    ('雷普族', '盜賊', '卡莉'),
+    ('雷普族', '海盜', '亞克'),
+    ('阿尼瑪', '劍士', '蓮'),
+    ('阿尼瑪', '法師', '菈菈'),
+    ('阿尼瑪', '盜賊', '虎影'),
+    ('朋友世界', '法師', '凱內西斯'),
+    ('曉之陣', '劍士', '劍豪'),
+    ('曉之陣', '法師', '陰陽師'),
+    ('江湖', '法師', '琳恩'),
+    ('江湖', '海盜', '墨玄'),
+    ('其他', '劍士', '炭治郎'),
+    ('其他', '劍士', '粉豆'),
+    ('其他', '海盜', '雪吉拉'),
+    ('其他', '其他', 'null'),
+]
+
+JOB_HIERARCHY = pd.DataFrame(
+    JOB_HIERARCHY_ROWS,
+    columns=["group", "category", "job"],
+)
