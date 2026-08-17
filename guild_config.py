@@ -32,22 +32,24 @@ PLOT_CONFIG = {
 
 CUSTOM_CSS = """
 <style>
-.rainbow-text {
-    background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: bold;
-    animation: rainbow-move 3s linear infinite;
-}
-
-@keyframes rainbow-move {
-    to { background-position: 200% center; }
+/* 只做版面微調，盡量使用 Streamlit 原生元件，降低客製 CSS 維護成本。 */
+.block-container {
+    max-width: 1200px;
+    padding-top: 1.8rem;
+    padding-bottom: 3rem;
 }
 
 div[data-testid="stDataFrame"],
 div[data-testid="stDataFrame"] * {
     overscroll-behavior: none !important;
+}
+
+@media (max-width: 768px) {
+    .block-container {
+        padding-top: 1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
 }
 </style>
 """
