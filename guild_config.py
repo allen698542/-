@@ -39,6 +39,30 @@ CUSTOM_CSS = """
     --guild-border: rgba(255,255,255,0.10);
 }
 
+/*
+ * 手機內嵌瀏覽器有時會以 light theme 開啟 Streamlit iframe。
+ * 這個網站固定採深色視覺，因此讓主畫布與自訂元件自行帶背景，
+ * 不再只依賴瀏覽器傳進來的 theme。
+ */
+html, body {
+    background: #111318 !important;
+    color-scheme: dark;
+}
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
+    background: #111318 !important;
+    color: #F2F3F5 !important;
+}
+[data-testid="stHeader"] {
+    background: rgba(17,19,24,0.97) !important;
+}
+
+/* 頁內手機導覽：桌機隱藏，手機再顯示。 */
+.st-key-mobile_nav {
+    display: none !important;
+}
+
 .block-container {
     max-width: 1180px;
     padding-top: 2.1rem;
@@ -103,154 +127,160 @@ CUSTOM_CSS = """
 }
 
 
-/* 首頁焦點：一張 Top 3 主卡 + 三張摘要卡，兼顧正式感與資訊密度。 */
-.focus-feature-card {
-    position: relative;
-    overflow: hidden;
-    margin: 0.65rem 0 0.9rem 0;
-    padding: 1.25rem 1.35rem;
-    border: 1px solid rgba(90,143,196,0.24);
-    border-radius: 16px;
-    background:
-        radial-gradient(circle at 94% 0%, rgba(90,143,196,0.15), transparent 32%),
-        linear-gradient(145deg, rgba(90,143,196,0.075), rgba(255,255,255,0.02));
+/* 首頁焦點：三張直向卡片為一列，水道與兩種成長排行共用同一套視覺。 */
+.focus-subheading {
+    margin: 0.75rem 0 0.65rem 0;
 }
-.focus-card-kicker,
-.focus-mini-label {
-    color: #AEB8C7;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.035em;
-}
-.focus-card-title {
-    margin: 0.18rem 0 0.9rem 0;
-    color: #F3F5F8;
-    font-size: 1.3rem;
-    font-weight: 720;
-}
-.focus-rank-list {
-    display: grid;
-    gap: 0.55rem;
-}
-.focus-rank-row {
-    display: grid;
-    grid-template-columns: 2.4rem minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 0.8rem;
-    padding: 0.72rem 0.82rem;
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 11px;
-    background: rgba(9,11,15,0.28);
-}
-.focus-rank-no {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 9px;
-    background: rgba(90,143,196,0.14);
-    color: #AFC9E4;
-    font-weight: 800;
-}
-.focus-rank-player {
-    min-width: 0;
-}
-.focus-rank-player strong {
+.focus-subheading span {
     display: block;
-    color: #F3F5F8;
-    font-size: 1rem;
-    overflow-wrap: anywhere;
-}
-.focus-rank-player span {
-    display: block;
-    margin-top: 0.08rem;
-    color: #8F97A4;
+    color: #9BA9BC;
     font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.055em;
 }
-.focus-rank-score {
-    color: #DCE8F5;
-    font-size: clamp(1.05rem, 2vw, 1.35rem);
+.focus-subheading strong {
+    display: block;
+    margin-top: 0.15rem;
+    color: #F3F5F8;
+    font-size: 1.2rem;
     font-weight: 760;
-    white-space: nowrap;
 }
-.focus-rank-score span {
-    color: #8F97A4;
-    font-size: 0.72rem;
-    font-weight: 600;
-}
+.focus-subheading.growth-heading { margin-top: 1.35rem; }
+.focus-subheading.ratio-heading { margin-top: 1.35rem; }
 
-.focus-mini-grid {
+.focus-card-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.9rem;
-    margin: 0.75rem 0 0.65rem 0;
+    margin: 0 0 1rem 0;
 }
-.focus-mini-card {
+.focus-rank-card {
     position: relative;
     overflow: hidden;
     min-width: 0;
-    min-height: 148px;
-    padding: 1rem 1.05rem;
+    min-height: 184px;
+    padding: 1.05rem 1.1rem 1rem 1.1rem;
     border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 14px;
-    background: linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
+    border-radius: 15px;
+    background: linear-gradient(145deg, #1B1F27 0%, #15181E 100%);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.14);
 }
-.focus-mini-card::before {
+.focus-rank-card::before {
     content: "";
     position: absolute;
     left: 0;
     top: 0;
-    bottom: 0;
-    width: 3px;
-    background: #7D8490;
+    right: 0;
+    height: 3px;
+    background: #5A8FC4;
 }
-.focus-mini-card.change::before { background: #C79A52; }
-.focus-mini-card.growth::before { background: #65A57A; }
-.focus-mini-card.ratio::before { background: #5A8FC4; }
-.focus-mini-label span {
-    color: #727B88;
-    font-size: 0.7rem;
+.focus-rank-card.water::before { background: #5A8FC4; }
+.focus-rank-card.growth::before { background: #65A57A; }
+.focus-rank-card.ratio::before { background: #7C8FD0; }
+.focus-rank-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 1.6rem;
 }
-.focus-mini-name {
-    margin-top: 0.62rem;
-    color: #F1F3F6;
-    font-size: 1.08rem;
-    font-weight: 720;
+.focus-rank-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(90,143,196,0.13);
+    color: #B6CEE6;
+    font-size: 0.73rem;
+    font-weight: 750;
+}
+.focus-rank-card.growth .focus-rank-badge {
+    background: rgba(101,165,122,0.13);
+    color: #A9D4B6;
+}
+.focus-rank-card.ratio .focus-rank-badge {
+    background: rgba(124,143,208,0.14);
+    color: #BDC7EC;
+}
+.focus-rank-card-name {
+    margin-top: 0.9rem;
+    color: #F4F5F7;
+    font-size: 1.12rem;
+    font-weight: 760;
+    line-height: 1.25;
     overflow-wrap: anywhere;
 }
-.focus-mini-value {
-    margin-top: 0.2rem;
-    color: #F3F5F8;
-    font-size: 1.7rem;
-    font-weight: 760;
+.focus-rank-card-job {
+    min-height: 1.25rem;
+    margin-top: 0.18rem;
+    color: #8F98A6;
+    font-size: 0.77rem;
+}
+.focus-rank-card-value {
+    margin-top: 0.9rem;
+    color: #EFF4FA;
+    font-size: clamp(1.55rem, 2.5vw, 2rem);
+    font-weight: 780;
     letter-spacing: -0.025em;
+    line-height: 1.05;
 }
-.focus-mini-value small {
-    color: #9299A5;
+.focus-rank-card.growth .focus-rank-card-value { color: #C9E7D1; }
+.focus-rank-card.ratio .focus-rank-card-value { color: #D4DCF7; }
+.focus-rank-card-value small {
+    color: #929AA6;
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 650;
 }
-.focus-mini-meta {
-    margin-top: 0.45rem;
-    color: #8F97A4;
-    font-size: 0.76rem;
+.focus-rank-card-meta {
+    margin-top: 0.55rem;
+    color: #929AA6;
+    font-size: 0.78rem;
     line-height: 1.4;
+}
+.focus-empty-card {
+    padding: 1rem 1.1rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 13px;
+    background: #171A20;
+    color: #9DA4AF;
+}
+
+.focus-change-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.2rem;
+    margin: 0.35rem 0 1rem 0;
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(199,154,82,0.18);
+    border-left: 3px solid #C79A52;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #1B1E24, #16191F);
+}
+.focus-change-label {
+    color: #F1F3F6;
+    font-size: 1rem;
+    font-weight: 740;
+}
+.focus-change-meta {
+    margin-top: 0.22rem;
+    color: #8F97A4;
+    font-size: 0.77rem;
 }
 .change-counts {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.65rem;
-    margin-top: 0.75rem;
+    min-width: 220px;
 }
 .change-counts > div {
-    padding: 0.55rem 0.65rem;
+    padding: 0.58rem 0.72rem;
     border-radius: 10px;
-    background: rgba(255,255,255,0.035);
+    background: #20242C;
 }
 .change-counts span {
     display: block;
-    font-size: 1.65rem;
+    font-size: 1.55rem;
     font-weight: 780;
     line-height: 1;
 }
@@ -333,8 +363,7 @@ CUSTOM_CSS = """
     padding: 1.05rem 1.1rem 1rem 1.1rem;
     border: 1px solid rgba(255,255,255,0.11);
     border-radius: 14px;
-    background:
-        linear-gradient(145deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018));
+    background: linear-gradient(145deg, #1B1F27 0%, #171A20 100%);
 }
 .stat-card::before {
     content: "";
@@ -390,16 +419,24 @@ div[data-testid="stDataFrame"] * {
     overscroll-behavior: none !important;
 }
 
-/* 不顯示空的 sidebar；主選單改由 st.navigation(position="top") 負責。 */
-section[data-testid="stSidebar"] {
-    display: none;
-}
-
 @media (max-width: 768px) {
     .block-container {
-        padding-top: 1.2rem;
+        padding-top: 0.8rem;
         padding-left: 1rem;
         padding-right: 1rem;
+    }
+    .st-key-mobile_nav {
+        display: block !important;
+        position: sticky;
+        top: 0.35rem;
+        z-index: 999;
+        margin: 0 0 0.9rem 0;
+        padding: 0.4rem 0.45rem;
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 12px;
+        background: rgba(23,26,32,0.96);
+        box-shadow: 0 8px 26px rgba(0,0,0,0.24);
+        backdrop-filter: blur(8px);
     }
     .site-hero {
         padding: 1.55rem 1.25rem;
@@ -415,11 +452,20 @@ section[data-testid="stSidebar"] {
     .rank-context {
         grid-template-columns: 1fr;
     }
-    .focus-mini-grid {
-        grid-template-columns: 1fr 1fr;
+    .focus-card-grid {
+        grid-template-columns: 1fr;
+    }
+    .focus-rank-card {
+        min-height: 0;
+    }
+    .focus-change-card {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+    .change-counts {
+        min-width: 0;
     }
 }
-
 
 @media (max-width: 520px) {
     .stat-grid,
@@ -429,13 +475,10 @@ section[data-testid="stSidebar"] {
     .stat-card { padding: 0.95rem 1rem; }
     .stat-value { font-size: 1.65rem; }
     .section-heading { margin-top: 1.45rem; }
-    .focus-mini-grid { grid-template-columns: 1fr; }
-    .focus-rank-row {
-        grid-template-columns: 2.1rem minmax(0, 1fr);
-    }
-    .focus-rank-score {
-        grid-column: 2;
-        margin-top: -0.35rem;
+    .focus-rank-card-value { font-size: 1.75rem; }
+    .st-key-mobile_nav {
+        border-radius: 10px;
+        padding: 0.32rem 0.35rem;
     }
 }
 </style>

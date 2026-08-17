@@ -136,24 +136,14 @@ def render_stat_grid(cards):
 # ============================================================
 # 首頁
 # ============================================================
-def _format_growth_names(rows):
-    """同分時保留並列概念，但避免卡片塞太多名字。"""
-    names = rows["暱稱"].astype(str).tolist()
-    if not names:
-        return "—"
-    if len(names) <= 2:
-        return "、".join(names)
-    return f"{names[0]} 等 {len(names)} 人"
-
-
 def _build_weekly_water_growth(df, previous_week, latest_week):
-    """
-    比較最新兩個實際週次的地下水道。
+    '''
+    比較最新兩個實際週次的地下水道，回傳兩種「成長 Top 3」。
 
     - 分數增加：B - A，可包含上週 0 分、本週有分的玩家。
     - 比例增加：B / A，只計算 A > 0，避免 0 當分母造成無限倍。
-    - 兩種指標都只顯示有成長的玩家。
-    """
+    - 兩種指標都只顯示有成長的玩家，不建立退步排行。
+    '''
     previous_df = (
         df.loc[df["周次"] == previous_week, ["暱稱", "地下水道"]]
         .rename(columns={"地下水道": "上週分數"})
@@ -169,29 +159,94 @@ def _build_weekly_water_growth(df, previous_week, latest_week):
 
     comparison["分數增加"] = comparison["本週分數"] - comparison["上週分數"]
 
+    diff_top3 = None
     diff_candidates = comparison.loc[comparison["分數增加"] > 0].copy()
-    diff_winners = None
     if not diff_candidates.empty:
-        max_diff = diff_candidates["分數增加"].max()
-        diff_winners = diff_candidates.loc[
-            diff_candidates["分數增加"] == max_diff
-        ].sort_values(["本週分數", "暱稱"], ascending=[False, True])
+        diff_candidates["名次"] = diff_candidates["分數增加"].rank(
+            ascending=False, method="min"
+        ).astype(int)
+        diff_top3 = (
+            diff_candidates.sort_values(
+                ["分數增加", "本週分數", "暱稱"],
+                ascending=[False, False, True],
+            )
+            .head(3)
+            .copy()
+        )
 
+    ratio_top3 = None
     ratio_candidates = comparison.loc[
         (comparison["上週分數"] > 0)
         & (comparison["本週分數"] > comparison["上週分數"])
     ].copy()
-    ratio_winners = None
     if not ratio_candidates.empty:
         ratio_candidates["成長倍率"] = (
             ratio_candidates["本週分數"] / ratio_candidates["上週分數"]
         )
-        max_ratio = ratio_candidates["成長倍率"].max()
-        ratio_winners = ratio_candidates.loc[
-            np.isclose(ratio_candidates["成長倍率"], max_ratio)
-        ].sort_values(["分數增加", "本週分數"], ascending=[False, False])
+        ratio_candidates["名次"] = ratio_candidates["成長倍率"].rank(
+            ascending=False, method="min"
+        ).astype(int)
+        ratio_top3 = (
+            ratio_candidates.sort_values(
+                ["成長倍率", "分數增加", "本週分數", "暱稱"],
+                ascending=[False, False, False, True],
+            )
+            .head(3)
+            .copy()
+        )
 
-    return diff_winners, ratio_winners
+    return diff_top3, ratio_top3
+
+
+def _render_focus_cards(rows, card_type):
+    '''首頁焦點共用三欄卡片。桌機三欄，手機自動改為單欄。'''
+    if rows is None or rows.empty:
+        st.markdown(
+            '<div class="focus-empty-card">本週沒有符合條件的成長紀錄。</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    cards = []
+    for _, row in rows.head(3).iterrows():
+        rank = int(row.get("名次", 0))
+        player = html.escape(str(row["暱稱"]))
+        job = html.escape(str(row.get("職業", "") or ""))
+
+        if card_type == "water":
+            value = f'{int(row["地下水道"]):,}<small> 分</small>'
+            meta = "本週地下水道"
+            css_class = "water"
+        elif card_type == "growth":
+            value = f'+{int(row["分數增加"]):,}<small> 分</small>'
+            meta = f'{int(row["上週分數"]):,} → {int(row["本週分數"]):,}'
+            css_class = "growth"
+        else:
+            ratio = float(row["成長倍率"])
+            percent_gain = (ratio - 1) * 100
+            value = f'{ratio:.2f}<small> 倍</small>'
+            meta = (
+                f'{int(row["上週分數"]):,} → {int(row["本週分數"]):,}'
+                f' · +{percent_gain:.1f}%'
+            )
+            css_class = "ratio"
+
+        cards.append(
+            f'''<div class="focus-rank-card {css_class}">
+                <div class="focus-rank-card-top">
+                    <span class="focus-rank-badge">第 {rank} 名</span>
+                </div>
+                <div class="focus-rank-card-name">{player}</div>
+                <div class="focus-rank-card-job">{job}</div>
+                <div class="focus-rank-card-value">{value}</div>
+                <div class="focus-rank-card-meta">{html.escape(meta)}</div>
+            </div>'''
+        )
+
+    st.markdown(
+        '<div class="focus-card-grid">' + ''.join(cards) + '</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def render_home_page(df, quality):
@@ -216,20 +271,20 @@ def render_home_page(df, quality):
 
     weeks = sorted(df["周次"].dropna().unique().tolist())
     previous_week = weeks[-2] if len(weeks) >= 2 else None
-    diff_winners = ratio_winners = None
+    diff_top3 = ratio_top3 = None
     if previous_week is not None:
-        diff_winners, ratio_winners = _build_weekly_water_growth(
+        diff_top3, ratio_top3 = _build_weekly_water_growth(
             df, previous_week, latest_week
         )
 
     st.markdown(
-        f"""
+        f'''
         <div class="site-hero">
             <div class="site-kicker">WEEKLY GUILD RECORDS</div>
             <h1>公會每週統計</h1>
             <p>每週戰績、參與紀錄與玩家歷史資料。最新資料更新至 {latest_week:%Y-%m-%d}。</p>
         </div>
-        """,
+        ''',
         unsafe_allow_html=True,
     )
 
@@ -247,96 +302,56 @@ def render_home_page(df, quality):
         )
     render_section_title("本週焦點", comparison_subtitle)
 
-    top_rows = []
-    for _, row in water_top3.iterrows():
-        rank = int(row["名次"])
-        top_rows.append(
-            f'''<div class="focus-rank-row">
-                <div class="focus-rank-no">{rank}</div>
-                <div class="focus-rank-player">
-                    <strong>{html.escape(str(row["暱稱"]))}</strong>
-                    <span>{html.escape(str(row.get("職業", "")))}</span>
-                </div>
-                <div class="focus-rank-score">{int(row["地下水道"]):,}<span> 分</span></div>
-            </div>'''
-        )
-
     st.markdown(
-        f'''<div class="focus-feature-card">
-            <div class="focus-card-kicker">地下水道 · 本週 TOP 3</div>
-            <div class="focus-card-title">本週最高紀錄</div>
-            <div class="focus-rank-list">{"".join(top_rows)}</div>
+        '''<div class="focus-subheading">
+            <span>地下水道 · 本週 TOP 3</span>
+            <strong>本週最高紀錄</strong>
         </div>''',
         unsafe_allow_html=True,
     )
+    _render_focus_cards(water_top3, "water")
 
-    focus_cards = []
-    focus_cards.append(
-        f'''<div class="focus-mini-card change">
-            <div class="focus-mini-label">本週職位異動</div>
+    st.markdown(
+        f'''<div class="focus-change-card">
+            <div>
+                <div class="focus-change-label">本週職位異動</div>
+                <div class="focus-change-meta">僅統計最新週次的升階與降階紀錄</div>
+            </div>
             <div class="change-counts">
                 <div><span class="change-up">{promotion_count}</span><small>人升階</small></div>
                 <div><span class="change-down">{demotion_count}</span><small>人降階</small></div>
             </div>
-            <div class="focus-mini-meta">僅統計最新週次的升階與降階紀錄</div>
-        </div>'''
-    )
-
-    if diff_winners is not None and not diff_winners.empty:
-        row = diff_winners.iloc[0]
-        names = _format_growth_names(diff_winners)
-        focus_cards.append(
-            f'''<div class="focus-mini-card growth">
-                <div class="focus-mini-label">分數增加最多 <span>B − A</span></div>
-                <div class="focus-mini-name">{html.escape(names)}</div>
-                <div class="focus-mini-value">+{int(row["分數增加"]):,}<small> 分</small></div>
-                <div class="focus-mini-meta">{int(row["上週分數"]):,} → {int(row["本週分數"]):,}</div>
-            </div>'''
-        )
-    else:
-        focus_cards.append(
-            '''<div class="focus-mini-card growth">
-                <div class="focus-mini-label">分數增加最多 <span>B − A</span></div>
-                <div class="focus-mini-name">本週無符合紀錄</div>
-                <div class="focus-mini-meta">只顯示相較上週有成長的玩家</div>
-            </div>'''
-        )
-
-    if ratio_winners is not None and not ratio_winners.empty:
-        row = ratio_winners.iloc[0]
-        names = _format_growth_names(ratio_winners)
-        ratio = float(row["成長倍率"])
-        percent_gain = (ratio - 1) * 100
-        focus_cards.append(
-            f'''<div class="focus-mini-card ratio">
-                <div class="focus-mini-label">比例增加最多 <span>B ÷ A</span></div>
-                <div class="focus-mini-name">{html.escape(names)}</div>
-                <div class="focus-mini-value">{ratio:.2f}<small> 倍</small></div>
-                <div class="focus-mini-meta">{int(row["上週分數"]):,} → {int(row["本週分數"]):,} · +{percent_gain:.1f}%</div>
-            </div>'''
-        )
-    else:
-        focus_cards.append(
-            '''<div class="focus-mini-card ratio">
-                <div class="focus-mini-label">比例增加最多 <span>B ÷ A</span></div>
-                <div class="focus-mini-name">本週無符合紀錄</div>
-                <div class="focus-mini-meta">比例比較只計算上週分數大於 0 的玩家</div>
-            </div>'''
-        )
-
-    st.markdown(
-        '<div class="focus-mini-grid">' + ''.join(focus_cards) + '</div>',
+        </div>''',
         unsafe_allow_html=True,
     )
 
     if previous_week is not None:
+        st.markdown(
+            '''<div class="focus-subheading growth-heading">
+                <span>地下水道成長 · B − A</span>
+                <strong>分數增加 TOP 3</strong>
+            </div>''',
+            unsafe_allow_html=True,
+        )
+        _render_focus_cards(diff_top3, "growth")
+
+        st.markdown(
+            '''<div class="focus-subheading ratio-heading">
+                <span>地下水道成長 · B ÷ A</span>
+                <strong>比例增加 TOP 3</strong>
+            </div>''',
+            unsafe_allow_html=True,
+        )
+        _render_focus_cards(ratio_top3, "ratio")
+
         st.caption(
             "成長比較說明：A = 上週、B = 本週。B−A 可包含上週 0 分；"
-            "B÷A 僅計算兩週都有紀錄且上週分數大於 0 的玩家。只顯示有成長的紀錄。"
+            "B÷A 僅計算兩週都有紀錄且上週分數大於 0 的玩家。"
+            "兩種排行都只顯示有成長的玩家。"
         )
 
     st.markdown(
-        '<p class="home-note">使用上方選單切換玩家資料、公會排行與資料查詢。各頁面會記住自己的週次範圍。</p>',
+        '<p class="home-note">桌機可使用上方選單；手機若瀏覽器隱藏 Streamlit 標頭，頁面頂端會另外顯示「首頁／玩家／排行／資料」導覽。</p>',
         unsafe_allow_html=True,
     )
 

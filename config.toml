@@ -1,0 +1,15 @@
+[theme]
+base = "dark"
+primaryColor = "#C79A52"
+backgroundColor = "#111318"
+secondaryBackgroundColor = "#1A1D24"
+textColor = "#F2F3F5"
+borderColor = "#30343D"
+dataframeHeaderBackgroundColor = "#20242C"
+baseRadius = "medium"
+buttonRadius = "medium"
+showWidgetBorder = true
+showSidebarBorder = false
+
+[client]
+showSidebarNavigation = false

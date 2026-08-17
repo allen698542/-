@@ -61,6 +61,12 @@ def get_app_passwords():
 
 
 def check_password():
+    """
+    使用 form 驗證密碼。
+
+    form 內輸入文字時不會因為離開欄位就反覆 rerun；只有按「登入」
+    或在輸入框按 Enter 才會送出，手機操作會比一般 text_input 穩定。
+    """
     passwords = get_app_passwords()
 
     if not passwords:
@@ -70,6 +76,8 @@ def check_password():
 
     if "password_correct" not in st.session_state:
         st.session_state.password_correct = False
+    if "login_error" not in st.session_state:
+        st.session_state.login_error = False
 
     if st.session_state.password_correct:
         return True
@@ -87,14 +95,21 @@ def check_password():
 
     login_row = st.container(horizontal=True, horizontal_alignment="center")
     login_card = login_row.container(border=True, width=420)
-    password = login_card.text_input(
-        "密碼",
-        type="password",
-        label_visibility="collapsed",
-        placeholder="存取密碼",
-    )
 
-    if password:
+    with login_card.form("login_form", border=False):
+        password = st.text_input(
+            "密碼",
+            type="password",
+            label_visibility="collapsed",
+            placeholder="存取密碼",
+        )
+        submitted = st.form_submit_button(
+            "登入",
+            type="primary",
+            width="stretch",
+        )
+
+    if submitted:
         is_correct = any(
             hmac.compare_digest(password, expected)
             for expected in passwords
@@ -102,16 +117,21 @@ def check_password():
 
         if is_correct:
             st.session_state.password_correct = True
+            st.session_state.login_error = False
             st.rerun()
-        else:
-            login_card.error("密碼錯誤")
+
+        st.session_state.login_error = True
+
+    if st.session_state.login_error:
+        login_card.error("密碼錯誤")
 
     return False
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(show_spinner=False)
 def get_cached_data(csv_path, file_mtime_ns):
     # file_mtime_ns 只用來讓 CSV 更新時 cache 自動失效。
+    # 不再使用固定 TTL，避免網站使用中每 10 分鐘又重新讀一次 CSV。
     del file_mtime_ns
     return load_data(csv_path)
 
@@ -178,15 +198,37 @@ def main():
 
     try:
         file_mtime_ns = CSV_PATH.stat().st_mtime_ns
-        df, quality = get_cached_data(str(CSV_PATH), file_mtime_ns)
+        with st.spinner("正在載入公會資料…"):
+            df, quality = get_cached_data(str(CSV_PATH), file_mtime_ns)
     except Exception as exc:
         st.error(f"讀取資料失敗：{exc}")
         st.stop()
 
+    # 先建立容器，Page 物件會在 closures 真正執行前填入。
+    page_refs = {}
+
+    def render_mobile_navigation():
+        """
+        Streamlit 的 top navigation 位在 app header；某些手機內嵌瀏覽器會把
+        header 隱藏，因此另外提供只在窄螢幕顯示的頁內導覽。
+        """
+        with st.container(
+            key="mobile_nav",
+            horizontal=True,
+            horizontal_alignment="center",
+            gap="xsmall",
+        ):
+            st.page_link(page_refs["home"], label="首頁", width="content")
+            st.page_link(page_refs["player"], label="玩家", width="content")
+            st.page_link(page_refs["ranking"], label="排行", width="content")
+            st.page_link(page_refs["archive"], label="資料", width="content")
+
     def home_page():
+        render_mobile_navigation()
         render_home_page(df, quality)
 
     def player_page():
+        render_mobile_navigation()
         st.markdown(
             """
             <div class="page-heading">
@@ -212,6 +254,7 @@ def main():
         )
 
     def leaderboard_page():
+        render_mobile_navigation()
         st.markdown(
             """
             <div class="page-heading">
@@ -236,6 +279,7 @@ def main():
         )
 
     def raw_data_page():
+        render_mobile_navigation()
         st.markdown(
             """
             <div class="page-heading">
@@ -254,34 +298,42 @@ def main():
         df_period = get_period_data(df, start_date, end_date)
         render_raw_data_page(df_period, quality)
 
-    pages = [
-        st.Page(
-            home_page,
-            title="首頁",
-            icon=":material/home:",
-            default=True,
-        ),
-        st.Page(
-            player_page,
-            title="玩家資料",
-            icon=":material/person_search:",
-            url_path="player",
-        ),
-        st.Page(
-            leaderboard_page,
-            title="公會排行",
-            icon=":material/leaderboard:",
-            url_path="ranking",
-        ),
-        st.Page(
-            raw_data_page,
-            title="資料查詢",
-            icon=":material/database:",
-            url_path="archive",
-        ),
-    ]
+    home_ref = st.Page(
+        home_page,
+        title="首頁",
+        icon=":material/home:",
+        default=True,
+    )
+    player_ref = st.Page(
+        player_page,
+        title="玩家資料",
+        icon=":material/person_search:",
+        url_path="player",
+    )
+    ranking_ref = st.Page(
+        leaderboard_page,
+        title="公會排行",
+        icon=":material/leaderboard:",
+        url_path="ranking",
+    )
+    archive_ref = st.Page(
+        raw_data_page,
+        title="資料查詢",
+        icon=":material/database:",
+        url_path="archive",
+    )
 
-    navigation = st.navigation(pages, position="top")
+    page_refs.update(
+        home=home_ref,
+        player=player_ref,
+        ranking=ranking_ref,
+        archive=archive_ref,
+    )
+
+    navigation = st.navigation(
+        [home_ref, player_ref, ranking_ref, archive_ref],
+        position="top",
+    )
     navigation.run()
 
 
