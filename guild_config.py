@@ -583,6 +583,235 @@ div[data-testid="stDataFrame"] * {
     }
     .section-heading.focus-main h2 { font-size: 1.62rem; }
 }
+
+
+/* ============================================================
+   v9：統一自訂導覽 + 焦點標題 + 進步卡角色圖片
+   ============================================================ */
+
+/* 不再使用 Streamlit 原生 top navigation，改成頁內四格導覽。 */
+.st-key-site_nav {
+    display: block !important;
+    position: relative !important;
+    top: auto !important;
+    z-index: auto !important;
+    max-width: 760px;
+    margin: 0 auto 1.35rem auto;
+    padding: 0.42rem;
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 50% -40%, rgba(199,154,82,0.10), transparent 52%),
+        linear-gradient(180deg, #191D24 0%, #15181E 100%);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.16);
+}
+.st-key-site_nav [data-testid="stHorizontalBlock"] {
+    gap: 0.42rem !important;
+}
+.st-key-site_nav [data-testid="stColumn"] {
+    min-width: 0 !important;
+}
+.st-key-site_nav a,
+.st-key-site_nav a * {
+    color: #E8EBF0 !important;
+    opacity: 1 !important;
+    text-decoration: none !important;
+}
+.st-key-site_nav a {
+    min-height: 46px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.55rem 0.55rem !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    background: rgba(255,255,255,0.025) !important;
+    font-weight: 720 !important;
+    font-size: 0.9rem !important;
+    transition: border-color 140ms ease, background 140ms ease, transform 140ms ease !important;
+}
+.st-key-site_nav a:hover {
+    border-color: rgba(199,154,82,0.28) !important;
+    background: rgba(199,154,82,0.08) !important;
+    transform: translateY(-1px);
+}
+.st-key-site_nav a[aria-current="page"],
+.st-key-site_nav a[data-active="true"] {
+    color: #F3D59C !important;
+    border-color: rgba(225,184,111,0.38) !important;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(199,154,82,0.20), transparent 65%),
+        rgba(199,154,82,0.075) !important;
+    box-shadow: inset 0 -2px 0 #D6A95D !important;
+}
+
+/* 泛用區塊標題改用 div，避開瀏覽器 / Streamlit 對 h2 的樣式干擾。 */
+.section-heading-title {
+    margin: 0;
+    color: #F2F4F7;
+    font-size: 1.38rem !important;
+    font-weight: 780 !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.02em;
+}
+.section-heading-kicker {
+    margin-bottom: 0.28rem;
+    color: #D9AE66;
+    font-size: 0.69rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+}
+.section-heading.focus-main {
+    position: relative;
+    overflow: hidden;
+    gap: 1rem;
+    margin-top: 2.45rem;
+    margin-bottom: 1.2rem;
+    padding: 1.05rem 1.2rem;
+    border: 1px solid rgba(199,154,82,0.20);
+    border-radius: 15px;
+    background:
+        radial-gradient(circle at 92% 0%, rgba(199,154,82,0.16), transparent 36%),
+        linear-gradient(135deg, rgba(32,31,28,0.94), rgba(21,24,30,0.94));
+}
+.section-heading.focus-main .section-heading-line {
+    width: 5px;
+    height: 4.2rem;
+    flex: 0 0 5px;
+    background: linear-gradient(180deg, #F0C777 0%, #C08A3E 100%);
+}
+.section-heading.focus-main .section-heading-title {
+    color: #F7F3EA !important;
+    font-size: clamp(2rem, 3vw, 2.45rem) !important;
+    font-weight: 840 !important;
+    line-height: 1.05 !important;
+}
+.section-heading.focus-main span {
+    margin-top: 0.42rem;
+    color: #AEB6C2;
+    font-size: 0.9rem;
+}
+
+/* 進步卡：角色圖填補右側留白，仍以文字為主體。 */
+.focus-rank-card.has-character {
+    padding-right: 7.5rem;
+}
+.focus-character {
+    position: absolute;
+    right: 0.35rem;
+    bottom: 0;
+    width: 7rem;
+    height: 9.2rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 1;
+    pointer-events: none;
+}
+.focus-character::before {
+    content: "";
+    position: absolute;
+    right: 0.45rem;
+    bottom: 0.75rem;
+    width: 5.8rem;
+    height: 5.8rem;
+    border-radius: 50%;
+    filter: blur(18px);
+    opacity: 0.48;
+}
+.focus-character.growth::before { background: rgba(101,165,122,0.42); }
+.focus-character.ratio::before { background: rgba(124,143,208,0.44); }
+.focus-character img {
+    position: relative;
+    z-index: 2;
+    max-width: 6.8rem;
+    max-height: 8.8rem;
+    object-fit: contain;
+    object-position: center bottom;
+    filter: drop-shadow(0 8px 14px rgba(0,0,0,0.38));
+}
+.focus-rank-card.has-character .focus-rank-card-name,
+.focus-rank-card.has-character .focus-rank-card-job,
+.focus-rank-card.has-character .focus-rank-card-value,
+.focus-rank-card.has-character .focus-rank-card-meta,
+.focus-rank-card.has-character .focus-rank-card-top {
+    position: relative;
+    z-index: 3;
+}
+
+@media (max-width: 768px) {
+    .block-container {
+        padding-top: 0.65rem;
+    }
+    .st-key-site_nav {
+        position: relative !important;
+        top: auto !important;
+        z-index: auto !important;
+        max-width: none;
+        margin: 0 0 0.9rem 0;
+        padding: 0.34rem;
+        border-radius: 11px;
+        box-shadow: none;
+    }
+    .st-key-site_nav [data-testid="stHorizontalBlock"] {
+        gap: 0.28rem !important;
+    }
+    .st-key-site_nav a {
+        min-height: 44px !important;
+        padding: 0.45rem 0.15rem !important;
+        font-size: 0.79rem !important;
+    }
+    .section-heading.focus-main {
+        margin-top: 1.8rem;
+        padding: 0.95rem 1rem;
+    }
+    .section-heading.focus-main .section-heading-line {
+        height: 3.7rem;
+    }
+    .section-heading.focus-main .section-heading-title {
+        font-size: 1.9rem !important;
+    }
+    .focus-rank-card.has-character {
+        padding-right: 6.7rem;
+        min-height: 185px;
+    }
+    .focus-character {
+        right: 0.25rem;
+        width: 6.3rem;
+        height: 8.5rem;
+    }
+    .focus-character img {
+        max-width: 6rem;
+        max-height: 8rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .st-key-site_nav a {
+        min-height: 42px !important;
+        font-size: 0.72rem !important;
+        gap: 0.15rem !important;
+    }
+    .section-heading.focus-main .section-heading-title {
+        font-size: 1.78rem !important;
+    }
+    .section-heading.focus-main span {
+        font-size: 0.8rem;
+        line-height: 1.45;
+    }
+    .focus-rank-card.has-character {
+        padding-right: 6.2rem;
+    }
+    .focus-character {
+        width: 5.9rem;
+        height: 8rem;
+    }
+    .focus-character img {
+        max-width: 5.6rem;
+        max-height: 7.5rem;
+    }
+}
+
 </style>
 """
 

@@ -103,17 +103,23 @@ def render_section_title(title, subtitle=None, *, variant=None):
         f'<span>{html.escape(str(subtitle))}</span>' if subtitle else ''
     )
     extra_class = f' {html.escape(str(variant))}' if variant else ''
+    kicker_html = (
+        '<div class="section-heading-kicker">WEEKLY HIGHLIGHTS</div>'
+        if variant == "focus-main"
+        else ''
+    )
     st.markdown(
-        f'''        <div class="section-heading{extra_class}">
+        f"""<div class="section-heading{extra_class}">
             <div class="section-heading-line"></div>
             <div>
-                <h2>{html.escape(str(title))}</h2>
+                {kicker_html}
+                <div class="section-heading-title">{html.escape(str(title))}</div>
                 {subtitle_html}
             </div>
-        </div>
-        ''',
+        </div>""",
         unsafe_allow_html=True,
     )
+
 
 def render_stat_grid(cards):
     """cards: [(css_class, label, value, meta)]"""
@@ -198,8 +204,43 @@ def _build_weekly_water_growth(df, previous_week, latest_week):
     return diff_top3, ratio_top3
 
 
-def _render_focus_cards(rows, card_type):
-    '''首頁焦點共用三欄卡片。桌機三欄，手機自動改為單欄。'''
+def _build_focus_image_lookup(df, *frames):
+    """只替首頁焦點中的少量玩家回溯最新有效角色圖片。"""
+    names = set()
+    for frame in frames:
+        if frame is None or frame.empty or "暱稱" not in frame.columns:
+            continue
+        names.update(frame["暱稱"].dropna().astype(str).tolist())
+
+    lookup = {}
+    for player in names:
+        history = df.loc[df["暱稱"] == player]
+        if history.empty:
+            continue
+        _, img_url, _ = get_latest_profile(history)
+        if img_url:
+            lookup[player] = str(img_url).strip()
+    return lookup
+
+
+def _safe_image_tag(player, image_lookup, css_class):
+    if not image_lookup:
+        return "", ""
+    raw_url = str(image_lookup.get(player, "") or "").strip()
+    if not raw_url.lower().startswith(("https://", "http://")):
+        return "", ""
+    safe_url = html.escape(raw_url, quote=True)
+    safe_alt = html.escape(player, quote=True)
+    return (
+        " has-character",
+        f"""<div class="focus-character {css_class}">
+                <img src="{safe_url}" alt="{safe_alt}" loading="lazy">
+            </div>""",
+    )
+
+
+def _render_focus_cards(rows, card_type, image_lookup=None):
+    """首頁焦點共用三欄卡片。桌機三欄，手機自動改為單欄。"""
     if rows is None or rows.empty:
         st.markdown(
             '<div class="focus-empty-card">本週沒有符合條件的成長紀錄。</div>',
@@ -210,17 +251,22 @@ def _render_focus_cards(rows, card_type):
     cards = []
     for _, row in rows.head(3).iterrows():
         rank = int(row.get("名次", 0))
-        player = html.escape(str(row["暱稱"]))
+        player_raw = str(row["暱稱"])
+        player = html.escape(player_raw)
         job = html.escape(str(row.get("職業", "") or ""))
 
         if card_type == "water":
             value = f'{int(row["地下水道"]):,}<small> 分</small>'
             meta = "本週地下水道"
             css_class = "water"
+            image_class, image_html = "", ""
         elif card_type == "growth":
             value = f'+{int(row["分數增加"]):,}<small> 分</small>'
             meta = f'{int(row["上週分數"]):,} → {int(row["本週分數"]):,}'
             css_class = "growth"
+            image_class, image_html = _safe_image_tag(
+                player_raw, image_lookup, css_class
+            )
         else:
             ratio = float(row["成長倍率"])
             percent_gain = (ratio - 1) * 100
@@ -230,9 +276,12 @@ def _render_focus_cards(rows, card_type):
                 f' · +{percent_gain:.1f}%'
             )
             css_class = "ratio"
+            image_class, image_html = _safe_image_tag(
+                player_raw, image_lookup, css_class
+            )
 
         cards.append(
-            f'''<div class="focus-rank-card {css_class} rank-{rank}">
+            f"""<div class="focus-rank-card {css_class} rank-{rank}{image_class}">
                 <div class="focus-rank-card-top">
                     <span class="focus-rank-badge">第 {rank} 名</span>
                 </div>
@@ -240,7 +289,8 @@ def _render_focus_cards(rows, card_type):
                 <div class="focus-rank-card-job">{job}</div>
                 <div class="focus-rank-card-value">{value}</div>
                 <div class="focus-rank-card-meta">{html.escape(meta)}</div>
-            </div>'''
+                {image_html}
+            </div>"""
         )
 
     st.markdown(
@@ -276,6 +326,8 @@ def render_home_page(df, quality):
         diff_top3, ratio_top3 = _build_weekly_water_growth(
             df, previous_week, latest_week
         )
+
+    growth_image_lookup = _build_focus_image_lookup(df, diff_top3, ratio_top3)
 
     st.markdown(
         f'''
@@ -333,7 +385,7 @@ def render_home_page(df, quality):
             </div>''',
             unsafe_allow_html=True,
         )
-        _render_focus_cards(diff_top3, "growth")
+        _render_focus_cards(diff_top3, "growth", growth_image_lookup)
 
         st.markdown(
             '''<div class="focus-subheading ratio-heading">
@@ -342,7 +394,7 @@ def render_home_page(df, quality):
             </div>''',
             unsafe_allow_html=True,
         )
-        _render_focus_cards(ratio_top3, "ratio")
+        _render_focus_cards(ratio_top3, "ratio", growth_image_lookup)
 
         st.caption(
             "成長比較說明：A = 上週、B = 本週。B−A 可包含上週 0 分；"
@@ -351,7 +403,7 @@ def render_home_page(df, quality):
         )
 
     st.markdown(
-        '<p class="home-note">桌機可使用上方選單；手機若瀏覽器隱藏 Streamlit 標頭，頁面頂端會另外顯示「首頁／玩家／排行／資料」導覽。</p>',
+        '<p class="home-note">使用頁面上方的「首頁／玩家資料／公會排行／資料查詢」切換功能。</p>',
         unsafe_allow_html=True,
     )
 

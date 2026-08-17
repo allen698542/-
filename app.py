@@ -207,33 +207,34 @@ def main():
     # 先建立容器，Page 物件會在 closures 真正執行前填入。
     page_refs = {}
 
-    def render_mobile_navigation():
+    def render_site_navigation():
         """
-        Streamlit 的 top navigation 位在 app header；某些手機內嵌瀏覽器會把
-        header 隱藏，因此另外提供只在窄螢幕顯示的四等分頁內導覽。
+        使用自訂 page_link 導覽。原生 navigation 僅負責路由並隱藏，
+        避免手機內嵌瀏覽器把 top navigation 收成覆蓋層遮住內容。
         """
-        with st.container(key="mobile_nav"):
+        with st.container(key="site_nav"):
             nav_cols = st.columns(4, gap="small")
             nav_items = [
-                ("home", "首頁"),
-                ("player", "玩家"),
-                ("ranking", "排行"),
-                ("archive", "資料"),
+                ("home", "首頁", ":material/home:"),
+                ("player", "玩家資料", ":material/person_search:"),
+                ("ranking", "公會排行", ":material/leaderboard:"),
+                ("archive", "資料查詢", ":material/database:"),
             ]
-            for column, (page_key, label) in zip(nav_cols, nav_items):
+            for column, (page_key, label, icon) in zip(nav_cols, nav_items):
                 with column:
                     st.page_link(
                         page_refs[page_key],
                         label=label,
+                        icon=icon,
                         width="stretch",
                     )
 
     def home_page():
-        render_mobile_navigation()
+        render_site_navigation()
         render_home_page(df, quality)
 
     def player_page():
-        render_mobile_navigation()
+        render_site_navigation()
         st.markdown(
             """
             <div class="page-heading">
@@ -259,7 +260,7 @@ def main():
         )
 
     def leaderboard_page():
-        render_mobile_navigation()
+        render_site_navigation()
         st.markdown(
             """
             <div class="page-heading">
@@ -284,7 +285,7 @@ def main():
         )
 
     def raw_data_page():
-        render_mobile_navigation()
+        render_site_navigation()
         st.markdown(
             """
             <div class="page-heading">
@@ -337,7 +338,7 @@ def main():
 
     navigation = st.navigation(
         [home_ref, player_ref, ranking_ref, archive_ref],
-        position="top",
+        position="hidden",
     )
     navigation.run()
 
