@@ -812,6 +812,58 @@ div[data-testid="stDataFrame"] * {
     }
 }
 
+
+/* v10：導覽改用原生 button，避免 page_link 在手機內嵌檢視中變成深色文字。 */
+.st-key-site_nav [data-testid="stButton"] button {
+    min-height: 48px !important;
+    width: 100% !important;
+    border-radius: 11px !important;
+    font-weight: 760 !important;
+    font-size: 0.90rem !important;
+    color: #F4F5F7 !important;
+    box-shadow: none !important;
+}
+.st-key-site_nav [data-testid="stButton"] button * {
+    color: inherit !important;
+    opacity: 1 !important;
+}
+.st-key-site_nav [data-testid="stBaseButton-secondary"] {
+    background: #1A1E26 !important;
+    border-color: rgba(255,255,255,0.13) !important;
+}
+.st-key-site_nav [data-testid="stBaseButton-secondary"]:hover {
+    background: #20252E !important;
+    border-color: rgba(199,154,82,0.34) !important;
+}
+.st-key-site_nav [data-testid="stBaseButton-primary"] {
+    background: linear-gradient(135deg, #B9863E 0%, #8D632D 100%) !important;
+    border-color: #D2A356 !important;
+    color: #FFFFFF !important;
+}
+
+@media (max-width: 768px) {
+    .st-key-site_nav {
+        margin-top: 0 !important;
+        margin-bottom: 0.85rem !important;
+        padding: 0.32rem !important;
+        background: #151820 !important;
+        border: 1px solid rgba(255,255,255,0.12) !important;
+    }
+    .st-key-site_nav [data-testid="stButton"] button {
+        min-height: 46px !important;
+        padding: 0.42rem 0.18rem !important;
+        font-size: 0.78rem !important;
+    }
+}
+
+@media (max-width: 520px) {
+    .st-key-site_nav [data-testid="stButton"] button {
+        min-height: 44px !important;
+        padding: 0.38rem 0.08rem !important;
+        font-size: 0.72rem !important;
+    }
+}
+
 </style>
 """
 

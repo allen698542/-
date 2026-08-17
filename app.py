@@ -82,7 +82,7 @@ def check_password():
     if st.session_state.password_correct:
         return True
 
-    st.markdown(
+    st.html(
         """
         <div class="login-heading">
             <div class="site-kicker">WEEKLY GUILD RECORDS</div>
@@ -90,7 +90,6 @@ def check_password():
             <p>輸入存取密碼後進入資料網站</p>
         </div>
         """,
-        unsafe_allow_html=True,
     )
 
     login_row = st.container(horizontal=True, horizontal_alignment="center")
@@ -191,7 +190,7 @@ def select_week_period(df, *, key_prefix, default="最近 8 週"):
 
 
 def main():
-    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    st.html(CUSTOM_CSS)
 
     if not check_password():
         st.stop()
@@ -207,10 +206,12 @@ def main():
     # 先建立容器，Page 物件會在 closures 真正執行前填入。
     page_refs = {}
 
-    def render_site_navigation():
+    def render_site_navigation(current_page):
         """
-        使用自訂 page_link 導覽。原生 navigation 僅負責路由並隱藏，
-        避免手機內嵌瀏覽器把 top navigation 收成覆蓋層遮住內容。
+        使用原生 button + st.switch_page 建立固定四格導覽。
+
+        不再依賴 page_link 的瀏覽器樣式，避免手機內嵌檢視出現
+        深色文字看不清楚的問題。st.navigation 仍只負責路由。
         """
         with st.container(key="site_nav"):
             nav_cols = st.columns(4, gap="small")
@@ -222,20 +223,23 @@ def main():
             ]
             for column, (page_key, label, icon) in zip(nav_cols, nav_items):
                 with column:
-                    st.page_link(
-                        page_refs[page_key],
-                        label=label,
+                    clicked = st.button(
+                        label,
+                        key=f"nav_{current_page}_{page_key}",
                         icon=icon,
+                        type="primary" if page_key == current_page else "secondary",
                         width="stretch",
                     )
+                    if clicked and page_key != current_page:
+                        st.switch_page(page_refs[page_key])
 
     def home_page():
-        render_site_navigation()
+        render_site_navigation("home")
         render_home_page(df, quality)
 
     def player_page():
-        render_site_navigation()
-        st.markdown(
+        render_site_navigation("player")
+        st.html(
             """
             <div class="page-heading">
                 <div class="site-kicker">PLAYER PROFILE</div>
@@ -243,7 +247,6 @@ def main():
                 <p>查詢個人週次紀錄、趨勢、達成狀況與職位異動。</p>
             </div>
             """,
-            unsafe_allow_html=True,
         )
         start_date, end_date, selected_week_count = select_week_period(
             df,
@@ -260,8 +263,8 @@ def main():
         )
 
     def leaderboard_page():
-        render_site_navigation()
-        st.markdown(
+        render_site_navigation("ranking")
+        st.html(
             """
             <div class="page-heading">
                 <div class="site-kicker">GUILD RANKING</div>
@@ -269,7 +272,6 @@ def main():
                 <p>依週次區間查看旗幟戰、地下水道與公會城表現。</p>
             </div>
             """,
-            unsafe_allow_html=True,
         )
         start_date, end_date, selected_week_count = select_week_period(
             df,
@@ -285,8 +287,8 @@ def main():
         )
 
     def raw_data_page():
-        render_site_navigation()
-        st.markdown(
+        render_site_navigation("archive")
+        st.html(
             """
             <div class="page-heading">
                 <div class="site-kicker">DATA ARCHIVE</div>
@@ -294,7 +296,6 @@ def main():
                 <p>搜尋歷史週次、玩家、職業、分數與達成狀態。</p>
             </div>
             """,
-            unsafe_allow_html=True,
         )
         start_date, end_date, _ = select_week_period(
             df,

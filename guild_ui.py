@@ -94,7 +94,7 @@ def render_summary_card(parent, title, value, caption, prev_text=None, next_text
 def render_name_chips(names):
     safe_names = [html.escape(str(name)) for name in names]
     chips = "".join(f'<span class="name-chip">{name}</span>' for name in safe_names)
-    st.markdown(f'<div class="name-chip-wrap">{chips}</div>', unsafe_allow_html=True)
+    st.html(f'<div class="name-chip-wrap">{chips}</div>')
 
 
 
@@ -108,7 +108,7 @@ def render_section_title(title, subtitle=None, *, variant=None):
         if variant == "focus-main"
         else ''
     )
-    st.markdown(
+    st.html(
         f"""<div class="section-heading{extra_class}">
             <div class="section-heading-line"></div>
             <div>
@@ -117,7 +117,6 @@ def render_section_title(title, subtitle=None, *, variant=None):
                 {subtitle_html}
             </div>
         </div>""",
-        unsafe_allow_html=True,
     )
 
 
@@ -133,9 +132,8 @@ def render_stat_grid(cards):
             </div>
             '''
         )
-    st.markdown(
+    st.html(
         '<div class="stat-grid">' + ''.join(html_cards) + '</div>',
-        unsafe_allow_html=True,
     )
 
 
@@ -242,10 +240,9 @@ def _safe_image_tag(player, image_lookup, css_class):
 def _render_focus_cards(rows, card_type, image_lookup=None):
     """首頁焦點共用三欄卡片。桌機三欄，手機自動改為單欄。"""
     if rows is None or rows.empty:
-        st.markdown(
+        st.html(
             '<div class="focus-empty-card">本週沒有符合條件的成長紀錄。</div>',
-            unsafe_allow_html=True,
-        )
+            )
         return
 
     cards = []
@@ -293,9 +290,8 @@ def _render_focus_cards(rows, card_type, image_lookup=None):
             </div>"""
         )
 
-    st.markdown(
+    st.html(
         '<div class="focus-card-grid">' + ''.join(cards) + '</div>',
-        unsafe_allow_html=True,
     )
 
 
@@ -329,7 +325,7 @@ def render_home_page(df, quality):
 
     growth_image_lookup = _build_focus_image_lookup(df, diff_top3, ratio_top3)
 
-    st.markdown(
+    st.html(
         f'''
         <div class="site-hero">
             <div class="site-kicker">WEEKLY GUILD RECORDS</div>
@@ -337,7 +333,6 @@ def render_home_page(df, quality):
             <p>每週戰績、參與紀錄與玩家歷史資料。最新資料更新至 {latest_week:%Y-%m-%d}。</p>
         </div>
         ''',
-        unsafe_allow_html=True,
     )
 
     render_stat_grid([
@@ -354,16 +349,15 @@ def render_home_page(df, quality):
         )
     render_section_title("本週焦點", comparison_subtitle, variant="focus-main")
 
-    st.markdown(
+    st.html(
         '''<div class="focus-subheading">
             <span>地下水道 · 本週 TOP 3</span>
             <strong>本週最高紀錄</strong>
         </div>''',
-        unsafe_allow_html=True,
     )
     _render_focus_cards(water_top3, "water")
 
-    st.markdown(
+    st.html(
         f'''<div class="focus-change-card">
             <div>
                 <div class="focus-change-label">本週職位異動</div>
@@ -374,26 +368,23 @@ def render_home_page(df, quality):
                 <div><span class="change-down">{demotion_count}</span><small>人降階</small></div>
             </div>
         </div>''',
-        unsafe_allow_html=True,
     )
 
     if previous_week is not None:
-        st.markdown(
+        st.html(
             '''<div class="focus-subheading growth-heading">
                 <span>地下水道成長 · B − A</span>
                 <strong>分數增加 TOP 3</strong>
             </div>''',
-            unsafe_allow_html=True,
-        )
+            )
         _render_focus_cards(diff_top3, "growth", growth_image_lookup)
 
-        st.markdown(
+        st.html(
             '''<div class="focus-subheading ratio-heading">
                 <span>地下水道成長 · B ÷ A</span>
                 <strong>比例增加 TOP 3</strong>
             </div>''',
-            unsafe_allow_html=True,
-        )
+            )
         _render_focus_cards(ratio_top3, "ratio", growth_image_lookup)
 
         st.caption(
@@ -402,9 +393,8 @@ def render_home_page(df, quality):
             "兩種排行都只顯示有成長的玩家。"
         )
 
-    st.markdown(
+    st.html(
         '<p class="home-note">使用頁面上方的「首頁／玩家資料／公會排行／資料查詢」切換功能。</p>',
-        unsafe_allow_html=True,
     )
 
 # ============================================================
@@ -572,15 +562,14 @@ def draw_water_leaderboard(data):
     if top_ties <= 3:
         render_top_rank_cards(sorted_df, col_name, "地下水道分數")
     else:
-        st.markdown(
+        st.html(
             f"""
             <div class="ranking-callout">
                 <strong>最高分共有 {top_ties} 人並列</strong><br>
                 本區間最高分為 {int(top_score):,} 分，因此不另外製造人工破同分規則。
             </div>
             """,
-            unsafe_allow_html=True,
-        )
+            )
         render_name_chips(sorted_df.loc[sorted_df[col_name] == top_score, "暱稱"].tolist())
 
     render_section_title("Top 15", "依地下水道累積分數排序")
@@ -885,14 +874,13 @@ def render_player_summary(
     prev_text, next_text = get_detailed_neighbors(
         guild_stats, player, "地下水道", mode="avg"
     )
-    st.markdown(
+    st.html(
         f'''        <div class="rank-context">
             <span><strong>地下水道排名位置</strong></span>
             <span>{html.escape(prev_text)}</span>
             <span>{html.escape(next_text)}</span>
         </div>
         ''',
-        unsafe_allow_html=True,
     )
 
 
