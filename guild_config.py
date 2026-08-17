@@ -102,6 +102,167 @@ CUSTOM_CSS = """
     font-size: 0.92rem;
 }
 
+
+/* 首頁焦點：一張 Top 3 主卡 + 三張摘要卡，兼顧正式感與資訊密度。 */
+.focus-feature-card {
+    position: relative;
+    overflow: hidden;
+    margin: 0.65rem 0 0.9rem 0;
+    padding: 1.25rem 1.35rem;
+    border: 1px solid rgba(90,143,196,0.24);
+    border-radius: 16px;
+    background:
+        radial-gradient(circle at 94% 0%, rgba(90,143,196,0.15), transparent 32%),
+        linear-gradient(145deg, rgba(90,143,196,0.075), rgba(255,255,255,0.02));
+}
+.focus-card-kicker,
+.focus-mini-label {
+    color: #AEB8C7;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+}
+.focus-card-title {
+    margin: 0.18rem 0 0.9rem 0;
+    color: #F3F5F8;
+    font-size: 1.3rem;
+    font-weight: 720;
+}
+.focus-rank-list {
+    display: grid;
+    gap: 0.55rem;
+}
+.focus-rank-row {
+    display: grid;
+    grid-template-columns: 2.4rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.72rem 0.82rem;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 11px;
+    background: rgba(9,11,15,0.28);
+}
+.focus-rank-no {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9px;
+    background: rgba(90,143,196,0.14);
+    color: #AFC9E4;
+    font-weight: 800;
+}
+.focus-rank-player {
+    min-width: 0;
+}
+.focus-rank-player strong {
+    display: block;
+    color: #F3F5F8;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+}
+.focus-rank-player span {
+    display: block;
+    margin-top: 0.08rem;
+    color: #8F97A4;
+    font-size: 0.76rem;
+}
+.focus-rank-score {
+    color: #DCE8F5;
+    font-size: clamp(1.05rem, 2vw, 1.35rem);
+    font-weight: 760;
+    white-space: nowrap;
+}
+.focus-rank-score span {
+    color: #8F97A4;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.focus-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin: 0.75rem 0 0.65rem 0;
+}
+.focus-mini-card {
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+    min-height: 148px;
+    padding: 1rem 1.05rem;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
+}
+.focus-mini-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #7D8490;
+}
+.focus-mini-card.change::before { background: #C79A52; }
+.focus-mini-card.growth::before { background: #65A57A; }
+.focus-mini-card.ratio::before { background: #5A8FC4; }
+.focus-mini-label span {
+    color: #727B88;
+    font-size: 0.7rem;
+}
+.focus-mini-name {
+    margin-top: 0.62rem;
+    color: #F1F3F6;
+    font-size: 1.08rem;
+    font-weight: 720;
+    overflow-wrap: anywhere;
+}
+.focus-mini-value {
+    margin-top: 0.2rem;
+    color: #F3F5F8;
+    font-size: 1.7rem;
+    font-weight: 760;
+    letter-spacing: -0.025em;
+}
+.focus-mini-value small {
+    color: #9299A5;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+.focus-mini-meta {
+    margin-top: 0.45rem;
+    color: #8F97A4;
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+.change-counts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-top: 0.75rem;
+}
+.change-counts > div {
+    padding: 0.55rem 0.65rem;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.035);
+}
+.change-counts span {
+    display: block;
+    font-size: 1.65rem;
+    font-weight: 780;
+    line-height: 1;
+}
+.change-counts small {
+    display: block;
+    margin-top: 0.25rem;
+    color: #9299A5;
+    font-size: 0.73rem;
+}
+.change-up { color: #7AC28E; }
+.change-down { color: #D37B7B; }
+
 .ranking-callout {
     padding: 1.15rem 1.3rem;
     margin: 0.8rem 0 1.2rem 0;
@@ -254,7 +415,11 @@ section[data-testid="stSidebar"] {
     .rank-context {
         grid-template-columns: 1fr;
     }
+    .focus-mini-grid {
+        grid-template-columns: 1fr 1fr;
+    }
 }
+
 
 @media (max-width: 520px) {
     .stat-grid,
@@ -264,6 +429,14 @@ section[data-testid="stSidebar"] {
     .stat-card { padding: 0.95rem 1rem; }
     .stat-value { font-size: 1.65rem; }
     .section-heading { margin-top: 1.45rem; }
+    .focus-mini-grid { grid-template-columns: 1fr; }
+    .focus-rank-row {
+        grid-template-columns: 2.1rem minmax(0, 1fr);
+    }
+    .focus-rank-score {
+        grid-column: 2;
+        margin-top: -0.35rem;
+    }
 }
 </style>
 """
