@@ -32,27 +32,129 @@ PLOT_CONFIG = {
 
 CUSTOM_CSS = """
 <style>
-/* 只做版面微調，盡量使用 Streamlit 原生元件，降低客製 CSS 維護成本。 */
-.block-container {
-    max-width: 1200px;
-    padding-top: 1.8rem;
-    padding-bottom: 3rem;
+:root {
+    --guild-accent: #C79A52;
+    --guild-text-soft: #AEB4BE;
+    --guild-panel: rgba(255,255,255,0.035);
+    --guild-border: rgba(255,255,255,0.10);
 }
 
+.block-container {
+    max-width: 1180px;
+    padding-top: 2.1rem;
+    padding-bottom: 4rem;
+}
+
+/* 網站標題區：保留一點遊戲感，但避免發光、彩虹等過度效果。 */
+.site-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 2.4rem 2.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--guild-border);
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 85% 10%, rgba(199,154,82,0.20), transparent 34%),
+        linear-gradient(135deg, #191D25 0%, #121419 68%);
+}
+.site-hero::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--guild-accent);
+}
+.site-hero h1,
+.page-heading h1,
+.login-heading h1 {
+    margin: 0.15rem 0 0.55rem 0;
+    letter-spacing: -0.025em;
+}
+.site-hero h1 { font-size: clamp(2rem, 4vw, 3.2rem); }
+.site-hero p,
+.page-heading p,
+.login-heading p {
+    margin: 0;
+    color: var(--guild-text-soft);
+}
+.site-kicker {
+    color: var(--guild-accent);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    font-weight: 700;
+}
+
+.page-heading {
+    margin: 0.4rem 0 1.25rem 0;
+}
+.page-heading h1 { font-size: 2rem; }
+
+.login-heading {
+    max-width: 620px;
+    text-align: center;
+    margin: 8vh auto 1.5rem auto;
+}
+
+.home-note {
+    color: var(--guild-text-soft);
+    font-size: 0.92rem;
+}
+
+.ranking-callout {
+    padding: 1.15rem 1.3rem;
+    margin: 0.8rem 0 1.2rem 0;
+    border-left: 3px solid var(--guild-accent);
+    border-radius: 8px;
+    background: rgba(199,154,82,0.08);
+}
+.ranking-callout strong {
+    font-size: 1.15rem;
+}
+.name-chip-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 0.75rem 0 1.2rem 0;
+}
+.name-chip {
+    display: inline-block;
+    padding: 0.34rem 0.62rem;
+    border-radius: 999px;
+    border: 1px solid var(--guild-border);
+    background: var(--guild-panel);
+    font-size: 0.88rem;
+}
+
+/* 表格自己滾動，不把整頁一起帶走。 */
 div[data-testid="stDataFrame"],
 div[data-testid="stDataFrame"] * {
     overscroll-behavior: none !important;
 }
 
+/* 不顯示空的 sidebar；主選單改由 st.navigation(position="top") 負責。 */
+section[data-testid="stSidebar"] {
+    display: none;
+}
+
 @media (max-width: 768px) {
     .block-container {
-        padding-top: 1rem;
+        padding-top: 1.2rem;
         padding-left: 1rem;
         padding-right: 1rem;
     }
+    .site-hero {
+        padding: 1.55rem 1.25rem;
+        border-radius: 14px;
+    }
+    .page-heading h1 { font-size: 1.7rem; }
+    .site-hero p,
+    .page-heading p { font-size: 0.92rem; }
 }
 </style>
 """
+
 
 JOB_HIERARCHY_ROWS = [
     ('冒險家', '劍士', '英雄'),

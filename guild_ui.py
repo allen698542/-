@@ -1,3 +1,5 @@
+import html
+
 import numpy as np
 import plotly.express as px
 import streamlit as st
@@ -10,13 +12,24 @@ from guild_data import build_guild_stats, get_latest_profile
 # 共用小工具
 # ============================================================
 def rank_text(rank):
-    rank = int(rank)
-    if rank == 1:
-        return "第 1 名"
-    if rank == 2:
-        return "第 2 名"
-    if rank == 3:
-        return "第 3 名"
+    return f"第 {int(rank)} 名"
+
+
+def rank_label(guild_stats, player, metric):
+    rank_col_map = {
+        "旗幟戰": "flag_rank",
+        "地下水道": "water_rank",
+        "公會城每周": "castle_rank",
+    }
+    if player not in guild_stats.index:
+        return "—"
+
+    score = guild_stats.loc[player, metric]
+    rank = int(guild_stats.loc[player, rank_col_map[metric]])
+    tie_count = int((guild_stats[metric] == score).sum())
+
+    if tie_count > 1:
+        return f"並列第 {rank} 名（{tie_count} 人）"
     return f"第 {rank} 名"
 
 
@@ -59,11 +72,11 @@ def get_detailed_neighbors(guild_stats, target_player, metric, mode="avg"):
         pct_val = round(score / weeks * 100, 2) if weeks else 0
         return f"{real_rank} · {neighbor_name}{tie_text} · {score} / {pct_val}%"
 
-    prev_str = "目前已是第一名" if my_idx == 0 else "前一名：" + format_row(sorted_stats.iloc[my_idx - 1])
+    prev_str = "目前已在最前段" if my_idx == 0 else "前一位：" + format_row(sorted_stats.iloc[my_idx - 1])
     next_str = (
-        "目前為最後一名"
+        "目前為最後一位"
         if my_idx == len(sorted_stats) - 1
-        else "下一名：" + format_row(sorted_stats.iloc[my_idx + 1])
+        else "下一位：" + format_row(sorted_stats.iloc[my_idx + 1])
     )
     return prev_str, next_str
 
@@ -78,37 +91,175 @@ def render_summary_card(parent, title, value, caption, prev_text=None, next_text
         card.caption(next_text)
 
 
+def render_name_chips(names):
+    safe_names = [html.escape(str(name)) for name in names]
+    chips = "".join(f'<span class="name-chip">{name}</span>' for name in safe_names)
+    st.markdown(f'<div class="name-chip-wrap">{chips}</div>', unsafe_allow_html=True)
+
+
+# ============================================================
+# 首頁
+# ============================================================
+def render_home_page(df, quality):
+    latest_week = df["周次"].max()
+    latest_df = df.loc[df["周次"] == latest_week].copy()
+
+    latest_players = int(latest_df["暱稱"].nunique())
+    flag_perfect = int((latest_df["旗幟戰"] >= 1000).sum())
+    castle_done = int((latest_df["公會城每周"] > 0).sum())
+    castle_rate = round(castle_done / latest_players * 100, 1) if latest_players else 0
+
+    water_top = latest_df.sort_values("地下水道", ascending=False).iloc[0] if not latest_df.empty else None
+    change_count = int(latest_df["異動與否"].isin(["升階", "降階"]).sum())
+
+    st.markdown(
+        f"""
+        <div class="site-hero">
+            <div class="site-kicker">WEEKLY GUILD RECORDS</div>
+            <h1>公會每週統計</h1>
+            <p>每週戰績、參與紀錄與玩家歷史資料。最新資料更新至 {latest_week:%Y-%m-%d}。</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    summary = st.container(horizontal=True, gap="small")
+    render_summary_card(summary, "最新週次", latest_week.strftime("%Y-%m-%d"), "每週更新一次", width=250)
+    render_summary_card(summary, "本週記錄玩家", f"{latest_players} 人", "目前週次有資料的玩家", width=250)
+    render_summary_card(summary, "旗幟戰滿分", f"{flag_perfect} 人", "本週達到 1,000 分", width=250)
+    render_summary_card(summary, "公會城完成率", f"{castle_rate}%", f"{castle_done} 人完成", width=250)
+
+    st.markdown("### 本週焦點")
+    highlights = st.container(horizontal=True, gap="small")
+
+    water_card = highlights.container(border=True, width=510)
+    water_card.caption("地下水道最高紀錄")
+    if water_top is not None:
+        water_card.markdown(f"### {water_top['暱稱']}")
+        water_card.metric("本週分數", f"{int(water_top['地下水道']):,}")
+        water_card.caption(str(water_top.get("職業", "")))
+
+    change_card = highlights.container(border=True, width=510)
+    change_card.caption("本週職位異動")
+    change_card.markdown(f"### {change_count} 筆紀錄")
+    change_card.write("包含本週的升階與降階紀錄，可至「玩家資料」查看個人歷史。")
+
+    st.markdown(
+        '<p class="home-note">使用上方選單切換玩家資料、公會排行與資料查詢。各頁面會記住自己的週次範圍。</p>',
+        unsafe_allow_html=True,
+    )
+
+
 # ============================================================
 # 排行榜
 # ============================================================
-def render_top_rank_cards(sorted_df, col_name, label_name, is_attendance=False):
+def render_top_rank_cards(sorted_df, col_name, label_name):
     if sorted_df.empty:
         return
 
-    st.markdown("#### 前三名")
+    st.markdown("### 前三名")
     cards = st.container(horizontal=True, gap="small")
 
     top3 = sorted_df.head(3)
     for _, row in top3.iterrows():
-        card = cards.container(border=True, width=300)
+        card = cards.container(border=True, width=310)
         rank = int(row["名次"])
         card.caption(rank_text(rank))
 
         image = str(row.get("圖片", "") or "").strip()
         if image and image.lower() != "nan":
-            card.image(image, width=96)
+            card.image(image, width=92)
 
         card.markdown(f"### {row['暱稱']}")
         card.caption(str(row.get("職業", "")))
-        suffix = " 次" if is_attendance else " 分"
-        card.metric(label_name, f"{int(row[col_name]):,}{suffix}")
+        card.metric(label_name, f"{int(row[col_name]):,} 分")
 
 
-def draw_leaderboard(data, col_name, color_scale, label_name, is_attendance=False):
+def render_capped_metric_summary(data, metric, selected_week_count):
+    """旗幟戰、公會城這類有明確上限的項目，不硬做 Top 3。"""
     if data.empty:
         st.info("這個週次範圍沒有資料。")
         return
 
+    is_flag = metric == "旗幟戰"
+    max_per_week = 1000 if is_flag else 1
+    theoretical_max = selected_week_count * max_per_week
+    label = "滿分" if is_flag else "全勤"
+    unit = "分" if is_flag else "次"
+
+    sorted_df = data.sort_values(
+        [metric, "周次"],
+        ascending=[False, False],
+    ).reset_index(drop=True)
+    sorted_df["名次"] = sorted_df[metric].rank(ascending=False, method="min").astype(int)
+
+    perfect_df = sorted_df.loc[sorted_df[metric] == theoretical_max].copy()
+    count = len(perfect_df)
+
+    st.markdown(
+        f"""
+        <div class="ranking-callout">
+            <strong>{label}玩家：{count} 人</strong><br>
+            本區間共 {selected_week_count} 週，{label}基準為 {theoretical_max:,} {unit}。
+            有多人同分時會保留「並列名次」，不額外用其他項目強制拆名次。
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if count:
+        render_name_chips(perfect_df["暱稱"].tolist())
+
+    st.markdown("### 成績分布")
+    distribution = (
+        sorted_df.groupby(metric, as_index=False)
+        .size()
+        .rename(columns={"size": "玩家數"})
+        .sort_values(metric)
+    )
+    distribution["顯示分數"] = distribution[metric].map(lambda value: f"{int(value):,}")
+
+    fig = px.bar(
+        distribution,
+        x="顯示分數",
+        y="玩家數",
+        text="玩家數",
+    )
+    fig.update_layout(
+        xaxis={"title": f"{metric}（{unit}）", "fixedrange": True},
+        yaxis={"title": "玩家數", "fixedrange": True},
+        margin=dict(l=10, r=10, t=15, b=20),
+        height=380,
+        dragmode=False,
+    )
+    fig.update_traces(textposition="outside")
+    st.plotly_chart(fig, width="stretch", config=PLOT_CONFIG)
+
+    display_df = sorted_df[["名次", "暱稱", "職業", "周次", metric]].copy()
+    if theoretical_max > 0:
+        display_df["區間達成率"] = (display_df[metric] / theoretical_max * 100).round(1)
+
+    st.markdown("### 完整名單")
+    st.dataframe(
+        display_df,
+        width="stretch",
+        hide_index=True,
+        height=540,
+        column_config={
+            "名次": st.column_config.NumberColumn("名次", format="%d"),
+            "周次": st.column_config.NumberColumn("記錄週數", format="%d"),
+            metric: st.column_config.NumberColumn(metric, format="%d"),
+            "區間達成率": st.column_config.NumberColumn("區間達成率", format="%.1f%%"),
+        },
+    )
+
+
+def draw_water_leaderboard(data):
+    if data.empty:
+        st.info("這個週次範圍沒有資料。")
+        return
+
+    col_name = "地下水道"
     sorted_df = data.sort_values(
         by=[col_name, "周次"],
         ascending=[False, False],
@@ -118,14 +269,23 @@ def draw_leaderboard(data, col_name, color_scale, label_name, is_attendance=Fals
         method="min",
     ).astype(int)
 
-    render_top_rank_cards(
-        sorted_df,
-        col_name,
-        label_name,
-        is_attendance=is_attendance,
-    )
+    top_score = sorted_df.iloc[0][col_name]
+    top_ties = int((sorted_df[col_name] == top_score).sum())
+    if top_ties <= 3:
+        render_top_rank_cards(sorted_df, col_name, "地下水道分數")
+    else:
+        st.markdown(
+            f"""
+            <div class="ranking-callout">
+                <strong>最高分共有 {top_ties} 人並列</strong><br>
+                本區間最高分為 {int(top_score):,} 分，因此不另外製造人工破同分規則。
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        render_name_chips(sorted_df.loc[sorted_df[col_name] == top_score, "暱稱"].tolist())
 
-    st.markdown("#### Top 15")
+    st.markdown("### Top 15")
     top15_df = sorted_df.head(15).copy()
     fig = px.bar(
         top15_df,
@@ -133,13 +293,10 @@ def draw_leaderboard(data, col_name, color_scale, label_name, is_attendance=Fals
         y="暱稱",
         orientation="h",
         text=col_name,
-        color=col_name,
-        color_continuous_scale=color_scale,
     )
     fig.update_layout(
         yaxis={"categoryorder": "total ascending", "fixedrange": True, "title": None},
-        xaxis={"fixedrange": True, "title": label_name},
-        coloraxis_showscale=False,
+        xaxis={"fixedrange": True, "title": "地下水道分數"},
         margin=dict(l=10, r=20, t=20, b=20),
         height=460,
         dragmode=False,
@@ -147,78 +304,46 @@ def draw_leaderboard(data, col_name, color_scale, label_name, is_attendance=Fals
     fig.update_traces(texttemplate="%{text:,}", textposition="outside")
     st.plotly_chart(fig, width="stretch", config=PLOT_CONFIG)
 
-    st.markdown("#### 完整名單")
+    st.markdown("### 完整名單")
     display_df = sorted_df[["名次", "暱稱", "職業", "周次", col_name]].copy()
-    max_value = max(int(sorted_df[col_name].max()), 1)
-    val_format = "%d 次" if is_attendance else "%d"
-
     st.dataframe(
         display_df,
         width="stretch",
         hide_index=True,
-        height=520,
+        height=540,
         column_config={
-            col_name: st.column_config.ProgressColumn(
-                label_name,
-                format=val_format,
-                min_value=0,
-                max_value=max_value,
-            ),
             "名次": st.column_config.NumberColumn("名次", format="%d"),
-            "周次": st.column_config.NumberColumn("統計週數", format="%d"),
+            "周次": st.column_config.NumberColumn("記錄週數", format="%d"),
+            col_name: st.column_config.NumberColumn("地下水道分數", format="%d"),
         },
     )
 
 
-def render_leaderboard_page(df_period, start_date, end_date):
-    st.header("公會排行")
-    st.caption(f"{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d}")
-
+def render_leaderboard_page(df_period, start_date, end_date, selected_week_count):
     leaderboard_df = build_guild_stats(df_period).reset_index()
 
-    metric = st.pills(
+    metric = st.segmented_control(
         "排行項目",
         ["旗幟戰", "地下水道", "公會城"],
         default="旗幟戰",
-        required=True,
-        width="stretch",
+        selection_mode="single",
         key="leaderboard_metric",
-    )
+    ) or "旗幟戰"
 
     if metric == "旗幟戰":
-        draw_leaderboard(
-            leaderboard_df,
-            "旗幟戰",
-            "Reds",
-            "旗幟戰分數",
-        )
+        render_capped_metric_summary(leaderboard_df, "旗幟戰", selected_week_count)
     elif metric == "地下水道":
-        draw_leaderboard(
-            leaderboard_df,
-            "地下水道",
-            "Blues",
-            "地下水道分數",
-        )
+        draw_water_leaderboard(leaderboard_df)
     else:
-        draw_leaderboard(
-            leaderboard_df,
-            "公會城每周",
-            "Greens",
-            "公會城參與數",
-            is_attendance=True,
-        )
-        st.caption("公會城目前依完成總次數排序，不是依完成率排序。")
+        render_capped_metric_summary(leaderboard_df, "公會城每周", selected_week_count)
 
 
 # ============================================================
 # 原始資料
 # ============================================================
-def render_raw_data_page(df_period):
-    st.header("原始資料")
-    st.caption("可搜尋玩家、職業、分數與達成狀態。")
-
+def render_raw_data_page(df_period, quality=None):
     search_query = st.text_input(
-        "搜尋",
+        "搜尋資料",
         placeholder="輸入玩家 ID、職業、分數或狀態",
     ).strip()
 
@@ -232,7 +357,7 @@ def render_raw_data_page(df_period):
     else:
         df_display = df_period.copy()
 
-    st.caption(f"顯示 {len(df_display):,} 筆資料")
+    st.caption(f"目前顯示 {len(df_display):,} 筆資料")
 
     df_display = df_display.sort_values(
         "周次",
@@ -249,24 +374,41 @@ def render_raw_data_page(df_period):
         df_display[cols_to_show],
         width="stretch",
         hide_index=True,
-        height=560,
+        height=600,
         column_config={
             "周次": st.column_config.DateColumn("週次", format="YYYY-MM-DD"),
         },
     )
+
+    if quality:
+        with st.expander("資料品質（管理用）", expanded=False):
+            st.write(
+                f"玩家 {quality['players']:,} 位 · 週次 {quality['weeks']:,} 個 · "
+                f"最新週次 {quality['latest_week']}"
+            )
+            st.write(
+                f"CSV {quality['raw_rows']:,} 列，清理後 {quality['clean_rows']:,} 列。"
+            )
+            if quality["duplicate_rows"] > 0:
+                st.write(
+                    f"偵測到 {quality['duplicate_groups']:,} 組玩家＋週次重複紀錄，"
+                    "已自動保留資料較完整的一筆。"
+                )
+            if quality["invalid_date_rows"] > 0:
+                st.write(f"排除 {quality['invalid_date_rows']:,} 筆無效日期。")
 
 
 # ============================================================
 # 玩家頁面
 # ============================================================
 def render_player_selector(df):
-    st.subheader("玩家查詢")
+    st.markdown("### 選擇玩家")
 
     selected_group = None
     selected_category = None
     selected_job = None
 
-    with st.expander("篩選條件（選填）", expanded=False):
+    with st.expander("不知道玩家名稱？使用職業篩選", expanded=False):
         groups = JOB_HIERARCHY["group"].unique().tolist()
         selected_group = st.selectbox(
             "職業群",
@@ -331,7 +473,7 @@ def render_player_selector(df):
         players,
         index=None,
         placeholder="輸入或選擇玩家 ID",
-        help="可直接輸入玩家 ID 搜尋；上方篩選條件不是必填。",
+        help="可以直接輸入玩家 ID 搜尋；職業篩選不是必填。",
     )
 
 
@@ -346,7 +488,8 @@ def render_player_profile(player, display_level, img_url, job_display):
     if img_url:
         profile.image(img_url, width=120)
 
-    info = profile.container(width=420)
+    info = profile.container(width=460)
+    info.caption("PLAYER PROFILE")
     info.markdown(f"### {player}")
     info.markdown(f"**{job_display}**　Lv. {display_level}")
     info.caption("角色圖片與等級會從完整歷史資料中尋找最新有效紀錄。")
@@ -357,6 +500,7 @@ def render_player_summary(
     player,
     start_date,
     end_date,
+    selected_week_count,
 ):
     my_stats = guild_stats.loc[player]
     p_flag = int(my_stats["旗幟戰"])
@@ -364,37 +508,26 @@ def render_player_summary(
     p_castle = int(my_stats["公會城每周"])
     my_weeks = int(my_stats["周次"])
 
-    rank_flag = int(my_stats["flag_rank"])
-    rank_water = int(my_stats["water_rank"])
-    rank_castle = int(my_stats["castle_rank"])
-
-    avg_flag = int(p_flag / my_weeks) if my_weeks else 0
     avg_water = int(p_water / my_weeks) if my_weeks else 0
-    castle_pct = round(p_castle / my_weeks * 100, 2) if my_weeks else 0
+    flag_possible = selected_week_count * 1000
+    flag_pct = round(p_flag / flag_possible * 100, 1) if flag_possible else 0
+    castle_pct = round(p_castle / selected_week_count * 100, 1) if selected_week_count else 0
 
-    st.subheader("區間摘要")
+    st.markdown("### 區間摘要")
     cards = st.container(horizontal=True, gap="small")
 
     render_summary_card(
         cards,
-        "統計週數",
-        f"{my_weeks} 週",
+        "記錄週數",
+        f"{my_weeks} / {selected_week_count} 週",
         f"{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d}",
     )
 
-    prev_text, next_text = get_detailed_neighbors(
-        guild_stats,
-        player,
-        "旗幟戰",
-        mode="avg",
-    )
     render_summary_card(
         cards,
         "旗幟戰",
-        f"{p_flag:,} 分",
-        f"{rank_text(rank_flag)} · 週均 {avg_flag:,}",
-        prev_text,
-        next_text,
+        f"{p_flag:,} / {flag_possible:,}",
+        f"{rank_label(guild_stats, player, '旗幟戰')} · {flag_pct}%",
     )
 
     prev_text, next_text = get_detailed_neighbors(
@@ -407,29 +540,21 @@ def render_player_summary(
         cards,
         "地下水道",
         f"{p_water:,} 分",
-        f"{rank_text(rank_water)} · 週均 {avg_water:,}",
+        f"{rank_label(guild_stats, player, '地下水道')} · 週均 {avg_water:,}",
         prev_text,
         next_text,
     )
 
-    prev_text, next_text = get_detailed_neighbors(
-        guild_stats,
-        player,
-        "公會城每周",
-        mode="pct",
-    )
-    attendance_text = "全勤" if castle_pct == 100 else rank_text(rank_castle)
+    attendance_text = "全勤" if castle_pct == 100 else rank_label(guild_stats, player, "公會城每周")
     render_summary_card(
         cards,
         "公會城",
-        f"{p_castle} 次",
+        f"{p_castle} / {selected_week_count} 次",
         f"{attendance_text} · {castle_pct}%",
-        prev_text,
-        next_text,
     )
 
 
-def render_player_page(df, df_period, start_date, end_date):
+def render_player_page(df, df_period, start_date, end_date, selected_week_count):
     player = render_player_selector(df)
 
     if not player:
@@ -457,17 +582,17 @@ def render_player_page(df, df_period, start_date, end_date):
         player,
         start_date,
         end_date,
+        selected_week_count,
     )
 
-    st.subheader("詳細資料")
-    detail_view = st.pills(
+    st.markdown("### 詳細資料")
+    detail_view = st.segmented_control(
         "內容",
         ["走勢", "每週記錄", "達成狀況", "升降階"],
         default="走勢",
-        required=True,
-        width="stretch",
+        selection_mode="single",
         key="player_detail_view",
-    )
+    ) or "走勢"
 
     if detail_view == "走勢":
         render_player_trend(player_period, player)
@@ -480,19 +605,18 @@ def render_player_page(df, df_period, start_date, end_date):
 
 
 def render_player_trend(player_period, player):
-    chart_type = st.pills(
+    chart_type = st.segmented_control(
         "數據項目",
         ["旗幟戰", "地下水道", "公會城每周"],
         default="旗幟戰",
-        required=True,
-        width="stretch",
+        selection_mode="single",
         key="player_chart_type",
-    )
+    ) or "旗幟戰"
 
     settings = {
-        "旗幟戰": ("#C94A4A", "分數"),
-        "地下水道": ("#3D6D9C", "分數"),
-        "公會城每周": ("#4F7C5E", "完成狀態 (1=有, 0=無)"),
+        "旗幟戰": ("#C79A52", "分數"),
+        "地下水道": ("#5A8FC4", "分數"),
+        "公會城每周": ("#65A57A", "完成狀態 (1=有, 0=無)"),
     }
     line_color, y_label = settings[chart_type]
 
@@ -594,8 +718,8 @@ def render_player_completion(player_period):
             names="狀態",
             color="狀態",
             color_discrete_map={
-                "達成": "#4F7C5E",
-                "未達成": "#B85C5C",
+                "達成": "#65A57A",
+                "未達成": "#C05E5E",
                 "NA": "#7A7A7A",
             },
             hole=0.55,
@@ -620,8 +744,8 @@ def render_player_completion(player_period):
             names="狀態",
             color="狀態",
             color_discrete_map={
-                "升階": "#4F7C5E",
-                "降階": "#B85C5C",
+                "升階": "#65A57A",
+                "降階": "#C05E5E",
                 "否": "#5B6F88",
             },
             hole=0.55,
