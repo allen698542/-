@@ -144,8 +144,8 @@ def _build_weekly_water_growth(df, previous_week, latest_week):
     '''
     比較最新兩個實際週次的地下水道，回傳兩種「成長 Top 3」。
 
-    - 分數增加：B - A，可包含上週 0 分、本週有分的玩家。
-    - 比例增加：B / A，只計算 A > 0，避免 0 當分母造成無限倍。
+    - 分數增加：B - A，只計算 A > 0 且 B > A 的玩家，避免刻意空一週後刷榜。
+    - 比例增加：B / A，同樣只計算 A > 0 且 B > A 的玩家。
     - 兩種指標都只顯示有成長的玩家，不建立退步排行。
     '''
     previous_df = (
@@ -164,7 +164,10 @@ def _build_weekly_water_growth(df, previous_week, latest_week):
     comparison["分數增加"] = comparison["本週分數"] - comparison["上週分數"]
 
     diff_top3 = None
-    diff_candidates = comparison.loc[comparison["分數增加"] > 0].copy()
+    diff_candidates = comparison.loc[
+        (comparison["上週分數"] > 0)
+        & (comparison["本週分數"] > comparison["上週分數"])
+    ].copy()
     if not diff_candidates.empty:
         diff_candidates["名次"] = diff_candidates["分數增加"].rank(
             ascending=False, method="min"
@@ -392,9 +395,9 @@ def render_home_page(df, quality):
         _render_focus_cards(ratio_top3, "ratio", focus_image_lookup)
 
         st.caption(
-            "成長比較說明：A = 上週、B = 本週。B−A 可包含上週 0 分；"
-            "B÷A 僅計算兩週都有紀錄且上週分數大於 0 的玩家。"
-            "兩種排行都只顯示有成長的玩家。"
+            "成長比較說明：A = 上週、B = 本週。B−A 與 B÷A 都只計算"
+            "兩週都有紀錄、上週分數大於 0，且本週確實成長的玩家。"
+            "上週 0 分者不列入成長排行。"
         )
 
     st.html(
