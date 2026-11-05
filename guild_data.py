@@ -15,13 +15,7 @@ def _clean_text_series(series, default="NA"):
 
 
 def _deduplicate_weekly_records(df):
-    """
-    同一位玩家同一週只保留一筆。
-
-    CSV 偶爾會出現「空白佔位列 + 後來補上的有效紀錄」。
-    這裡會優先保留有分數、有達成紀錄、資料較完整的那一列，
-    避免平均、折線圖、達成率把同一週算兩次。
-    """
+    """每位玩家每週保留資料完整度最高的一筆紀錄。"""
     key_columns = ["周次", "暱稱"]
     duplicate_mask = df.duplicated(key_columns, keep=False)
     duplicate_rows = int(duplicate_mask.sum())
@@ -89,8 +83,7 @@ def load_data(csv_path):
     df["暱稱"] = df["暱稱"].astype(str).str.strip()
     df["職業"] = df["職業"].astype(str).str.strip()
 
-    # 必須在 fillna(0) 前先處理重複資料，
-    # 才能分辨「真的 0 分」和「原本是空白」。
+    # 去重依據包含原始空值資訊，須先於數值補零執行。
     df, duplicate_rows, duplicate_groups = _deduplicate_weekly_records(df)
 
     for col in NUMERIC_COLUMNS:
@@ -105,7 +98,7 @@ def load_data(csv_path):
     for col in ["本周是否達成", "近兩周是否達成", "異動與否"]:
         df[col] = _clean_text_series(df[col])
 
-    # 預先建立搜尋字串，搜尋時不用反覆把整張表轉字串。
+    # 建立全文搜尋欄位。
     search_cols = [
         col for col in SEARCH_COLUMNS
         if col in df.columns
@@ -148,11 +141,7 @@ def get_period_data(df, start_date, end_date):
 
 
 def build_visual_profiles(df):
-    """從完整歷史取得玩家最後可用的外觀、等級與職業。
-
-    記錄中空白圖片與 0 等級不會蓋掉較早的有效資料。
-    此表只用於顯示，不影響所選週次的分數與排名。
-    """
+    """彙整各玩家最近一筆有效的圖片、等級與職業資料。"""
     if df.empty:
         return pd.DataFrame(columns=["暱稱", "圖片", "等級", "最新職業"])
 
@@ -205,10 +194,7 @@ def build_guild_stats(df_period):
 
 
 def get_latest_profile(player_history):
-    """
-    圖片與等級使用玩家「完整歷史」回溯，
-    不受目前畫面選擇的日期區間影響。
-    """
+    """讀取玩家歷史中最近可用的角色資料。"""
     history = player_history.sort_values(
         "周次",
         ascending=False,

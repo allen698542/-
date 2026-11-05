@@ -39,11 +39,8 @@ CUSTOM_CSS = """
     --guild-border: rgba(255,255,255,0.10);
 }
 
-/*
- * 手機內嵌瀏覽器有時會以 light theme 開啟 Streamlit iframe。
- * 這個網站固定採深色視覺，因此讓主畫布與自訂元件自行帶背景，
- * 不再只依賴瀏覽器傳進來的 theme。
- */
+
+/* 主題與基礎版面 */
 html, body {
     background: #111318 !important;
     color-scheme: dark;
@@ -54,11 +51,7 @@ html, body {
     background: #111318 !important;
     color: #F2F3F5 !important;
 }
-/*
- * 本站使用自己的頁面導覽，不需要 Streamlit 固定 Header。
- * 手機內嵌檢視中，這個 Header 會透明覆蓋在第一列內容上方，
- * 因此直接隱藏，避免導覽按鈕被遮住一半。
- */
+
 [data-testid="stHeader"],
 [data-testid="stToolbar"],
 [data-testid="stDecoration"] {
@@ -68,7 +61,7 @@ html, body {
     visibility: hidden !important;
 }
 
-/* 頁內手機導覽：桌機隱藏，手機再顯示。網站沒有使用 sidebar，隱藏其折疊按鈕。 */
+
 .st-key-mobile_nav {
     display: none !important;
 }
@@ -82,7 +75,8 @@ html, body {
     padding-bottom: 4rem;
 }
 
-/* 網站標題區：保留一點遊戲感，但避免發光、彩虹等過度效果。 */
+
+/* 首頁 */
 .site-hero {
     position: relative;
     overflow: hidden;
@@ -140,7 +134,7 @@ html, body {
 }
 
 
-/* 首頁焦點：三張直向卡片為一列，水道與兩種成長排行共用同一套視覺。 */
+
 .focus-subheading {
     margin: 0.75rem 0 0.65rem 0;
 }
@@ -363,7 +357,7 @@ html, body {
 }
 
 
-/* 區塊標題：比原生 H3 更像一般網站區段，也避免過度空白。 */
+
 .section-heading {
     display: flex;
     align-items: center;
@@ -390,7 +384,7 @@ html, body {
     font-size: 0.86rem;
 }
 
-/* 首頁「本週焦點」是主要內容區段，層級比一般小節再高一級。 */
+
 .section-heading.focus-main {
     margin-top: 2.35rem;
     margin-bottom: 1.15rem;
@@ -413,7 +407,7 @@ html, body {
     color: #AEB6C2;
 }
 
-/* 統計摘要：CSS grid 自動適應桌機 / 平板 / 手機，避免固定寬度卡片截字。 */
+
 .stat-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -480,7 +474,7 @@ html, body {
 }
 .rank-context strong { color: #D8DDE5; }
 
-/* 表格自己滾動，不把整頁一起帶走。 */
+
 div[data-testid="stDataFrame"],
 div[data-testid="stDataFrame"] * {
     overscroll-behavior: none !important;
@@ -595,11 +589,10 @@ div[data-testid="stDataFrame"] * {
 }
 
 
-/* ============================================================
-   v9：統一自訂導覽 + 焦點標題 + 進步卡角色圖片
-   ============================================================ */
 
-/* 不再使用 Streamlit 原生 top navigation，改成頁內四格導覽。 */
+
+
+/* 站內導覽 */
 .st-key-site_nav {
     display: block !important;
     position: relative !important;
@@ -655,7 +648,7 @@ div[data-testid="stDataFrame"] * {
     box-shadow: inset 0 -2px 0 #D6A95D !important;
 }
 
-/* 泛用區塊標題改用 div，避開瀏覽器 / Streamlit 對 h2 的樣式干擾。 */
+
 .section-heading-title {
     margin: 0;
     color: #F2F4F7;
@@ -702,7 +695,7 @@ div[data-testid="stDataFrame"] * {
     font-size: 0.9rem;
 }
 
-/* 進步卡：角色圖填補右側留白，仍以文字為主體。 */
+
 .focus-rank-card.has-character {
     padding-right: 7.5rem;
 }
@@ -824,7 +817,7 @@ div[data-testid="stDataFrame"] * {
 }
 
 
-/* v10：導覽改用原生 button，避免 page_link 在手機內嵌檢視中變成深色文字。 */
+
 .st-key-site_nav [data-testid="stButton"] button {
     min-height: 48px !important;
     width: 100% !important;
@@ -876,11 +869,7 @@ div[data-testid="stDataFrame"] * {
 }
 
 
-/* ============================================================
-   v11：導覽穩定性修正
-   - Streamlit Header 已隱藏，不再蓋住第一列導覽。
-   - 導覽文字縮短，手機維持單行四格。
-   ============================================================ */
+
 .st-key-site_nav {
     overflow: visible !important;
 }
@@ -936,7 +925,7 @@ div[data-testid="stDataFrame"] * {
     }
 }
 
-/* 全站視覺收斂：保留深色與木金色，但移除過度的光暈、漸層與浮動效果。 */
+
 .site-hero {
     padding: 1.9rem 2rem;
     background: #1B1E25;
@@ -966,7 +955,8 @@ div[data-testid="stDataFrame"] * {
     .site-hero { padding: 1.5rem 1.25rem; }
 }
 
-/* v12：人物排行榜，參考官方「角色圖＋名稱＋數值」資訊編排，刻意不使用炫光與漸層卡片。 */
+
+/* 人物排行榜 */
 .guild-rank-list {
     display: flex;
     flex-direction: column;
@@ -1091,6 +1081,95 @@ div[data-testid="stDataFrame"] * {
     .guild-rank-row { grid-template-columns: 25px 53px minmax(0, 1fr); column-gap: 8px; }
     .guild-rank-avatar { width: 52px; height: 60px; }
     .guild-rank-score small { display: block; margin-left: 0; }
+}
+
+
+
+/* 排行篩選 */
+.st-key-leaderboard_filters {
+    margin: 1.1rem 0 1.75rem;
+    padding: 1.1rem 1.35rem 1.0rem;
+    background: #191C22;
+    border: 1px solid #363B44;
+    border-radius: 12px;
+}
+.guild-filter-heading {
+    display: flex;
+    align-items: center;
+    gap: .62rem;
+    margin: .08rem 0 .68rem;
+}
+.guild-filter-label {
+    color: #E1E3E7;
+    font-size: .91rem;
+    font-weight: 680;
+    letter-spacing: .012em;
+}
+.guild-filter-separator {
+    height: 1px;
+    background: #31353D;
+    margin: 1.2rem 0 1rem;
+}
+.guild-filter-summary {
+    color: #9EA5AF;
+    font-size: .79rem;
+    font-variant-numeric: tabular-nums;
+    margin: .7rem 0 .08rem;
+}
+.guild-filter-separator-dot { margin: 0 .48rem; color: #747D88; }
+.st-key-leaderboard_filters [data-baseweb="button-group"] {
+    display: flex;
+    width: fit-content;
+    max-width: 100%;
+    padding: 3px;
+    gap: 3px;
+    background: #12151B !important;
+    border: 1px solid #343943 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+.st-key-leaderboard_filters [data-baseweb="button-group"] button {
+    min-height: 38px !important;
+    padding: .42rem .9rem !important;
+    border: 1px solid transparent !important;
+    border-radius: 5px !important;
+    background: transparent !important;
+    color: #B8C0CA !important;
+    font-size: .86rem !important;
+    font-weight: 600 !important;
+    box-shadow: none !important;
+    transition: background 120ms ease, border-color 120ms ease !important;
+}
+.st-key-leaderboard_filters [data-baseweb="button-group"] button * {
+    color: inherit !important;
+}
+.st-key-leaderboard_filters [data-baseweb="button-group"] button:hover {
+    background: #232831 !important;
+    color: #EDF0F3 !important;
+}
+.st-key-leaderboard_filters [data-baseweb="button-group"] button[kind="segmented_controlActive"],
+.st-key-leaderboard_filters [data-baseweb="button-group"] button[aria-pressed="true"] {
+    background: #33312D !important;
+    border-color: #736044 !important;
+    color: #F0D7A9 !important;
+    box-shadow: inset 0 -2px 0 #BC985C !important;
+}
+.st-key-leaderboard_filters [data-baseweb="button-group"] button:focus-visible {
+    outline: 2px solid #C79A52 !important;
+    outline-offset: 2px;
+}
+.st-key-leaderboard_metric [data-baseweb="button-group"] button {
+    min-width: 104px;
+    min-height: 42px !important;
+    font-size: .91rem !important;
+}
+@media (max-width: 620px) {
+    .st-key-leaderboard_filters { padding: .9rem .8rem; margin-top: .9rem; }
+    .st-key-leaderboard_filters [data-baseweb="button-group"] button {
+        padding: .44rem .7rem !important;
+        font-size: .81rem !important;
+    }
+    .st-key-leaderboard_metric [data-baseweb="button-group"] button { min-width: 82px; }
 }
 
 </style>

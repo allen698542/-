@@ -29,7 +29,7 @@ CSV_PATH = BASE_DIR / CSV_FILENAME
 
 
 def get_app_passwords():
-    """從 Streamlit Secrets 或環境變數讀取網站密碼。"""
+    """讀取 Streamlit Secrets 與環境變數中的存取密碼。"""
     passwords = []
 
     try:
@@ -61,12 +61,7 @@ def get_app_passwords():
 
 
 def check_password():
-    """
-    使用 form 驗證密碼。
-
-    form 內輸入文字時不會因為離開欄位就反覆 rerun；只有按「登入」
-    或在輸入框按 Enter 才會送出，手機操作會比一般 text_input 穩定。
-    """
+    """驗證密碼並維護目前連線的登入狀態。"""
     passwords = get_app_passwords()
 
     if not passwords:
@@ -129,14 +124,15 @@ def check_password():
 
 @st.cache_data(show_spinner=False)
 def get_cached_data(csv_path, file_mtime_ns):
-    # file_mtime_ns 只用來讓 CSV 更新時 cache 自動失效。
-    # 不再使用固定 TTL，避免網站使用中每 10 分鐘又重新讀一次 CSV。
+    # 檔案修改時間用於快取失效判斷。
     del file_mtime_ns
     return load_data(csv_path)
 
 
-def select_week_period(df, *, key_prefix, default="最近 8 週"):
-    """只選擇 CSV 中實際存在的週次。每個頁面各自保存自己的區間。"""
+def select_week_period(
+    df, *, key_prefix, default="最近 8 週", show_label=True, show_caption=True
+):
+    """依資料中存在的週次解析統計期間。"""
     weeks = sorted(df["周次"].dt.date.unique().tolist())
     if not weeks:
         raise ValueError("CSV 中沒有可用的週次。")
@@ -152,6 +148,9 @@ def select_week_period(df, *, key_prefix, default="最近 8 週"):
         selection_mode="single",
         key=f"{key_prefix}_period_mode",
         persist_state="session",
+        required=not show_label,
+        label_visibility="visible" if show_label else "collapsed",
+        wrap=True if not show_label else None,
     )
     period_mode = period_mode or default
 
@@ -183,10 +182,60 @@ def select_week_period(df, *, key_prefix, default="最近 8 週"):
             )
 
     selected_week_count = sum(start_date <= week <= end_date for week in weeks)
-    st.caption(
-        f"{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d} · {selected_week_count} 週"
-    )
+    if show_caption:
+        st.caption(
+            f"{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d} · {selected_week_count} 週"
+        )
     return start_date, end_date, selected_week_count
+
+
+RANKING_METRIC_KEYS = {
+    "地下水道": "water",
+    "旗幟戰": "flag",
+    "公會城": "castle",
+}
+
+
+def select_leaderboard_filters(df):
+    """取得排行榜類別與該類別的週次範圍。"""
+    with st.container(key="leaderboard_filters"):
+        st.html(
+            '<div class="guild-filter-heading">'
+            '<span class="guild-filter-label">排行項目</span>'
+            '</div>'
+        )
+        metric = st.segmented_control(
+            "排行項目",
+            list(RANKING_METRIC_KEYS),
+            default="地下水道",
+            selection_mode="single",
+            required=True,
+            label_visibility="collapsed",
+            key="leaderboard_metric",
+            persist_state="session",
+            wrap=True,
+        ) or "地下水道"
+
+        st.html(
+            '<div class="guild-filter-separator"></div>'
+            '<div class="guild-filter-heading">'
+            '<span class="guild-filter-label">統計期間</span>'
+            '</div>'
+        )
+        start_date, end_date, count = select_week_period(
+            df,
+            key_prefix=f"leaderboard_{RANKING_METRIC_KEYS[metric]}",
+            default="全部",
+            show_label=False,
+            show_caption=False,
+        )
+        st.html(
+            '<div class="guild-filter-summary">'
+            f'{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d}'
+            f'<span class="guild-filter-separator-dot">·</span>共 {count} 週'
+            '</div>'
+        )
+    return metric, start_date, end_date, count
 
 
 def main():
@@ -203,16 +252,11 @@ def main():
         st.error(f"讀取資料失敗：{exc}")
         st.stop()
 
-    # 先建立容器，Page 物件會在 closures 真正執行前填入。
+    # 導覽函式在路由註冊後引用 Page 物件。
     page_refs = {}
 
     def render_site_navigation(current_page):
-        """
-        使用原生 button + st.switch_page 建立固定四格導覽。
-
-        不再依賴 page_link 的瀏覽器樣式，避免手機內嵌檢視出現
-        深色文字看不清楚的問題。st.navigation 仍只負責路由。
-        """
+        """繪製站內導覽列並切換至指定頁面。"""
         with st.container(key="site_nav"):
             nav_cols = st.columns(4, gap="small")
             nav_items = [
@@ -273,11 +317,7 @@ def main():
             </div>
             """,
         )
-        start_date, end_date, selected_week_count = select_week_period(
-            df,
-            key_prefix="leaderboard",
-            default="最近 8 週",
-        )
+        metric, start_date, end_date, selected_week_count = select_leaderboard_filters(df)
         df_period = get_period_data(df, start_date, end_date)
         render_leaderboard_page(
             df_period,
@@ -285,6 +325,7 @@ def main():
             end_date,
             selected_week_count,
             full_df=df,
+            metric=metric,
         )
 
     def raw_data_page():

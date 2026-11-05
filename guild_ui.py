@@ -8,9 +8,7 @@ from guild_config import JOB_HIERARCHY, PLOT_CONFIG
 from guild_data import build_guild_stats, build_visual_profiles, get_latest_profile
 
 
-# ============================================================
-# 共用小工具
-# ============================================================
+# 共用元件
 def rank_text(rank):
     return f"第 {int(rank)} 名"
 
@@ -137,9 +135,7 @@ def render_stat_grid(cards):
     )
 
 
-# ============================================================
 # 首頁
-# ============================================================
 def _build_weekly_water_growth(df, previous_week, latest_week):
     '''
     比較最新兩個實際週次的地下水道，回傳兩種「成長 Top 3」。
@@ -206,7 +202,7 @@ def _build_weekly_water_growth(df, previous_week, latest_week):
 
 
 def _build_focus_image_lookup(df, *frames):
-    """只替首頁焦點中的少量玩家回溯最新有效角色圖片。"""
+    """建立首頁焦點玩家的圖片索引。"""
     names = set()
     for frame in frames:
         if frame is None or frame.empty or "暱稱" not in frame.columns:
@@ -241,7 +237,7 @@ def _safe_image_tag(player, image_lookup, css_class):
 
 
 def _render_focus_cards(rows, card_type, image_lookup=None):
-    """首頁焦點共用三欄卡片。桌機三欄，手機自動改為單欄。"""
+    """繪製首頁前三名資料卡片。"""
     if rows is None or rows.empty:
         st.html(
             '<div class="focus-empty-card">本週沒有符合條件的成長紀錄。</div>',
@@ -404,11 +400,9 @@ def render_home_page(df, quality):
         '<p class="home-note">使用頁面上方的「首頁／玩家資料／公會排行／資料查詢」切換功能。</p>',
     )
 
-# ============================================================
-# 人物視覺排行榜：以角色外觀與 ID 為主，詳細表格移到展開區
-# ============================================================
+# 排行榜
 def _ranking_avatar(url, player):
-    """只接受 HTTP(S) 圖片；顯示失敗時底層仍保留安靜的佔位圖。"""
+    """產生角色圖片 HTML，無有效網址時使用佔位符號。"""
     image = str(url or "").strip()
     safe_player = html.escape(str(player), quote=True)
     fallback = '<span class="guild-avatar-fallback" aria-hidden="true">✦</span>'
@@ -424,7 +418,7 @@ def _ranking_avatar(url, player):
 
 
 def _make_visual_rank_rows(data, metric, selected_week_count):
-    """將一頁名單合成單個 HTML，避免每一列建立 Streamlit 小工具。"""
+    """產生排行榜名單的 HTML。"""
     rows = []
     water = metric == "地下水道"
     for _, player in data.iterrows():
@@ -461,7 +455,7 @@ def _make_visual_rank_rows(data, metric, selected_week_count):
 
 
 def render_visual_rank_list(sorted_df, metric, selected_week_count):
-    """玩家 ID / 職業搜尋、低負擔分頁與角色圖片排行榜。"""
+    """繪製玩家篩選、分頁及排行榜名單。"""
     prefix = {'地下水道': 'water', '旗幟戰': 'flag', '公會城每周': 'castle'}[metric]
     search_key = f'guild_rank_search_{prefix}'
     page_key = f'guild_rank_page_{prefix}'
@@ -626,18 +620,16 @@ def draw_water_leaderboard(data, selected_week_count):
         )
 
 
-def render_leaderboard_page(df_period, start_date, end_date, selected_week_count, full_df=None):
+def render_leaderboard_page(
+    df_period, start_date, end_date, selected_week_count,
+    full_df=None, metric="地下水道",
+):
     leaderboard_df = build_guild_stats(df_period).reset_index()
     source = full_df if full_df is not None else df_period
     visuals = build_visual_profiles(source)
     leaderboard_df = leaderboard_df.drop(columns=['圖片'], errors='ignore')
     leaderboard_df = leaderboard_df.merge(visuals, on='暱稱', how='left')
     leaderboard_df = leaderboard_df.rename(columns={'圖片': '角色圖片'})
-
-    metric = st.segmented_control(
-        '排行項目', ['地下水道', '旗幟戰', '公會城'],
-        default='地下水道', selection_mode='single', key='leaderboard_metric',
-    ) or '地下水道'
 
     if metric == '地下水道':
         draw_water_leaderboard(leaderboard_df, selected_week_count)
@@ -647,9 +639,7 @@ def render_leaderboard_page(df_period, start_date, end_date, selected_week_count
         render_capped_metric_summary(leaderboard_df, '公會城每周', selected_week_count)
 
 
-# ============================================================
-# 原始資料
-# ============================================================
+# 歷史資料查詢
 def render_raw_data_page(df_period, quality=None):
     search_query = st.text_input(
         "搜尋資料",
@@ -707,9 +697,7 @@ def render_raw_data_page(df_period, quality=None):
                 st.write(f"排除 {quality['invalid_date_rows']:,} 筆無效日期。")
 
 
-# ============================================================
-# 玩家頁面
-# ============================================================
+# 玩家資料
 def render_player_selector(df):
     render_section_title("選擇玩家", "可直接搜尋 ID，或依職業逐步縮小名單")
 
@@ -825,8 +813,7 @@ def render_player_selector(df):
         result_box.success(f"已找到玩家：{players[0]}")
         return players[0]
 
-    # 已選到具體職業且人數不多時，直接把玩家做成可點選按鈕，
-    # 比再開一個下拉選單更直覺；人數多時才退回可搜尋下拉選單。
+    # 小型篩選結果採用快速選取；大量結果使用下拉搜尋。
     if selected_job and len(players) <= 18:
         return result_box.pills(
             "4. 選擇玩家",
