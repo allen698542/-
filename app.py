@@ -269,7 +269,7 @@ def main():
             <div class="page-heading">
                 <div class="site-kicker">GUILD RANKING</div>
                 <h1>公會排行</h1>
-                <p>依週次區間查看旗幟戰、地下水道與公會城表現。</p>
+                <p>認識本週上榜的人，也比較每段時間的表現。</p>
             </div>
             """,
         )
@@ -284,6 +284,7 @@ def main():
             start_date,
             end_date,
             selected_week_count,
+            full_df=df,
         )
 
     def raw_data_page():

@@ -5,7 +5,7 @@ import plotly.express as px
 import streamlit as st
 
 from guild_config import JOB_HIERARCHY, PLOT_CONFIG
-from guild_data import build_guild_stats, get_latest_profile
+from guild_data import build_guild_stats, build_visual_profiles, get_latest_profile
 
 
 # ============================================================
@@ -405,231 +405,246 @@ def render_home_page(df, quality):
     )
 
 # ============================================================
-# 排行榜
+# 人物視覺排行榜：以角色外觀與 ID 為主，詳細表格移到展開區
 # ============================================================
-def render_top_rank_cards(sorted_df, col_name, label_name):
-    if sorted_df.empty:
+def _ranking_avatar(url, player):
+    """只接受 HTTP(S) 圖片；顯示失敗時底層仍保留安靜的佔位圖。"""
+    image = str(url or "").strip()
+    safe_player = html.escape(str(player), quote=True)
+    fallback = '<span class="guild-avatar-fallback" aria-hidden="true">✦</span>'
+    if not image.lower().startswith(("https://", "http://")):
+        return f'<div class="guild-rank-avatar is-empty">{fallback}</div>'
+    safe_url = html.escape(image, quote=True)
+    return (
+        '<div class="guild-rank-avatar">'
+        + fallback
+        + f'<img src="{safe_url}" alt="{safe_player} 的角色外觀" loading="lazy">'
+        + '</div>'
+    )
+
+
+def _make_visual_rank_rows(data, metric, selected_week_count):
+    """將一頁名單合成單個 HTML，避免每一列建立 Streamlit 小工具。"""
+    rows = []
+    water = metric == "地下水道"
+    for _, player in data.iterrows():
+        rank = int(player["名次"])
+        name = html.escape(str(player["暱稱"]))
+        job = html.escape(str(player.get("最新職業") or player.get("職業") or "未知"))
+        level = player.get("等級")
+        level_text = f'Lv. {int(level)}' if level is not None and not np.isnan(level) and level > 0 else '等級未記錄'
+        avatar = _ranking_avatar(player.get("角色圖片", ""), player["暱稱"])
+        score = int(player[metric])
+        if water:
+            weeks = int(player["周次"])
+            average = round(score / weeks) if weeks else 0
+            main_value = f'{score:,}'
+            unit = '分'
+            note = f'週均 {average:,} · {weeks} 週紀錄'
+        else:
+            main_value = f'{score:,}'
+            unit = '分' if metric == '旗幟戰' else '次'
+            rate = float(player["區間達成率"])
+            note = f'達成率 {rate:.1f}% · {int(player["周次"])} / {selected_week_count} 週紀錄'
+        rank_class = f' is-top-{rank}' if rank in (1, 2, 3) else ''
+        rows.append(
+            f'<article class="guild-rank-row{rank_class}">'
+            f'<div class="guild-rank-position"><span>{rank}</span></div>'
+            f'{avatar}'
+            f'<div class="guild-rank-identity"><strong>{name}</strong>'
+            f'<div class="guild-rank-detail">{job}<span class="guild-mid-dot">·</span>{level_text}</div></div>'
+            f'<div class="guild-rank-score"><strong>{main_value}<span>{unit}</span></strong>'
+            f'<small>{html.escape(note)}</small></div>'
+            '</article>'
+        )
+    return '<div class="guild-rank-list">' + ''.join(rows) + '</div>'
+
+
+def render_visual_rank_list(sorted_df, metric, selected_week_count):
+    """玩家 ID / 職業搜尋、低負擔分頁與角色圖片排行榜。"""
+    prefix = {'地下水道': 'water', '旗幟戰': 'flag', '公會城每周': 'castle'}[metric]
+    search_key = f'guild_rank_search_{prefix}'
+    page_key = f'guild_rank_page_{prefix}'
+    filter_key = f'guild_rank_active_{prefix}'
+    if page_key not in st.session_state:
+        st.session_state[page_key] = 0
+
+    render_section_title('玩家排行榜', '角色外觀、ID、職業與成績放在同一列；同分保留並列名次')
+    col_search, col_filter = st.columns([3, 1], gap='medium', vertical_alignment='bottom')
+    with col_search:
+        search = st.text_input(
+            '搜尋玩家',
+            placeholder='搜尋玩家 ID 或職業…',
+            key=search_key,
+            on_change=lambda: st.session_state.update({page_key: 0}),
+        ).strip()
+    with col_filter:
+        active_only = st.checkbox(
+            '只看有參與',
+            value=False,
+            key=filter_key,
+            on_change=lambda: st.session_state.update({page_key: 0}),
+        )
+
+    filtered = sorted_df
+    if search:
+        match = (
+            sorted_df['暱稱'].astype(str).str.contains(search, case=False, regex=False, na=False)
+            | sorted_df['最新職業'].fillna('').astype(str).str.contains(search, case=False, regex=False, na=False)
+        )
+        filtered = filtered.loc[match]
+    if active_only:
+        filtered = filtered.loc[filtered[metric] > 0]
+
+    if filtered.empty:
+        st.info('找不到符合條件的玩家。可以試試其他 ID 或取消篩選。')
         return
 
-    render_section_title("前三名", "本區間地下水道最高分玩家")
-    cards = st.container(horizontal=True, gap="small")
+    page_size = 20
+    page_count = (len(filtered) + page_size - 1) // page_size
+    page = min(max(0, int(st.session_state[page_key])), page_count - 1)
+    st.session_state[page_key] = page
+    first = page * page_size
+    current = filtered.iloc[first:first + page_size]
 
-    top3 = sorted_df.head(3)
-    for _, row in top3.iterrows():
-        card = cards.container(border=True, width=310)
-        rank = int(row["名次"])
-        card.caption(rank_text(rank))
+    st.caption(f'共 {len(filtered)} 位玩家 · 目前顯示第 {first + 1}–{first + len(current)} 位')
+    st.html(_make_visual_rank_rows(current, metric, selected_week_count))
 
-        image = str(row.get("圖片", "") or "").strip()
-        if image and image.lower() != "nan":
-            card.image(image, width=92)
-
-        card.markdown(f"### {row['暱稱']}")
-        card.caption(str(row.get("職業", "")))
-        card.metric(label_name, f"{int(row[col_name]):,} 分")
+    if page_count > 1:
+        left, center, right = st.columns([1, 2, 1], vertical_alignment='center')
+        with left:
+            if st.button('上一頁', key=f'rank_prev_{prefix}', disabled=page == 0, width='stretch'):
+                st.session_state[page_key] = page - 1
+                st.rerun()
+        with center:
+            st.markdown(
+                f'<div style="text-align:center;color:#A8AEB9;padding:9px">第 {page + 1} / {page_count} 頁</div>',
+                unsafe_allow_html=True,
+            )
+        with right:
+            if st.button('下一頁', key=f'rank_next_{prefix}', disabled=page == page_count - 1, width='stretch'):
+                st.session_state[page_key] = page + 1
+                st.rerun()
 
 
 def render_capped_metric_summary(data, metric, selected_week_count):
-    """旗幟戰、公會城改用達成率概況，避免大量同分的 Top 3 失去意義。"""
     if data.empty:
-        st.info("這個週次範圍沒有資料。")
+        st.info('這個週次範圍沒有資料。')
         return
 
-    is_flag = metric == "旗幟戰"
+    is_flag = metric == '旗幟戰'
     max_per_week = 1000 if is_flag else 1
     theoretical_max = selected_week_count * max_per_week
-    label = "滿分" if is_flag else "全勤"
-    unit = "分" if is_flag else "次"
-
+    label = '滿分' if is_flag else '全勤'
+    unit = '分' if is_flag else '次'
     sorted_df = data.sort_values(
-        [metric, "周次"],
-        ascending=[False, False],
+        [metric, '周次', '暱稱'], ascending=[False, False, True]
     ).reset_index(drop=True)
-    sorted_df["名次"] = sorted_df[metric].rank(
-        ascending=False, method="min"
-    ).astype(int)
-
-    sorted_df["區間達成率"] = (
-        sorted_df[metric] / theoretical_max * 100
-        if theoretical_max else 0
+    sorted_df['名次'] = sorted_df[metric].rank(ascending=False, method='min').astype(int)
+    sorted_df['區間達成率'] = (
+        sorted_df[metric] / theoretical_max * 100 if theoretical_max else 0
     )
-    sorted_df["區間達成率"] = sorted_df["區間達成率"].clip(0, 100).round(1)
+    sorted_df['區間達成率'] = sorted_df['區間達成率'].clip(0, 100).round(1)
 
-    perfect_df = sorted_df.loc[sorted_df[metric] >= theoretical_max].copy()
-    perfect_count = len(perfect_df)
+    perfect_count = int((sorted_df[metric] >= theoretical_max).sum())
     active_mask = sorted_df[metric] > 0
     active_count = int(active_mask.sum())
     zero_count = int((~active_mask).sum())
-    avg_rate = (
-        float(sorted_df.loc[active_mask, "區間達成率"].mean())
-        if active_count else 0
-    )
+    avg_rate = float(sorted_df.loc[active_mask, '區間達成率'].mean()) if active_count else 0
 
     render_stat_grid([
-        ("accent", f"{label}玩家", f"{perfect_count} 人", f"{theoretical_max:,} {unit} / {selected_week_count} 週"),
-        ("blue", "有參與玩家", f"{active_count} 人", f"共 {len(sorted_df)} 位玩家有週次紀錄"),
-        ("neutral", "0 分 / 未完成", f"{zero_count} 人", "完整名單仍會保留這些玩家"),
-        ("green", "參與者平均達成率", f"{avg_rate:.1f}%", "只計算本區間有實際參與的玩家"),
+        ('accent', f'{label}玩家', f'{perfect_count} 人', f'{theoretical_max:,} {unit} / {selected_week_count} 週'),
+        ('blue', '參與玩家', f'{active_count} 人', f'共 {len(sorted_df)} 位有週次紀錄'),
+        ('neutral', '未完成／0 分', f'{zero_count} 人', '完整名單仍會顯示'),
+        ('green', '參與者平均達成率', f'{avg_rate:.1f}%', '只計算有實際參與的玩家'),
     ])
+    render_visual_rank_list(sorted_df, metric, selected_week_count)
 
-    if perfect_count:
-        render_section_title(f"{label}名單", f"本區間共有 {perfect_count} 位玩家達成 {label}")
-        names = perfect_df["暱稱"].tolist()
-        render_name_chips(names[:28])
-        if len(names) > 28:
-            with st.expander(f"查看其餘 {len(names) - 28} 位玩家"):
-                render_name_chips(names[28:])
-
-    render_section_title(
-        "參與玩家達成率分布",
-        f"主圖只分析有實際參與的 {active_count} 位玩家；另外 {zero_count} 位 0 分 / 未完成玩家已在上方單獨列出",
-    )
-
-    active_df = sorted_df.loc[active_mask].copy()
-    if active_df.empty:
-        st.info("本區間沒有可繪製的參與紀錄。")
-    else:
-        rate = active_df["區間達成率"]
-        labels = ["100%", "75–99%", "50–74%", "1–49%"]
-        active_df["達成區間"] = np.select(
-            [
-                rate >= 100,
-                rate >= 75,
-                rate >= 50,
-            ],
-            labels[:-1],
-            default="1–49%",
+    with st.expander('查看達成率圖表與原始排名表格', expanded=False):
+        active_df = sorted_df.loc[active_mask].copy()
+        if not active_df.empty:
+            rate = active_df['區間達成率']
+            labels = ['100%', '75–99%', '50–74%', '1–49%']
+            active_df['達成區間'] = np.select(
+                [rate >= 100, rate >= 75, rate >= 50], labels[:-1], default='1–49%'
+            )
+            distribution = (
+                active_df['達成區間'].value_counts().reindex(labels, fill_value=0)
+                .rename_axis('達成區間').reset_index(name='玩家數')
+            )
+            fig = px.bar(
+                distribution, x='玩家數', y='達成區間', orientation='h', text='玩家數',
+                category_orders={'達成區間': list(reversed(labels))},
+            )
+            fig.update_layout(
+                xaxis={'title': '玩家數', 'fixedrange': True, 'rangemode': 'tozero'},
+                yaxis={'title': None, 'fixedrange': True},
+                margin=dict(l=10, r=30, t=15, b=20), height=300, dragmode=False,
+                bargap=0.3,
+            )
+            fig.update_traces(textposition='outside', cliponaxis=False)
+            st.plotly_chart(fig, width='stretch', config=PLOT_CONFIG)
+        st.dataframe(
+            sorted_df[['名次', '暱稱', '職業', '周次', metric, '區間達成率']],
+            width='stretch', hide_index=True, height=450,
         )
 
-        distribution = (
-            active_df["達成區間"]
-            .value_counts()
-            .reindex(labels, fill_value=0)
-            .rename_axis("達成區間")
-            .reset_index(name="玩家數")
-        )
 
-        fig = px.bar(
-            distribution,
-            x="玩家數",
-            y="達成區間",
-            orientation="h",
-            text="玩家數",
-            category_orders={"達成區間": list(reversed(labels))},
-        )
-        fig.update_layout(
-            xaxis={"title": "玩家數", "fixedrange": True, "rangemode": "tozero"},
-            yaxis={"title": None, "fixedrange": True},
-            margin=dict(l=10, r=30, t=15, b=20),
-            height=300,
-            dragmode=False,
-            bargap=0.3,
-        )
-        fig.update_traces(textposition="outside", cliponaxis=False)
-        st.plotly_chart(fig, width="stretch", config=PLOT_CONFIG)
-
-    render_section_title("完整名單", "可依名次、分數與區間達成率查看所有玩家")
-    display_df = sorted_df[["名次", "暱稱", "職業", "周次", metric, "區間達成率"]].copy()
-    st.dataframe(
-        display_df,
-        width="stretch",
-        hide_index=True,
-        height=540,
-        column_config={
-            "名次": st.column_config.NumberColumn("名次", format="%d"),
-            "周次": st.column_config.NumberColumn("記錄週數", format="%d"),
-            metric: st.column_config.NumberColumn(metric, format="%d"),
-            "區間達成率": st.column_config.ProgressColumn(
-                "區間達成率",
-                format="%.1f%%",
-                min_value=0,
-                max_value=100,
-            ),
-        },
-    )
-
-
-def draw_water_leaderboard(data):
+def draw_water_leaderboard(data, selected_week_count):
     if data.empty:
-        st.info("這個週次範圍沒有資料。")
+        st.info('這個週次範圍沒有資料。')
         return
 
-    col_name = "地下水道"
+    metric = '地下水道'
     sorted_df = data.sort_values(
-        by=[col_name, "周次"],
-        ascending=[False, False],
+        [metric, '周次', '暱稱'], ascending=[False, False, True]
     ).reset_index(drop=True)
-    sorted_df["名次"] = sorted_df[col_name].rank(
-        ascending=False,
-        method="min",
-    ).astype(int)
+    sorted_df['名次'] = sorted_df[metric].rank(ascending=False, method='min').astype(int)
+    top_score = int(sorted_df.iloc[0][metric])
+    top_ties = int((sorted_df[metric] == top_score).sum())
 
-    top_score = sorted_df.iloc[0][col_name]
-    top_ties = int((sorted_df[col_name] == top_score).sum())
-    if top_ties <= 3:
-        render_top_rank_cards(sorted_df, col_name, "地下水道分數")
-    else:
-        st.html(
-            f"""
-            <div class="ranking-callout">
-                <strong>最高分共有 {top_ties} 人並列</strong><br>
-                本區間最高分為 {int(top_score):,} 分，因此不另外製造人工破同分規則。
-            </div>
-            """,
-            )
-        render_name_chips(sorted_df.loc[sorted_df[col_name] == top_score, "暱稱"].tolist())
+    render_stat_grid([
+        ('accent', '最高累積分數', f'{top_score:,}', f'{top_ties} 位玩家並列第一' if top_ties > 1 else '本區間最高分'),
+        ('blue', '參與玩家', f'{int((sorted_df[metric] > 0).sum())} 人', f'共 {len(sorted_df)} 位有紀錄'),
+        ('neutral', '計算區間', f'{selected_week_count} 週', '累積分數與實際記錄週數分開顯示'),
+    ])
+    render_visual_rank_list(sorted_df, metric, selected_week_count)
 
-    render_section_title("Top 15", "依地下水道累積分數排序")
-    top15_df = sorted_df.head(15).copy()
-    fig = px.bar(
-        top15_df,
-        x=col_name,
-        y="暱稱",
-        orientation="h",
-        text=col_name,
-    )
-    fig.update_layout(
-        yaxis={"categoryorder": "total ascending", "fixedrange": True, "title": None},
-        xaxis={"fixedrange": True, "title": "地下水道分數"},
-        margin=dict(l=10, r=20, t=20, b=20),
-        height=460,
-        dragmode=False,
-    )
-    fig.update_traces(texttemplate="%{text:,}", textposition="outside")
-    st.plotly_chart(fig, width="stretch", config=PLOT_CONFIG)
-
-    st.markdown("### 完整名單")
-    display_df = sorted_df[["名次", "暱稱", "職業", "周次", col_name]].copy()
-    st.dataframe(
-        display_df,
-        width="stretch",
-        hide_index=True,
-        height=540,
-        column_config={
-            "名次": st.column_config.NumberColumn("名次", format="%d"),
-            "周次": st.column_config.NumberColumn("記錄週數", format="%d"),
-            col_name: st.column_config.NumberColumn("地下水道分數", format="%d"),
-        },
-    )
+    with st.expander('查看 Top 15 分數圖與原始排名表格', expanded=False):
+        top15_df = sorted_df.head(15).copy()
+        fig = px.bar(top15_df, x=metric, y='暱稱', orientation='h', text=metric)
+        fig.update_layout(
+            yaxis={'categoryorder': 'total ascending', 'fixedrange': True, 'title': None},
+            xaxis={'fixedrange': True, 'title': '地下水道分數'},
+            margin=dict(l=10, r=20, t=20, b=20), height=460, dragmode=False,
+        )
+        fig.update_traces(texttemplate='%{text:,}', textposition='outside')
+        st.plotly_chart(fig, width='stretch', config=PLOT_CONFIG)
+        st.dataframe(
+            sorted_df[['名次', '暱稱', '職業', '周次', metric]],
+            width='stretch', hide_index=True, height=450,
+        )
 
 
-def render_leaderboard_page(df_period, start_date, end_date, selected_week_count):
+def render_leaderboard_page(df_period, start_date, end_date, selected_week_count, full_df=None):
     leaderboard_df = build_guild_stats(df_period).reset_index()
+    source = full_df if full_df is not None else df_period
+    visuals = build_visual_profiles(source)
+    leaderboard_df = leaderboard_df.drop(columns=['圖片'], errors='ignore')
+    leaderboard_df = leaderboard_df.merge(visuals, on='暱稱', how='left')
+    leaderboard_df = leaderboard_df.rename(columns={'圖片': '角色圖片'})
 
     metric = st.segmented_control(
-        "排行項目",
-        ["旗幟戰", "地下水道", "公會城"],
-        default="旗幟戰",
-        selection_mode="single",
-        key="leaderboard_metric",
-    ) or "旗幟戰"
+        '排行項目', ['地下水道', '旗幟戰', '公會城'],
+        default='地下水道', selection_mode='single', key='leaderboard_metric',
+    ) or '地下水道'
 
-    if metric == "旗幟戰":
-        render_capped_metric_summary(leaderboard_df, "旗幟戰", selected_week_count)
-    elif metric == "地下水道":
-        draw_water_leaderboard(leaderboard_df)
+    if metric == '地下水道':
+        draw_water_leaderboard(leaderboard_df, selected_week_count)
+    elif metric == '旗幟戰':
+        render_capped_metric_summary(leaderboard_df, '旗幟戰', selected_week_count)
     else:
-        render_capped_metric_summary(leaderboard_df, "公會城每周", selected_week_count)
+        render_capped_metric_summary(leaderboard_df, '公會城每周', selected_week_count)
 
 
 # ============================================================

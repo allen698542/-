@@ -936,6 +936,163 @@ div[data-testid="stDataFrame"] * {
     }
 }
 
+/* 全站視覺收斂：保留深色與木金色，但移除過度的光暈、漸層與浮動效果。 */
+.site-hero {
+    padding: 1.9rem 2rem;
+    background: #1B1E25;
+    border-color: #363940;
+}
+.site-hero::after { width: 3px; background: #B89A67; }
+.section-heading-line,
+.section-heading.focus-main .section-heading-line {
+    background: #BA9C66;
+    box-shadow: none;
+}
+.section-heading.focus-main {
+    background: #1B1E25;
+    border-color: #3B3936;
+}
+.stat-card,
+.focus-rank-card,
+.focus-rank-card.water,
+.focus-rank-card.growth,
+.focus-rank-card.ratio {
+    background: #1B1E25;
+    box-shadow: none;
+}
+.focus-rank-card:hover { transform: none; }
+.focus-character::before { opacity: .18; filter: blur(20px); }
+@media (max-width: 520px) {
+    .site-hero { padding: 1.5rem 1.25rem; }
+}
+
+/* v12：人物排行榜，參考官方「角色圖＋名稱＋數值」資訊編排，刻意不使用炫光與漸層卡片。 */
+.guild-rank-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 0.35rem 0 1.1rem;
+}
+.guild-rank-row {
+    display: grid;
+    grid-template-columns: 55px 82px minmax(0, 1fr) minmax(180px, auto);
+    align-items: center;
+    column-gap: 17px;
+    min-height: 100px;
+    padding: 9px 24px 9px 13px;
+    border: 1px solid #32353D;
+    border-radius: 11px;
+    background: #1B1E25;
+}
+.guild-rank-row.is-top-1 {
+    border-color: #806B44;
+    background: #24231F;
+}
+.guild-rank-row.is-top-2 { border-color: #5B626B; }
+.guild-rank-row.is-top-3 { border-color: #655746; }
+.guild-rank-position {
+    color: #9DA3AD;
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 750;
+    text-align: center;
+}
+.guild-rank-row.is-top-1 .guild-rank-position { color: #D7B76F; }
+.guild-rank-row.is-top-2 .guild-rank-position { color: #C3C9D1; }
+.guild-rank-row.is-top-3 .guild-rank-position { color: #CC9F78; }
+.guild-rank-avatar {
+    position: relative;
+    width: 76px;
+    height: 77px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #383D46;
+    border-radius: 9px;
+    background: #282D36;
+}
+.guild-rank-avatar img {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    max-width: 96%;
+    max-height: 96%;
+    object-fit: contain;
+    object-position: center center;
+    image-rendering: auto;
+}
+.guild-avatar-fallback {
+    color: #747E8A;
+    font-size: 1.7rem;
+    font-weight: 400;
+}
+.guild-rank-identity { min-width: 0; }
+.guild-rank-identity strong {
+    display: block;
+    color: #F0F1F2;
+    font-size: 1.16rem;
+    font-weight: 730;
+    line-height: 1.32;
+    overflow-wrap: anywhere;
+}
+.guild-rank-detail {
+    margin-top: 7px;
+    color: #A4AAB5;
+    font-size: .84rem;
+    line-height: 1.45;
+}
+.guild-mid-dot { margin: 0 6px; color: #626975; }
+.guild-rank-score {
+    min-width: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.guild-rank-score strong {
+    display: block;
+    color: #F0F0EA;
+    font-size: 1.45rem;
+    font-weight: 760;
+    letter-spacing: -.03em;
+    white-space: nowrap;
+}
+.guild-rank-score strong span {
+    color: #A6AAB0;
+    font-size: .78rem;
+    font-weight: 600;
+    margin-left: 6px;
+    letter-spacing: 0;
+}
+.guild-rank-score small {
+    display: block;
+    margin-top: 5px;
+    color: #969EAA;
+    font-size: .77rem;
+    line-height: 1.4;
+}
+@media (max-width: 680px) {
+    .guild-rank-row {
+        grid-template-columns: 29px 65px minmax(0, 1fr);
+        column-gap: 11px;
+        row-gap: 3px;
+        padding: 11px 13px 11px 7px;
+        min-height: 93px;
+    }
+    .guild-rank-avatar { width: 63px; height: 67px; grid-row: span 2; }
+    .guild-rank-position { grid-row: span 2; font-size: 1rem; }
+    .guild-rank-identity strong { font-size: 1rem; }
+    .guild-rank-detail { margin-top: 3px; font-size: .75rem; }
+    .guild-mid-dot { margin: 0 3px; }
+    .guild-rank-score { grid-column: 3; text-align: left; }
+    .guild-rank-score strong { font-size: 1.12rem; display: inline; }
+    .guild-rank-score small { display: inline; margin-left: 9px; font-size: .7rem; }
+}
+@media (max-width: 390px) {
+    .guild-rank-row { grid-template-columns: 25px 53px minmax(0, 1fr); column-gap: 8px; }
+    .guild-rank-avatar { width: 52px; height: 60px; }
+    .guild-rank-score small { display: block; margin-left: 0; }
+}
+
 </style>
 """
 

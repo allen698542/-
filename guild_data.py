@@ -147,6 +147,34 @@ def get_period_data(df, start_date, end_date):
     return df.loc[mask].copy()
 
 
+def build_visual_profiles(df):
+    """從完整歷史取得玩家最後可用的外觀、等級與職業。
+
+    記錄中空白圖片與 0 等級不會蓋掉較早的有效資料。
+    此表只用於顯示，不影響所選週次的分數與排名。
+    """
+    if df.empty:
+        return pd.DataFrame(columns=["暱稱", "圖片", "等級", "最新職業"])
+
+    latest_first = df.sort_values("周次", ascending=False, kind="stable")
+    jobs = (
+        latest_first.loc[:, ["暱稱", "職業"]]
+        .drop_duplicates("暱稱")
+        .rename(columns={"職業": "最新職業"})
+    )
+
+    urls = latest_first["圖片"].fillna("").astype(str).str.strip()
+    images = (
+        latest_first.loc[urls.str.startswith(("https://", "http://")), ["暱稱", "圖片"]]
+        .drop_duplicates("暱稱")
+    )
+    levels = (
+        latest_first.loc[latest_first["等級"] > 0, ["暱稱", "等級"]]
+        .drop_duplicates("暱稱")
+    )
+    return jobs.merge(images, on="暱稱", how="left").merge(levels, on="暱稱", how="left")
+
+
 def build_guild_stats(df_period):
     stats = (
         df_period
