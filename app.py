@@ -15,7 +15,7 @@ from guild_ui import (
 
 
 st.set_page_config(
-    page_title="公會每週統計",
+    page_title="青龍公會｜每週紀錄",
     page_icon="🍁",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -288,7 +288,7 @@ def main():
             <div class="page-heading">
                 <div class="site-kicker">PLAYER PROFILE</div>
                 <h1>玩家資料</h1>
-                <p>查詢個人週次紀錄、趨勢、達成狀況與職位異動。</p>
+                <p>角色資料與歷史成績</p>
             </div>
             """,
         )
@@ -313,7 +313,7 @@ def main():
             <div class="page-heading">
                 <div class="site-kicker">GUILD RANKING</div>
                 <h1>公會排行</h1>
-                <p>認識本週上榜的人，也比較每段時間的表現。</p>
+                <p>查看公會成員的戰績、參與紀錄與歷史排名。</p>
             </div>
             """,
         )
@@ -335,7 +335,7 @@ def main():
             <div class="page-heading">
                 <div class="site-kicker">DATA ARCHIVE</div>
                 <h1>資料查詢</h1>
-                <p>搜尋歷史週次、玩家、職業、分數與達成狀態。</p>
+                <p>公會歷史資料</p>
             </div>
             """,
         )

@@ -1,13 +1,13 @@
 [theme]
 base = "dark"
-primaryColor = "#C79A52"
-backgroundColor = "#111318"
-secondaryBackgroundColor = "#1A1D24"
+primaryColor = "#9B7845"
+backgroundColor = "#101318"
+secondaryBackgroundColor = "#191E25"
 textColor = "#F2F3F5"
-borderColor = "#30343D"
+borderColor = "#373D47"
 dataframeHeaderBackgroundColor = "#20242C"
 baseRadius = "medium"
-buttonRadius = "medium"
+buttonRadius = "small"
 showWidgetBorder = true
 showSidebarBorder = false
 
