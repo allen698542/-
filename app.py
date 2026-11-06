@@ -15,7 +15,7 @@ from guild_ui import (
 
 
 st.set_page_config(
-    page_title="青龍公會｜每週紀錄",
+    page_title="清流公會｜每週紀錄",
     page_icon="🍁",
     layout="wide",
     initial_sidebar_state="collapsed",

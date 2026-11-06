@@ -337,7 +337,7 @@ def render_home_page(df, quality):
     st.html(
         f'''
         <div class="site-hero">
-            <div class="site-kicker">青龍公會 · WEEKLY RECORDS</div>
+            <div class="site-kicker">清流公會 · WEEKLY RECORDS</div>
             <h1>公會每週統計</h1>
             <p>每週戰績、參與紀錄與玩家歷史資料。最新紀錄：{latest_week:%Y-%m-%d} ～ {week_end:%Y-%m-%d}。</p>
         </div>
@@ -351,20 +351,8 @@ def render_home_page(df, quality):
         ("neutral", "公會城參與人數", f"{castle_participants} 人", "本週公會城紀錄大於 0"),
     ])
 
-    comparison_subtitle = "快速查看最新一週的重要紀錄"
-    if previous_week is not None:
-        comparison_subtitle += (
-            f" · 成長比較 {previous_week:%Y-%m-%d} → {latest_week:%Y-%m-%d}"
-        )
-    render_section_title("本週焦點", comparison_subtitle, variant="focus-main")
-
-    st.html(
-        '''<div class="focus-subheading">
-            <span>地下水道 · 本週 TOP 3</span>
-            <strong>本週最高紀錄</strong>
-        </div>''',
-    )
-    _render_focus_cards(water_top3, "water", focus_image_lookup)
+    # 本週焦點先呈現職位異動，再依序顯示最高分與成長排行榜。
+    render_section_title("本週焦點", variant="focus-main")
 
     st.html(
         f'''<div class="focus-change-card">
@@ -378,6 +366,14 @@ def render_home_page(df, quality):
             </div>
         </div>''',
     )
+
+    st.html(
+        '''<div class="focus-subheading">
+            <span>地下水道 · 本週 TOP 3</span>
+            <strong>本週最高紀錄</strong>
+        </div>''',
+    )
+    _render_focus_cards(water_top3, "water", focus_image_lookup)
 
     if previous_week is not None:
         st.html(

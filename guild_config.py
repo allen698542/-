@@ -332,10 +332,11 @@ body { font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
     justify-content: space-between;
     gap: 1.5rem;
     padding: 1.1rem 1.25rem;
-    margin: .35rem 0 1rem;
-    border: 1px solid #514938;
-    border-radius: 10px;
-    background: #211F1B;
+    margin: .1rem 0 1.6rem;
+    border: 1px solid #575044;
+    border-left: 3px solid #C4A573;
+    border-radius: 11px;
+    background: linear-gradient(105deg, #26231F 0%, #1D2229 100%);
 }
 .focus-change-label { color: #EEE9E0; font-size: 1rem; font-weight: 710; }
 .focus-change-meta { margin-top: .22rem; color: #9E9B94; font-size: .75rem; }
@@ -391,56 +392,106 @@ body { font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
 .guild-rank-score strong span { margin-left: .35rem; font-size: .73rem; color: #AEB6C0; font-weight: 600; }
 .guild-rank-score small { display: block; margin-top: .38rem; font-size: .73rem; color: #9AA5B3; }
 
-/* Rank controls */
+/* Rank filters — quiet slate surfaces + warm brass selection */
 .st-key-leaderboard_filters {
     margin: .75rem 0 1.65rem;
-    padding: 1.25rem 1.45rem;
-    border: 1px solid #353C46;
-    border-radius: 11px;
-    background: #191E25;
+    padding: 1.3rem 1.5rem 1.15rem;
+    border: 1px solid #3C4652;
+    border-radius: 14px;
+    background: linear-gradient(145deg, #1D242D, #191D24 75%);
+    box-shadow: 0 12px 32px rgba(0,0,0,.12);
 }
-.guild-filter-heading { display: flex; align-items: center; margin: 0 0 .55rem; }
-.guild-filter-label { font-size: .89rem; color: #E3E4E3; font-weight: 690; }
-.guild-filter-separator { height: 1px; margin: 1.15rem 0 1rem; background: #343C45; }
-.guild-filter-summary { margin: .7rem 0 0; color: #A1AAB7; font-variant-numeric: tabular-nums; font-size: .77rem; }
-.guild-filter-separator-dot { margin: 0 .4rem; color: #777F8B; }
+.guild-filter-heading { display: flex; align-items: center; gap: .6rem; margin: 0 0 .73rem; }
+.guild-filter-heading::before {
+    content: "";
+    width: 3px;
+    height: 15px;
+    border-radius: 3px;
+    background: #B89B6D;
+}
+.guild-filter-label { font-size: .87rem; color: #E9EAE8; font-weight: 690; letter-spacing: .025em; }
+.guild-filter-separator { height: 1px; margin: 1.4rem 0 1.15rem; background: linear-gradient(90deg, #46505A, #303842); }
+.guild-filter-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: .12rem;
+    margin: .95rem 0 0;
+    padding: .4rem .72rem;
+    border: 1px solid #37434E;
+    border-radius: 7px;
+    background: #222A33;
+    color: #B3C0CF;
+    font-variant-numeric: tabular-nums;
+    font-size: .78rem;
+}
+.guild-filter-separator-dot { margin: 0 .4rem; color: #8D9AA9; }
 
-/* Native Streamlit segmented buttons */
+/* Streamlit 1.61+ (stButtonGroup / data-selected) and legacy widget support.
+   This replaces the outdated selectors which let the default red active text show. */
+.stApp [data-testid="stButtonGroup"] [data-variant="segmented_control"],
 .stApp [data-testid="stBaseButton-segmented_control"],
 .stApp [data-testid="stBaseButton-segmented_controlActive"] {
-    min-height: 38px !important;
-    padding: .4rem .88rem !important;
-    border-radius: 5px !important;
-    border: 1px solid #39414B !important;
-    background: #14181F !important;
-    color: #C5CDD7 !important;
+    min-height: 40px !important;
+    height: auto !important;
+    margin-right: 0 !important;
+    padding: .48rem 1.02rem !important;
+    border: 1px solid #414D5B !important;
+    border-radius: 9px !important;
+    background: #222A34 !important;
+    color: #C7D0DA !important;
     font-size: .85rem !important;
-    font-weight: 620 !important;
+    font-weight: 630 !important;
+    letter-spacing: .012em;
+    line-height: 1.35 !important;
     box-shadow: none !important;
+    transition: background-color .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
 }
+/* Separate tiles instead of an old-fashioned joined red tab bar. */
+.stApp [data-testid="stButtonGroup"] [role="group"],
+.stApp [data-testid="stButtonGroup"] [role="radiogroup"],
+.stApp [data-testid="stButtonGroup"] [aria-label] {
+    column-gap: .5rem !important;
+    row-gap: .5rem !important;
+}
+.stApp [data-testid="stButtonGroup"] [data-variant="segmented_control"] *,
 .stApp [data-testid="stBaseButton-segmented_control"] *,
-.stApp [data-testid="stBaseButton-segmented_controlActive"] * { color: inherit !important; }
+.stApp [data-testid="stBaseButton-segmented_controlActive"] * {
+    color: inherit !important;
+}
+.stApp [data-testid="stButtonGroup"] [data-variant="segmented_control"]:is(:hover,[data-hovered]):not([data-selected]):not([data-disabled]),
 .stApp [data-testid="stBaseButton-segmented_control"]:hover {
-    background: #252B33 !important;
-    border-color: #555E68 !important;
-    color: #F5F1E7 !important;
+    background: #333D49 !important;
+    border-color: #728092 !important;
+    color: #F0F2F4 !important;
 }
+.stApp [data-testid="stButtonGroup"] [data-variant="segmented_control"][data-selected]:not([data-disabled]),
+.stApp [data-testid="stButtonGroup"] [data-variant="segmented_control"][aria-pressed="true"],
 .stApp [data-testid="stBaseButton-segmented_controlActive"],
-.stApp [data-testid="stBaseButton-segmented_controlActive"]:hover,
-.stApp [data-testid="stSegmentedControl"] button[aria-checked="true"],
-.stApp button[data-testid="stBaseButton-segmented_controlActive"]:focus-visible {
-    background: #302B22 !important;
-    border: 1px solid #B08C53 !important;
-    color: #EBD1A4 !important;
-    box-shadow: inset 0 -2px 0 #B08C53 !important;
+.stApp [data-testid="stSegmentedControl"] button[aria-checked="true"] {
+    background: linear-gradient(135deg, #5A4C38, #3F392F) !important;
+    border: 1px solid #B99A69 !important;
+    color: #FFF4E1 !important;
+    box-shadow: 0 0 0 1px rgba(185,154,105,.10), inset 0 1px 0 rgba(255,255,255,.08) !important;
 }
-.stApp [data-testid="stBaseButton-segmented_controlActive"] *,
-.stApp [data-testid="stSegmentedControl"] button[aria-checked="true"] * { color: inherit !important; }
+.stApp [data-testid="stButtonGroup"] [data-variant="segmented_control"][data-selected]:is(:hover,[data-hovered],[data-focus-visible]):not([data-disabled]),
+.stApp [data-testid="stBaseButton-segmented_controlActive"]:hover {
+    background: linear-gradient(135deg, #66563E, #4B4032) !important;
+    border-color: #DBB980 !important;
+    color: #FFF7EA !important;
+}
+.stApp [data-testid="stButtonGroup"] [data-variant="segmented_control"][data-focus-visible],
 .stApp [data-testid^="stBaseButton-segmented_control"]:focus-visible {
-    outline: 2px solid #C4A06B !important;
-    outline-offset: 2px !important;
+    outline: 2px solid #DDBB86 !important;
+    outline-offset: 3px !important;
 }
-.st-key-leaderboard_filters [data-testid^="stBaseButton-segmented_control"] { min-height: 40px !important; }
+.stApp [data-testid="stButtonGroup"] [data-variant="segmented_control"][data-disabled] {
+    opacity: .4;
+    cursor: not-allowed;
+}
+.st-key-leaderboard_filters [data-variant="segmented_control"],
+.st-key-leaderboard_filters [data-testid^="stBaseButton-segmented_control"] {
+    min-height: 42px !important;
+}
 
 /* Input and secondary action styles */
 .stApp [data-testid="stTextInput"] input,
@@ -522,7 +573,15 @@ body { font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
     .guild-rank-score strong { display: inline; font-size: 1.06rem; }
     .guild-rank-score small { display: inline; margin-left: .5rem; font-size: .69rem; }
     .st-key-leaderboard_filters { padding: 1.0rem .9rem; }
-    .stApp [data-testid^="stBaseButton-segmented_control"] { padding: .42rem .65rem !important; font-size: .78rem !important; }
+    .stApp [data-testid^="stBaseButton-segmented_control"],
+    .stApp [data-testid="stButtonGroup"] [data-variant="segmented_control"] {
+        padding: .43rem .72rem !important;
+        font-size: .79rem !important;
+    }
+    .stApp [data-testid="stButtonGroup"] [role="group"],
+    .stApp [data-testid="stButtonGroup"] [role="radiogroup"] {
+        column-gap: .38rem !important;
+    }
 }
 @media (max-width: 480px) {
     .stat-grid, .stat-grid:has(.stat-card:nth-child(3):last-child) { grid-template-columns: repeat(2, minmax(0,1fr)); gap: .55rem; }
