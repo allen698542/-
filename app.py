@@ -9,7 +9,7 @@ from guild_data import get_period_data, load_data
 from guild_ui import (
     render_home_page,
     render_leaderboard_page,
-    render_player_page,
+    render_player_details,
     render_raw_data_page,
 )
 
@@ -258,10 +258,9 @@ def main():
     def render_site_navigation(current_page):
         """繪製站內導覽列並切換至指定頁面。"""
         with st.container(key="site_nav"):
-            nav_cols = st.columns(4, gap="small")
+            nav_cols = st.columns(3, gap="small")
             nav_items = [
                 ("home", "首頁", ":material/home:"),
-                ("player", "玩家", ":material/person_search:"),
                 ("ranking", "排行", ":material/leaderboard:"),
                 ("archive", "資料", ":material/database:"),
             ]
@@ -281,29 +280,47 @@ def main():
         render_site_navigation("home")
         render_home_page(df, quality)
 
-    def player_page():
-        render_site_navigation("player")
+    def open_player_details(player_name, ranking_metric):
+        """從排行榜前往玩家詳細資料，並沿用目前的排名統計期間。"""
+        metric_key = RANKING_METRIC_KEYS[ranking_metric]
+        period_prefix = f"leaderboard_{metric_key}"
+        period_mode = st.session_state.get(f"{period_prefix}_period_mode", "全部")
+        st.session_state["profile_period_mode"] = period_mode
+        if period_mode == "自訂":
+            custom_range = st.session_state.get(f"{period_prefix}_custom_week_range")
+            if custom_range is not None:
+                st.session_state["profile_custom_week_range"] = custom_range
+        st.switch_page(page_refs["profile"], query_params={"player": player_name})
+
+    def profile_page():
+        """排名的內部詳細頁，保留原玩家頁的統計及圖表，但不佔用導覽位置。"""
+        render_site_navigation("ranking")
+        if st.button("返回公會排行", icon=":material/arrow_back:", key="back_to_ranking"):
+            st.switch_page(page_refs["ranking"])
+
+        player = st.query_params.get("player", "")
+        known_players = set(df["暱稱"].unique())
+        if not player or player not in known_players:
+            st.warning("找不到這位玩家的資料，請回到排行榜重新選擇。")
+            return
+
         st.html(
             """
             <div class="page-heading">
                 <div class="site-kicker">PLAYER PROFILE</div>
-                <h1>玩家資料</h1>
-                <p>角色資料與歷史成績</p>
+                <h1>玩家詳細資料</h1>
+                <p>個人戰績、歷史走勢及每週達成狀況。</p>
             </div>
             """,
         )
         start_date, end_date, selected_week_count = select_week_period(
             df,
-            key_prefix="player",
-            default="最近 8 週",
+            key_prefix="profile",
+            default="全部",
         )
         df_period = get_period_data(df, start_date, end_date)
-        render_player_page(
-            df,
-            df_period,
-            start_date,
-            end_date,
-            selected_week_count,
+        render_player_details(
+            df, df_period, player, start_date, end_date, selected_week_count,
         )
 
     def leaderboard_page():
@@ -326,6 +343,7 @@ def main():
             selected_week_count,
             full_df=df,
             metric=metric,
+            on_view_player=lambda name: open_player_details(name, metric),
         )
 
     def raw_data_page():
@@ -353,11 +371,12 @@ def main():
         icon=":material/home:",
         default=True,
     )
-    player_ref = st.Page(
-        player_page,
-        title="玩家資料",
+    profile_ref = st.Page(
+        profile_page,
+        title="玩家詳細資料",
         icon=":material/person_search:",
-        url_path="player",
+        url_path="profile",
+        visibility="hidden",
     )
     ranking_ref = st.Page(
         leaderboard_page,
@@ -374,13 +393,13 @@ def main():
 
     page_refs.update(
         home=home_ref,
-        player=player_ref,
+        profile=profile_ref,
         ranking=ranking_ref,
         archive=archive_ref,
     )
 
     navigation = st.navigation(
-        [home_ref, player_ref, ranking_ref, archive_ref],
+        [home_ref, ranking_ref, archive_ref, profile_ref],
         position="hidden",
     )
     navigation.run()

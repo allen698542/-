@@ -1,11 +1,13 @@
+import hashlib
 import html
+import re
 from datetime import timedelta
 
 import numpy as np
 import plotly.express as px
 import streamlit as st
 
-from guild_config import JOB_HIERARCHY, PLOT_CONFIG
+from guild_config import PLOT_CONFIG
 from guild_data import build_guild_stats, build_visual_profiles, get_latest_profile
 
 
@@ -415,13 +417,30 @@ def _ranking_avatar(url, player):
     )
 
 
-def _make_visual_rank_rows(data, metric, selected_week_count):
+def _highlight_rank_name(value, search):
+    """標出名稱中符合搜尋的片段，所有玩家文字皆以 HTML 安全輸出。"""
+    name = str(value)
+    if not search:
+        return html.escape(name)
+    match = re.search(re.escape(search), name, flags=re.IGNORECASE)
+    if match is None:
+        return html.escape(name)
+    return (
+        html.escape(name[:match.start()])
+        + '<mark class="guild-rank-match">'
+        + html.escape(name[match.start():match.end()])
+        + '</mark>'
+        + html.escape(name[match.end():])
+    )
+
+
+def _make_visual_rank_rows(data, metric, selected_week_count, search=""):
     """產生排行榜名單的 HTML。"""
     rows = []
     water = metric == "地下水道"
     for _, player in data.iterrows():
         rank = int(player["名次"])
-        name = html.escape(str(player["暱稱"]))
+        name = _highlight_rank_name(player["暱稱"], search)
         job = html.escape(str(player.get("最新職業") or player.get("職業") or "未知"))
         level = player.get("等級")
         level_text = f'Lv. {int(level)}' if level is not None and not np.isnan(level) and level > 0 else '等級未記錄'
@@ -452,8 +471,9 @@ def _make_visual_rank_rows(data, metric, selected_week_count):
     return '<div class="guild-rank-list">' + ''.join(rows) + '</div>'
 
 
-def render_visual_rank_list(sorted_df, metric, selected_week_count):
-    """繪製玩家篩選、分頁及排行榜名單。"""
+@st.fragment
+def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_player=None):
+    """支援即時包含搜尋、分頁和每位玩家的個人詳細資料入口。"""
     prefix = {'地下水道': 'water', '旗幟戰': 'flag', '公會城每周': 'castle'}[metric]
     search_key = f'guild_rank_search_{prefix}'
     page_key = f'guild_rank_page_{prefix}'
@@ -464,10 +484,15 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count):
     render_section_title('玩家排行')
     col_search, col_filter = st.columns([3, 1], gap='medium', vertical_alignment='bottom')
     with col_search:
+        # live: 停止輸入 300ms 後立即更新（不需按 Enter 或離開輸入框）。
         search = st.text_input(
             '搜尋玩家',
-            placeholder='搜尋玩家 ID 或職業…',
+            type='search',
+            placeholder='輸入部分 ID 即時搜尋，例如：檸檬',
+            icon=':material/search:',
             key=search_key,
+            live='300ms',
+            persist_state='session',
             on_change=lambda: st.session_state.update({page_key: 0}),
         ).strip()
     with col_filter:
@@ -475,6 +500,7 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count):
             '只看有參與',
             value=False,
             key=filter_key,
+            persist_state='session',
             on_change=lambda: st.session_state.update({page_key: 0}),
         )
 
@@ -489,7 +515,7 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count):
         filtered = filtered.loc[filtered[metric] > 0]
 
     if filtered.empty:
-        st.info('找不到符合條件的玩家。可以試試其他 ID 或取消篩選。')
+        st.info('此統計期間找不到符合條件的玩家。可切換「全部」或嘗試其他文字。')
         return
 
     page_size = 20
@@ -499,8 +525,34 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count):
     first = page * page_size
     current = filtered.iloc[first:first + page_size]
 
-    st.caption(f'共 {len(filtered)} 位玩家 · 目前顯示第 {first + 1}–{first + len(current)} 位')
-    st.html(_make_visual_rank_rows(current, metric, selected_week_count))
+    if search:
+        st.caption(f'找到 {len(filtered)} 位符合「{search}」的玩家 · 第 {page + 1} / {page_count} 頁')
+    else:
+        st.caption(f'共 {len(filtered)} 位玩家 · 目前顯示第 {first + 1}–{first + len(current)} 位')
+
+    # st.html 不能嵌入可觸發 Python 的按鈕，因此逐筆以原生 Streamlit
+    # container + button 組合，維持點擊可靠性與行動裝置的操作支援。
+    for offset, (_, player) in enumerate(current.iterrows()):
+        player_name = str(player['暱稱'])
+        stable_id = hashlib.sha1(player_name.encode('utf-8')).hexdigest()[:16]
+        with st.container(key=f'guild_rank_card_{prefix}_{stable_id}'):
+            profile_col, action_col = st.columns(
+                [8, 1.55], gap='small', vertical_alignment='center',
+            )
+            with profile_col:
+                st.html(_make_visual_rank_rows(
+                    current.iloc[offset:offset + 1], metric, selected_week_count, search,
+                ))
+            with action_col:
+                if st.button(
+                    '查看詳細',
+                    key=f'guild_rank_detail_{prefix}_{stable_id}',
+                    icon=':material/arrow_forward:',
+                    width='stretch',
+                    type='secondary',
+                ):
+                    if on_view_player is not None:
+                        on_view_player(player_name)
 
     if page_count > 1:
         left, center, right = st.columns([1, 2, 1], vertical_alignment='center')
@@ -519,7 +571,7 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count):
                 st.rerun()
 
 
-def render_capped_metric_summary(data, metric, selected_week_count):
+def render_capped_metric_summary(data, metric, selected_week_count, on_view_player=None):
     if data.empty:
         st.info('這個週次範圍沒有資料。')
         return
@@ -548,7 +600,7 @@ def render_capped_metric_summary(data, metric, selected_week_count):
         ('neutral', '無參與紀錄', f'{zero_count} 人', '本區間無分數或次數'),
         ('green', '平均週次參與率', f'{avg_rate:.1f}%', '依期間內有參與的玩家計算'),
     ])
-    render_visual_rank_list(sorted_df, metric, selected_week_count)
+    render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_player=on_view_player)
 
     with st.expander('查看達成率圖表與原始排名表格', expanded=False):
         active_df = sorted_df.loc[active_mask].copy()
@@ -580,7 +632,7 @@ def render_capped_metric_summary(data, metric, selected_week_count):
         )
 
 
-def draw_water_leaderboard(data, selected_week_count):
+def draw_water_leaderboard(data, selected_week_count, on_view_player=None):
     if data.empty:
         st.info('這個週次範圍沒有資料。')
         return
@@ -598,7 +650,7 @@ def draw_water_leaderboard(data, selected_week_count):
         ('blue', '參與玩家', f'{int((sorted_df[metric] > 0).sum())} 人', f'共 {len(sorted_df)} 位有紀錄'),
         ('neutral', '計算區間', f'{selected_week_count} 週', '依所選期間統計'),
     ])
-    render_visual_rank_list(sorted_df, metric, selected_week_count)
+    render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_player=on_view_player)
 
     with st.expander('查看 Top 15 分數圖與原始排名表格', expanded=False):
         top15_df = sorted_df.head(15).copy()
@@ -618,7 +670,7 @@ def draw_water_leaderboard(data, selected_week_count):
 
 def render_leaderboard_page(
     df_period, start_date, end_date, selected_week_count,
-    full_df=None, metric="地下水道",
+    full_df=None, metric="地下水道", on_view_player=None,
 ):
     leaderboard_df = build_guild_stats(df_period).reset_index()
     source = full_df if full_df is not None else df_period
@@ -628,11 +680,11 @@ def render_leaderboard_page(
     leaderboard_df = leaderboard_df.rename(columns={'圖片': '角色圖片'})
 
     if metric == '地下水道':
-        draw_water_leaderboard(leaderboard_df, selected_week_count)
+        draw_water_leaderboard(leaderboard_df, selected_week_count, on_view_player)
     elif metric == '旗幟戰':
-        render_capped_metric_summary(leaderboard_df, '旗幟戰', selected_week_count)
+        render_capped_metric_summary(leaderboard_df, '旗幟戰', selected_week_count, on_view_player)
     else:
-        render_capped_metric_summary(leaderboard_df, '公會城每周', selected_week_count)
+        render_capped_metric_summary(leaderboard_df, '公會城每周', selected_week_count, on_view_player)
 
 
 # 歷史資料查詢
@@ -694,139 +746,6 @@ def render_raw_data_page(df_period, quality=None):
 
 
 # 玩家資料
-def render_player_selector(df):
-    render_section_title("選擇玩家")
-
-    mode = st.segmented_control(
-        "查詢方式",
-        ["直接搜尋", "依職業篩選"],
-        default="直接搜尋",
-        selection_mode="single",
-        key="player_search_mode",
-    ) or "直接搜尋"
-
-    if mode == "直接搜尋":
-        players = sorted(df["暱稱"].dropna().unique().tolist())
-        return st.selectbox(
-            "玩家 ID",
-            players,
-            index=None,
-            placeholder="輸入玩家 ID 或展開名單",
-            help="輸入部分文字即可搜尋。",
-            key="player_direct_select",
-        )
-
-    filter_box = st.container(border=True)
-    filter_box.caption("依序選擇職業群、分類與職業；最後直接從符合條件的玩家名單中選擇，不需要另外輸入 ID。")
-
-    row = filter_box.container(horizontal=True, gap="small")
-    groups = JOB_HIERARCHY["group"].unique().tolist()
-    group_box = row.container(width=245)
-    selected_group = group_box.selectbox(
-        "1. 職業群",
-        groups,
-        index=None,
-        placeholder="選擇職業群",
-        key="filter_group",
-    )
-
-    selected_category = None
-    selected_job = None
-
-    cat_box = row.container(width=245)
-    if selected_group:
-        categories = (
-            JOB_HIERARCHY.loc[
-                JOB_HIERARCHY["group"] == selected_group, "category"
-            ]
-            .unique()
-            .tolist()
-        )
-        selected_category = cat_box.selectbox(
-            "2. 分類",
-            categories,
-            index=None,
-            placeholder="選擇分類",
-            key="filter_category",
-        )
-    else:
-        cat_box.selectbox(
-            "2. 分類", [], disabled=True, placeholder="先選職業群", key="filter_category_disabled"
-        )
-
-    job_box = row.container(width=245)
-    if selected_group and selected_category:
-        jobs = (
-            JOB_HIERARCHY.loc[
-                (JOB_HIERARCHY["group"] == selected_group)
-                & (JOB_HIERARCHY["category"] == selected_category),
-                "job",
-            ]
-            .unique()
-            .tolist()
-        )
-        selected_job = job_box.selectbox(
-            "3. 職業",
-            jobs,
-            index=None,
-            placeholder="選擇職業",
-            key="filter_job",
-        )
-    else:
-        job_box.selectbox(
-            "3. 職業", [], disabled=True, placeholder="先選分類", key="filter_job_disabled"
-        )
-
-    player_source = df
-    if selected_job:
-        player_source = df.loc[df["職業"] == selected_job]
-    elif selected_group and selected_category:
-        valid_jobs = JOB_HIERARCHY.loc[
-            (JOB_HIERARCHY["group"] == selected_group)
-            & (JOB_HIERARCHY["category"] == selected_category),
-            "job",
-        ].tolist()
-        player_source = df.loc[df["職業"].isin(valid_jobs)]
-    elif selected_group:
-        valid_jobs = JOB_HIERARCHY.loc[
-            JOB_HIERARCHY["group"] == selected_group, "job"
-        ].tolist()
-        player_source = df.loc[df["職業"].isin(valid_jobs)]
-
-    players = sorted(player_source["暱稱"].dropna().unique().tolist())
-
-    result_box = filter_box.container()
-    if not selected_group:
-        result_box.info("先選擇職業群後，這裡會顯示符合條件的玩家。")
-        return None
-
-    result_box.caption(f"目前符合條件：{len(players)} 位玩家")
-    if not players:
-        result_box.warning("目前條件下找不到玩家。")
-        return None
-
-    if len(players) == 1:
-        result_box.success(f"已找到玩家：{players[0]}")
-        return players[0]
-
-    # 小型篩選結果採用快速選取；大量結果使用下拉搜尋。
-    if selected_job and len(players) <= 18:
-        return result_box.pills(
-            "4. 選擇玩家",
-            players,
-            selection_mode="single",
-            key="player_filtered_pills",
-        )
-
-    return result_box.selectbox(
-        "4. 玩家",
-        players,
-        index=None,
-        placeholder=f"從 {len(players)} 位玩家中選擇",
-        key="player_filtered_select",
-    )
-
-
 def render_player_profile(player, display_level, img_url, job_display):
     profile = st.container(
         border=True,
@@ -888,13 +807,8 @@ def render_player_summary(
     )
 
 
-def render_player_page(df, df_period, start_date, end_date, selected_week_count):
-    player = render_player_selector(df)
-
-    if not player:
-        st.info("選擇一位玩家後即可查看完整資料。")
-        return
-
+def render_player_details(df, df_period, player, start_date, end_date, selected_week_count):
+    """呈現從排行榜選定玩家的完整歷史資訊。"""
     player_period = df_period.loc[df_period["暱稱"] == player].copy()
     if player_period.empty:
         st.warning(f"{player} 在目前週次範圍內沒有資料。")

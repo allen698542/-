@@ -392,6 +392,73 @@ body { font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
 .guild-rank-score strong span { margin-left: .35rem; font-size: .73rem; color: #AEB6C0; font-weight: 600; }
 .guild-rank-score small { display: block; margin-top: .38rem; font-size: .73rem; color: #9AA5B3; }
 
+/* Native, clickable detail links integrated into ranking cards */
+[class*="st-key-guild_rank_card_"] {
+    padding: 7px 11px 7px 10px;
+    margin: 7px 0;
+    border: 1px solid #39414B;
+    border-radius: 12px;
+    background: #1B2027;
+    transition: border-color .18s ease, background-color .18s ease;
+}
+[class*="st-key-guild_rank_card_"]:hover {
+    border-color: #766647;
+    background: #20252C;
+}
+[class*="st-key-guild_rank_card_"] .guild-rank-list { margin: 0; }
+[class*="st-key-guild_rank_card_"] .guild-rank-row {
+    min-height: 76px;
+    padding: 0;
+    border: 0;
+    background: none;
+    grid-template-columns: 35px 60px minmax(0, 1fr) minmax(120px, auto);
+    gap: 12px;
+}
+[class*="st-key-guild_rank_card_"] .guild-rank-row:hover,
+[class*="st-key-guild_rank_card_"] .guild-rank-row.is-top-1 { background: none; }
+[class*="st-key-guild_rank_card_"] .guild-rank-avatar { width: 60px; height: 65px; }
+[class*="st-key-guild_rank_card_"] [data-testid="stButton"] button {
+    background: #292A29 !important;
+    color: #E8D3AD !important;
+    border: 1px solid #756243 !important;
+    border-radius: 9px !important;
+    min-height: 39px;
+    font-weight: 650;
+    font-size: .81rem;
+    white-space: nowrap;
+}
+[class*="st-key-guild_rank_card_"] [data-testid="stButton"] button:hover {
+    background: #3B3328 !important;
+    border-color: #B69A6A !important;
+    color: #F5E0B6 !important;
+}
+[class*="st-key-guild_rank_card_"] [data-testid="stButton"] button * { color: inherit !important; }
+.guild-rank-match {
+    padding: .03em .12em;
+    background: #635033;
+    border-radius: 3px;
+    color: #FFF2D6;
+}
+@media (max-width: 720px) {
+    [class*="st-key-guild_rank_card_"] { padding: 8px; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-row {
+        grid-template-columns: 24px 52px minmax(0, 1fr);
+        gap: 7px;
+        min-height: 76px;
+    }
+    [class*="st-key-guild_rank_card_"] .guild-rank-position,
+    [class*="st-key-guild_rank_card_"] .guild-rank-avatar { grid-row: span 2; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-avatar { width: 51px; height: 57px; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-score { grid-column: 3; text-align: left; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-score strong { font-size: 1rem; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-score small { display: block; margin: 0; }
+    [class*="st-key-guild_rank_card_"] [data-testid="stButton"] button {
+        font-size: .72rem;
+        min-height: 37px;
+        padding: .35rem .4rem;
+    }
+}
+
 /* Rank filters — quiet slate surfaces + warm brass selection */
 .st-key-leaderboard_filters {
     margin: .75rem 0 1.65rem;
