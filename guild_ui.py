@@ -104,11 +104,7 @@ def render_section_title(title, subtitle=None, *, variant=None):
         f'<span>{html.escape(str(subtitle))}</span>' if subtitle else ''
     )
     extra_class = f' {html.escape(str(variant))}' if variant else ''
-    kicker_html = (
-        '<div class="section-heading-kicker">WEEKLY HIGHLIGHTS</div>'
-        if variant == "focus-main"
-        else ''
-    )
+    kicker_html = ''
     st.html(
         f"""<div class="section-heading{extra_class}">
             <div class="section-heading-line"></div>
@@ -140,8 +136,8 @@ def render_stat_grid(cards):
             f'<div class="stat-card {html.escape(str(css_class))}">'
             f'<div class="stat-label">{html.escape(str(label))}</div>'
             f'<div class="stat-value">{value_html}</div>'
-            f'<div class="stat-meta">{html.escape(str(meta))}</div>'
-            '</div>'
+            + (f'<div class="stat-meta">{html.escape(str(meta))}</div>' if meta else '')
+            + '</div>'
         )
     st.html('<div class="stat-grid">' + ''.join(content) + '</div>')
 
@@ -339,18 +335,18 @@ def render_home_page(df, quality):
     st.html(
         f'''
         <div class="site-hero">
-            <div class="site-kicker">清流公會 · WEEKLY RECORDS</div>
-            <h1>公會每週統計</h1>
-            <p>每週戰績、參與紀錄與玩家歷史資料。最新紀錄：{latest_week:%Y-%m-%d} ～ {week_end:%Y-%m-%d}。</p>
+            <div class="site-kicker">清流公會</div>
+            <h1>本週概況</h1>
+            <p>{latest_week:%Y-%m-%d} ～ {week_end:%Y-%m-%d}</p>
         </div>
         ''',
     )
 
     render_stat_grid([
-        ("range", "最新週次", f"{latest_week:%Y-%m-%d} ～ {week_end:%Y-%m-%d}", "每週統計區間"),
-        ("neutral", "本週記錄玩家", f"{latest_players} 人", "本週有紀錄的角色"),
-        ("accent", "旗幟戰參與人數", f"{flag_participants} 人", "本週旗幟戰分數大於 0"),
-        ("neutral", "公會城參與人數", f"{castle_participants} 人", "本週公會城紀錄大於 0"),
+        ("range", "最新週次", f"{latest_week:%Y-%m-%d} ～ {week_end:%Y-%m-%d}", ""),
+        ("neutral", "記錄玩家", f"{latest_players} 人", ""),
+        ("accent", "旗幟戰參與", f"{flag_participants} 人", ""),
+        ("neutral", "公會城參與", f"{castle_participants} 人", ""),
     ])
 
     # 本週焦點先呈現職位異動，再依序顯示最高分與成長排行榜。
@@ -360,7 +356,6 @@ def render_home_page(df, quality):
         f'''<div class="focus-change-card">
             <div>
                 <div class="focus-change-label">本週職位異動</div>
-                <div class="focus-change-meta">僅統計最新週次的升階與降階紀錄</div>
             </div>
             <div class="change-counts">
                 <div><span class="change-up">{promotion_count}</span><small>人升階</small></div>
@@ -371,8 +366,7 @@ def render_home_page(df, quality):
 
     st.html(
         '''<div class="focus-subheading">
-            <span>地下水道 · 本週 TOP 3</span>
-            <strong>本週最高紀錄</strong>
+            <strong>地下水道 TOP 3</strong>
         </div>''',
     )
     _render_focus_cards(water_top3, "water", focus_image_lookup)
@@ -380,7 +374,6 @@ def render_home_page(df, quality):
     if previous_week is not None:
         st.html(
             '''<div class="focus-subheading growth-heading">
-                <span>地下水道成長 · B − A</span>
                 <strong>分數增加 TOP 3</strong>
             </div>''',
             )
@@ -388,17 +381,13 @@ def render_home_page(df, quality):
 
         st.html(
             '''<div class="focus-subheading ratio-heading">
-                <span>地下水道成長 · B ÷ A</span>
                 <strong>比例增加 TOP 3</strong>
             </div>''',
             )
         _render_focus_cards(ratio_top3, "ratio", focus_image_lookup)
 
-        st.caption(
-            "成長比較說明：A = 上週、B = 本週。B−A 與 B÷A 都只計算"
-            "兩週都有紀錄、上週分數大於 0，且本週確實成長的玩家。"
-            "上週 0 分者不列入成長排行。"
-        )
+        with st.expander("成長計算方式", expanded=False):
+            st.caption("比較上週與本週，僅計算兩週都有紀錄、上週分數大於 0 且分數成長的玩家。")
 
 # 排行榜
 def _ranking_avatar(url, player):
@@ -481,41 +470,41 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_play
     if page_key not in st.session_state:
         st.session_state[page_key] = 0
 
-    render_section_title('玩家排行')
-    col_search, col_filter = st.columns([3, 1], gap='medium', vertical_alignment='bottom')
-    with col_search:
-        # live: 停止輸入 300ms 後立即更新（不需按 Enter 或離開輸入框）。
-        search = st.text_input(
-            '搜尋玩家',
-            type='search',
-            placeholder='輸入部分 ID 即時搜尋，例如：檸檬',
-            icon=':material/search:',
-            key=search_key,
-            live='300ms',
-            persist_state='session',
-            on_change=lambda: st.session_state.update({page_key: 0}),
-        ).strip()
-    with col_filter:
-        active_only = st.checkbox(
-            '只看有參與',
-            value=False,
-            key=filter_key,
-            persist_state='session',
-            on_change=lambda: st.session_state.update({page_key: 0}),
-        )
+    st.html('<div class="guild-list-heading">玩家排行</div>')
+    with st.container(key=f'ranking_search_panel_{prefix}'):
+        col_search, col_filter = st.columns([3, 1], gap='small', vertical_alignment='bottom')
+        with col_search:
+            # 保留即時包含搜尋，但不使用搜尋圖示，避免手機端出現白底圖示方塊。
+            search = st.text_input(
+                '搜尋 ID',
+                type='search',
+                placeholder='搜尋 ID',
+                icon='',
+                key=search_key,
+                live='300ms',
+                persist_state='session',
+                on_change=lambda: st.session_state.update({page_key: 0}),
+            ).strip()
+        with col_filter:
+            active_only = st.checkbox(
+                '只看有參與',
+                value=False,
+                key=filter_key,
+                persist_state='session',
+                on_change=lambda: st.session_state.update({page_key: 0}),
+            )
 
     filtered = sorted_df
     if search:
-        match = (
-            sorted_df['暱稱'].astype(str).str.contains(search, case=False, regex=False, na=False)
-            | sorted_df['最新職業'].fillna('').astype(str).str.contains(search, case=False, regex=False, na=False)
+        match = sorted_df['暱稱'].astype(str).str.contains(
+            search, case=False, regex=False, na=False,
         )
         filtered = filtered.loc[match]
     if active_only:
         filtered = filtered.loc[filtered[metric] > 0]
 
     if filtered.empty:
-        st.info('此統計期間找不到符合條件的玩家。可切換「全部」或嘗試其他文字。')
+        st.info('沒有符合的玩家 ID，請換個關鍵字或期間。')
         return
 
     page_size = 20
@@ -526,9 +515,9 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_play
     current = filtered.iloc[first:first + page_size]
 
     if search:
-        st.caption(f'找到 {len(filtered)} 位符合「{search}」的玩家 · 第 {page + 1} / {page_count} 頁')
+        st.caption(f'找到 {len(filtered)} 位 · 第 {page + 1} / {page_count} 頁')
     else:
-        st.caption(f'共 {len(filtered)} 位玩家 · 目前顯示第 {first + 1}–{first + len(current)} 位')
+        st.caption(f'{len(filtered)} 位玩家 · {first + 1}–{first + len(current)} 位')
 
     # st.html 不能嵌入可觸發 Python 的按鈕，因此逐筆以原生 Streamlit
     # container + button 組合，維持點擊可靠性與行動裝置的操作支援。
@@ -594,15 +583,15 @@ def render_capped_metric_summary(data, metric, selected_week_count, on_view_play
     zero_count = int((~active_mask).sum())
     avg_rate = float(sorted_df.loc[active_mask, '區間達成率'].mean()) if active_count else 0
 
-    render_stat_grid([
-        ('accent', '全週參與玩家', f'{perfect_count} 人', f'所選期間共 {selected_week_count} 週'),
-        ('blue', '參與玩家', f'{active_count} 人', f'共 {len(sorted_df)} 位有週次紀錄'),
-        ('neutral', '無參與紀錄', f'{zero_count} 人', '本區間無分數或次數'),
-        ('green', '平均週次參與率', f'{avg_rate:.1f}%', '依期間內有參與的玩家計算'),
-    ])
     render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_player=on_view_player)
 
-    with st.expander('查看達成率圖表與原始排名表格', expanded=False):
+    with st.expander('統計與圖表', expanded=False):
+        render_stat_grid([
+            ('accent', '全週參與玩家', f'{perfect_count} 人', ''),
+            ('blue', '參與玩家', f'{active_count} 人', ''),
+            ('neutral', '無參與紀錄', f'{zero_count} 人', ''),
+            ('green', '平均參與率', f'{avg_rate:.1f}%', ''),
+        ])
         active_df = sorted_df.loc[active_mask].copy()
         if not active_df.empty:
             rate = active_df['區間達成率']
@@ -645,14 +634,14 @@ def draw_water_leaderboard(data, selected_week_count, on_view_player=None):
     top_score = int(sorted_df.iloc[0][metric])
     top_ties = int((sorted_df[metric] == top_score).sum())
 
-    render_stat_grid([
-        ('accent', '最高累積分數', f'{top_score:,}', f'{top_ties} 位玩家並列第一' if top_ties > 1 else '本區間最高分'),
-        ('blue', '參與玩家', f'{int((sorted_df[metric] > 0).sum())} 人', f'共 {len(sorted_df)} 位有紀錄'),
-        ('neutral', '計算區間', f'{selected_week_count} 週', '依所選期間統計'),
-    ])
     render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_player=on_view_player)
 
-    with st.expander('查看 Top 15 分數圖與原始排名表格', expanded=False):
+    with st.expander('統計與圖表', expanded=False):
+        render_stat_grid([
+            ('accent', '最高累積分數', f'{top_score:,}', f'{top_ties} 人並列第一' if top_ties > 1 else ''),
+            ('blue', '參與玩家', f'{int((sorted_df[metric] > 0).sum())} 人', ''),
+            ('neutral', '計算區間', f'{selected_week_count} 週', ''),
+        ])
         top15_df = sorted_df.head(15).copy()
         fig = px.bar(top15_df, x=metric, y='暱稱', orientation='h', text=metric)
         fig.update_layout(
@@ -758,7 +747,6 @@ def render_player_profile(player, display_level, img_url, job_display):
         profile.image(img_url, width=120)
 
     info = profile.container(width=460)
-    info.caption("PLAYER PROFILE")
     info.markdown(f"### {player}")
     info.markdown(f"**{job_display}**　Lv. {display_level}")
 
@@ -781,7 +769,7 @@ def render_player_summary(
     flag_pct = round(p_flag / flag_possible * 100, 1) if flag_possible else 0
     castle_pct = round(p_castle / selected_week_count * 100, 1) if selected_week_count else 0
 
-    render_section_title("區間摘要", f"{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d}")
+    render_section_title("區間摘要")
 
     water_rank = rank_label(guild_stats, player, "地下水道")
     castle_status = "全勤" if castle_pct >= 100 else rank_label(guild_stats, player, "公會城每周")
@@ -817,8 +805,18 @@ def render_player_details(df, df_period, player, start_date, end_date, selected_
     player_history = df.loc[df["暱稱"] == player].copy()
     display_level, img_url, job_display = get_latest_profile(player_history)
 
-    st.divider()
     render_player_profile(player, display_level, img_url, job_display)
+
+    render_section_title("詳細紀錄")
+    detail_view = st.segmented_control(
+        "內容",
+        ["走勢", "每週記錄", "達成狀況", "升降階"],
+        default="走勢",
+        selection_mode="single",
+        key="player_detail_view",
+        label_visibility="collapsed",
+        width="stretch",
+    ) or "走勢"
 
     guild_stats = build_guild_stats(df_period)
     if player not in guild_stats.index:
@@ -832,15 +830,6 @@ def render_player_details(df, df_period, player, start_date, end_date, selected_
         end_date,
         selected_week_count,
     )
-
-    render_section_title("詳細紀錄")
-    detail_view = st.segmented_control(
-        "內容",
-        ["走勢", "每週記錄", "達成狀況", "升降階"],
-        default="走勢",
-        selection_mode="single",
-        key="player_detail_view",
-    ) or "走勢"
 
     if detail_view == "走勢":
         render_player_trend(player_period, player)

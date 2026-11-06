@@ -20,7 +20,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
     menu_items={
-        "About": "公會每週統計 · Weekly Guild Records",
+        "About": "清流公會每週統計",
     },
 )
 
@@ -80,9 +80,8 @@ def check_password():
     st.html(
         """
         <div class="login-heading">
-            <div class="site-kicker">WEEKLY GUILD RECORDS</div>
-            <h1>公會每週統計</h1>
-            <p>輸入存取密碼後進入資料網站</p>
+            <h1>清流公會</h1>
+            <p>登入後查看每週紀錄</p>
         </div>
         """,
     )
@@ -130,7 +129,7 @@ def get_cached_data(csv_path, file_mtime_ns):
 
 
 def select_week_period(
-    df, *, key_prefix, default="最近 8 週", show_label=True, show_caption=True
+    df, *, key_prefix, default="最近 8 週", show_label=True, show_caption=True, control="tabs"
 ):
     """依資料中存在的週次解析統計期間。"""
     weeks = sorted(df["周次"].dt.date.unique().tolist())
@@ -141,17 +140,27 @@ def select_week_period(
     if default not in options:
         default = "最近 8 週"
 
-    period_mode = st.segmented_control(
-        "統計期間",
-        options,
-        default=default,
-        selection_mode="single",
-        key=f"{key_prefix}_period_mode",
-        persist_state="session",
-        required=not show_label,
-        label_visibility="visible" if show_label else "collapsed",
-        wrap=True if not show_label else None,
-    )
+    if control == "dropdown":
+        period_mode = st.selectbox(
+            "統計期間",
+            options,
+            index=options.index(default),
+            key=f"{key_prefix}_period_mode",
+            persist_state="session",
+            label_visibility="visible" if show_label else "collapsed",
+            width="stretch",
+        )
+    else:
+        period_mode = st.segmented_control(
+            "統計期間",
+            options,
+            default=default,
+            selection_mode="single",
+            key=f"{key_prefix}_period_mode",
+            persist_state="session",
+            label_visibility="visible" if show_label else "collapsed",
+            wrap=True,
+        )
     period_mode = period_mode or default
 
     if period_mode == "最新一週":
@@ -167,15 +176,33 @@ def select_week_period(
     else:
         if len(weeks) == 1:
             start_date = end_date = weeks[0]
+        elif control == "dropdown":
+            # 手機上以起訖日期取代長滑桿，避免在 184 週刻度間反覆拖曳。
+            left, right = st.columns(2, gap="small")
+            with left:
+                start_date = st.selectbox(
+                    "起始週",
+                    weeks,
+                    index=max(0, len(weeks) - 8),
+                    format_func=lambda d: d.strftime("%Y-%m-%d"),
+                    key=f"{key_prefix}_custom_start",
+                    persist_state="session",
+                )
+            with right:
+                end_options = [week for week in weeks if week >= start_date]
+                end_date = st.selectbox(
+                    "結束週",
+                    end_options,
+                    index=len(end_options) - 1,
+                    format_func=lambda d: d.strftime("%Y-%m-%d"),
+                    key=f"{key_prefix}_custom_end",
+                    persist_state="session",
+                )
         else:
-            custom_default = (
-                weeks[max(0, len(weeks) - 8)],
-                weeks[-1],
-            )
             start_date, end_date = st.select_slider(
                 "選擇週次範圍",
                 options=weeks,
-                value=custom_default,
+                value=(weeks[max(0, len(weeks) - 8)], weeks[-1]),
                 format_func=lambda value: value.strftime("%Y-%m-%d"),
                 key=f"{key_prefix}_custom_week_range",
                 persist_state="session",
@@ -197,13 +224,8 @@ RANKING_METRIC_KEYS = {
 
 
 def select_leaderboard_filters(df):
-    """取得排行榜類別與該類別的週次範圍。"""
+    """排行類別為主分頁；每個類別各自保存統計期間。"""
     with st.container(key="leaderboard_filters"):
-        st.html(
-            '<div class="guild-filter-heading">'
-            '<span class="guild-filter-label">排行項目</span>'
-            '</div>'
-        )
         metric = st.segmented_control(
             "排行項目",
             list(RANKING_METRIC_KEYS),
@@ -213,28 +235,30 @@ def select_leaderboard_filters(df):
             label_visibility="collapsed",
             key="leaderboard_metric",
             persist_state="session",
-            wrap=True,
+            width="stretch",
+            wrap=False,
         ) or "地下水道"
 
-        st.html(
-            '<div class="guild-filter-separator"></div>'
-            '<div class="guild-filter-heading">'
-            '<span class="guild-filter-label">統計期間</span>'
-            '</div>'
-        )
-        start_date, end_date, count = select_week_period(
-            df,
-            key_prefix=f"leaderboard_{RANKING_METRIC_KEYS[metric]}",
-            default="全部",
-            show_label=False,
-            show_caption=False,
-        )
-        st.html(
-            '<div class="guild-filter-summary">'
-            f'{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d}'
-            f'<span class="guild-filter-separator-dot">·</span>共 {count} 週'
-            '</div>'
-        )
+        with st.container(key="leaderboard_period_filter"):
+            st.html(
+                '<div class="guild-period-current">'
+                f'<strong>{metric}</strong><span>統計期間</span>'
+                '</div>'
+            )
+            start_date, end_date, count = select_week_period(
+                df,
+                key_prefix=f"leaderboard_{RANKING_METRIC_KEYS[metric]}",
+                default="全部",
+                show_label=False,
+                show_caption=False,
+                control="dropdown",
+            )
+            st.html(
+                '<div class="guild-filter-summary">'
+                f'{start_date:%Y-%m-%d} ～ {end_date:%Y-%m-%d}'
+                f'<span aria-hidden="true">·</span> {count} 週'
+                '</div>'
+            )
     return metric, start_date, end_date, count
 
 
@@ -287,9 +311,10 @@ def main():
         period_mode = st.session_state.get(f"{period_prefix}_period_mode", "全部")
         st.session_state["profile_period_mode"] = period_mode
         if period_mode == "自訂":
-            custom_range = st.session_state.get(f"{period_prefix}_custom_week_range")
-            if custom_range is not None:
-                st.session_state["profile_custom_week_range"] = custom_range
+            for part in ("custom_start", "custom_end"):
+                key = f"{period_prefix}_{part}"
+                if key in st.session_state:
+                    st.session_state[f"profile_{part}"] = st.session_state[key]
         st.switch_page(page_refs["profile"], query_params={"player": player_name})
 
     def profile_page():
@@ -307,9 +332,7 @@ def main():
         st.html(
             """
             <div class="page-heading">
-                <div class="site-kicker">PLAYER PROFILE</div>
-                <h1>玩家詳細資料</h1>
-                <p>個人戰績、歷史走勢及每週達成狀況。</p>
+                <h1>玩家詳細</h1>
             </div>
             """,
         )
@@ -317,6 +340,7 @@ def main():
             df,
             key_prefix="profile",
             default="全部",
+            control="dropdown",
         )
         df_period = get_period_data(df, start_date, end_date)
         render_player_details(
@@ -328,9 +352,7 @@ def main():
         st.html(
             """
             <div class="page-heading">
-                <div class="site-kicker">GUILD RANKING</div>
                 <h1>公會排行</h1>
-                <p>查看公會成員的戰績、參與紀錄與歷史排名。</p>
             </div>
             """,
         )
@@ -351,9 +373,7 @@ def main():
         st.html(
             """
             <div class="page-heading">
-                <div class="site-kicker">DATA ARCHIVE</div>
                 <h1>資料查詢</h1>
-                <p>公會歷史資料</p>
             </div>
             """,
         )
@@ -361,6 +381,7 @@ def main():
             df,
             key_prefix="raw",
             default="最近 4 週",
+            control="dropdown",
         )
         df_period = get_period_data(df, start_date, end_date)
         render_raw_data_page(df_period, quality)

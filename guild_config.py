@@ -675,6 +675,370 @@ body { font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; }
 }
+/* 2026 mobile-first visual refresh: clear hierarchy, readable dark theme. */
+:root {
+    --guild-bg: #12161C;
+    --guild-surface: #1D242D;
+    --guild-surface-raised: #252D38;
+    --guild-border: #414B58;
+    --guild-gold: #D7B479;
+    --guild-gold-strong: #F0D6A5;
+    --guild-text: #F5F6F8;
+    --guild-muted: #C0CBD7;
+    --guild-faint: #AEB8C5;
+}
+html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+    background: var(--guild-bg) !important;
+    color: var(--guild-text) !important;
+    color-scheme: dark;
+}
+.block-container { max-width: 1080px; padding: .75rem 1.5rem 3.5rem; }
+.stApp p, .stApp label, .stApp [data-testid="stWidgetLabel"] p,
+.stApp [data-testid="stCheckbox"] p,
+.stApp [data-testid="stRadio"] p,
+.stApp [data-testid="stSelectbox"] label,
+.stApp [data-testid="stTextInput"] label {
+    color: #E7EBF0 !important;
+}
+.stApp [data-testid="stCaptionContainer"],
+.stApp [data-testid="stCaptionContainer"] p,
+.stApp .stCaption { color: #B6C2D0 !important; }
+.stApp [data-testid="stWidgetLabel"] { margin-bottom: .32rem !important; }
+.stApp [data-testid="stWidgetLabel"] p { font-size: .9rem !important; font-weight: 670 !important; }
+.stApp [data-testid="stMarkdownContainer"] h3 { color: #F5F6F8 !important; }
+
+/* Navigation: straightforward active state and obvious touch targets. */
+.st-key-site_nav {
+    max-width: 660px;
+    margin: .1rem auto .9rem;
+    padding: 4px;
+    background: #1D242D;
+    border: 1px solid #414B58;
+    border-radius: 12px;
+    box-shadow: none;
+}
+.st-key-site_nav [data-testid="stButton"] button {
+    min-height: 45px !important;
+    border-radius: 8px !important;
+    font-size: .9rem !important;
+    font-weight: 710 !important;
+}
+.st-key-site_nav [data-testid="stBaseButton-secondary"] {
+    color: #E2E6ED !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+}
+.st-key-site_nav [data-testid="stBaseButton-primary"] {
+    background: #463A2B !important;
+    color: #FFE1AE !important;
+    border: 1px solid #C39E64 !important;
+    box-shadow: none !important;
+}
+.st-key-site_nav [data-testid="stBaseButton-primary"] *,
+.st-key-site_nav [data-testid="stBaseButton-secondary"] * { color: inherit !important; }
+
+/* Clean, compact headings and home summary. */
+.page-heading { margin: .3rem 0 .65rem; padding: 0; }
+.page-heading h1 { margin: 0; font-size: clamp(1.6rem, 2.6vw, 2.05rem); letter-spacing: -.03em; }
+.site-hero {
+    margin: .35rem 0 1rem;
+    padding: 1.35rem 1.5rem;
+    border: 1px solid #45505C;
+    border-radius: 12px;
+    background: #1D242D;
+}
+.site-hero::before { width: 4px; background: #C7A36A; }
+.site-hero::after { display: none; }
+.site-hero h1 { font-size: clamp(1.7rem, 3vw, 2.15rem); margin: .3rem 0 .22rem; }
+.site-hero p { color: #CBD3DC; font-size: .85rem; line-height: 1.5; }
+.site-kicker { color: #E3C28C; letter-spacing: .06em; font-size: .76rem; }
+.section-heading { margin: 1.35rem 0 .6rem; }
+.section-heading.focus-main { margin: 1.6rem 0 .8rem; }
+.section-heading-title { font-size: 1.25rem; }
+.section-heading.focus-main .section-heading-title { font-size: 1.4rem; }
+.section-heading-line { width: 3px; height: 1.6rem; background: #D2AB6F; }
+.section-heading.focus-main .section-heading-line { height: 1.85rem; }
+.stat-grid { gap: .65rem; margin: .45rem 0 .85rem; }
+.stat-card {
+    min-height: 111px;
+    padding: .85rem 1rem;
+    border: 1px solid #404B57;
+    border-top: 1px solid #596575;
+    border-radius: 11px;
+    background: #1D242D;
+}
+.stat-card.accent, .stat-card.range { border-top-color: #C9A367; }
+.stat-label { color: #CED6DF; font-size: .79rem; }
+.stat-value { font-size: clamp(1.2rem, 2vw, 1.78rem); color: #FAFAFA; margin: .55rem 0 .2rem; }
+.stat-meta { color: #B7C1CE; }
+.stat-period { font-size: clamp(.85rem, 1.55vw, 1.1rem); row-gap: 0; }
+.focus-change-card { background: #262923; border: 1px solid #625843; border-left: 3px solid #D1B17B; border-radius: 10px; padding: .9rem 1.1rem; margin: .2rem 0 1rem; }
+.focus-change-label { color: #F4F2E9; }
+.change-counts > div { background: #2B2C28; border-color: #545044; }
+.change-counts small, .focus-change-meta { color: #C3BEAF; }
+.focus-subheading { margin: 1.05rem 0 .65rem; }
+.focus-subheading strong { color: #F3F5F7; font-size: 1.07rem; }
+.focus-card-grid { gap: .65rem; }
+.focus-rank-card { min-height: 160px; background: #1D242D; border-color: #414B56; padding: 1rem; }
+.focus-rank-card-name { color: #FAFAFA; }
+.focus-rank-card-job, .focus-rank-card-meta { color: #C4CDD7; }
+.focus-rank-card-value { margin-top: .7rem; }
+
+/* Ranking filters: category tabs first, dependent period selector second. */
+.st-key-leaderboard_filters {
+    margin: .4rem 0 .9rem;
+    padding: .6rem .7rem .75rem;
+    background: #1C222B;
+    border: 1px solid #414B56;
+    border-radius: 13px;
+    box-shadow: none;
+}
+.st-key-leaderboard_filters [data-testid="stButtonGroup"] [role="group"],
+.st-key-leaderboard_filters [data-testid="stButtonGroup"] [role="radiogroup"] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    gap: .4rem !important;
+}
+.st-key-leaderboard_filters [data-testid="stButtonGroup"] [data-variant="segmented_control"],
+.st-key-leaderboard_filters [data-testid^="stBaseButton-segmented_control"] {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    min-height: 45px !important;
+    padding: .55rem .2rem !important;
+    color: #D5DDE7 !important;
+    background: #262E39 !important;
+    border: 1px solid #465360 !important;
+    border-radius: 8px !important;
+    font-size: .9rem !important;
+    font-weight: 690 !important;
+    box-shadow: none !important;
+}
+.st-key-leaderboard_filters [data-testid="stButtonGroup"] [data-variant="segmented_control"][data-selected]:not([data-disabled]),
+.st-key-leaderboard_filters [data-testid="stButtonGroup"] [data-variant="segmented_control"][aria-pressed="true"],
+.st-key-leaderboard_filters [data-testid="stBaseButton-segmented_controlActive"] {
+    background: #453728 !important;
+    border-color: #D7B479 !important;
+    color: #FFE6BC !important;
+    box-shadow: none !important;
+}
+.st-key-leaderboard_filters [data-testid="stButtonGroup"] [data-variant="segmented_control"] *,
+.st-key-leaderboard_filters [data-testid^="stBaseButton-segmented_control"] * { color: inherit !important; }
+.st-key-leaderboard_period_filter {
+    margin: .65rem 0 0;
+    padding: .7rem .85rem .75rem;
+    border: 1px solid #35414E;
+    border-radius: 9px;
+    background: #171D24;
+}
+.guild-period-current { display: flex; align-items: center; gap: .75rem; margin: 0 0 .4rem; }
+.guild-period-current strong { color: #F2F5F8; font-size: .89rem; font-weight: 730; }
+.guild-period-current span { color: #CBD3DE; font-size: .8rem; }
+.st-key-leaderboard_period_filter [data-testid="stSelectbox"] { max-width: 280px; }
+.guild-filter-summary {
+    margin: .4rem 0 0;
+    padding: 0;
+    color: #BBC6D3;
+    background: none;
+    border: 0;
+    font-size: .78rem;
+    font-variant-numeric: tabular-nums;
+}
+.guild-filter-summary > span { margin: 0 .32rem; }
+.guild-list-heading {
+    font-size: 1.14rem;
+    font-weight: 730;
+    color: #F3F5F7;
+    padding: .12rem 0 .2rem;
+    margin: .2rem 0 0;
+}
+
+/* Form fields: mobile label and placeholder contrast must remain readable. */
+.stApp [data-testid="stTextInput"] [data-baseweb="input"],
+.stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+.stApp [data-testid="stNumberInput"] [data-baseweb="input"] {
+    background: #242C37 !important;
+    border: 1px solid #657283 !important;
+    color: #F8FAFC !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+}
+.stApp [data-testid="stTextInput"] input,
+.stApp [data-testid="stTextInput"] input[type="search"],
+.stApp [data-testid="stNumberInput"] input {
+    background: #242C37 !important;
+    color: #FAFCFE !important;
+    -webkit-text-fill-color: #FAFCFE !important;
+    caret-color: #EFC98C !important;
+    border: 0 !important;
+    border-radius: 9px !important;
+    font-size: 1rem !important;
+    min-height: 44px;
+}
+.stApp [data-testid="stTextInput"] input::placeholder,
+.stApp [data-testid="stNumberInput"] input::placeholder {
+    color: #C8D2DE !important;
+    -webkit-text-fill-color: #C8D2DE !important;
+    opacity: 1 !important;
+}
+.stApp [data-testid="stTextInput"] [data-baseweb="input"]:focus-within,
+.stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div:focus-within {
+    border: 2px solid #E0B97A !important;
+    background: #293340 !important;
+}
+.stApp [data-testid="stTextInput"] [data-baseweb="input"] > div,
+.stApp [data-testid="stTextInput"] [data-baseweb="input"] > div * {
+    background-color: transparent !important;
+}
+.stApp [data-testid="stSelectbox"] [data-baseweb="select"] span,
+.stApp [data-testid="stSelectbox"] [data-baseweb="select"] input,
+.stApp [data-testid="stSelectbox"] [data-baseweb="select"] svg {
+    color: #F4F6FA !important;
+    fill: currentColor !important;
+}
+.stApp [data-testid="stCheckbox"] [role="checkbox"] { border: 1px solid #ABB8C7 !important; }
+.stApp [data-testid="stCheckbox"] p { font-size: .85rem !important; }
+[class*="st-key-ranking_search_panel_"] { margin: .05rem 0 .2rem; }
+
+/* Keep action labels visually clickable and never confused with plain text. */
+.stApp [data-testid="stButton"] button,
+.stApp [data-testid="stFormSubmitButton"] button,
+.stApp [data-testid="stPopover"] button { cursor: pointer; }
+.stApp button:focus-visible,
+.stApp input:focus-visible { outline: 3px solid #F4C77F !important; outline-offset: 2px !important; }
+.stApp [data-testid="stBaseButton-secondary"]:not(.st-key-site_nav *) {
+    border: 1px solid #6B7684 !important;
+    background: #2A3440 !important;
+    color: #F0F5FA !important;
+}
+.stApp [data-testid="stBaseButton-secondary"]:not(.st-key-site_nav *):hover {
+    border-color: #D8B77E !important;
+    background: #38414A !important;
+    color: #FFF4DD !important;
+}
+.stApp [data-testid="stBaseButton-primary"]:not(.st-key-site_nav *) {
+    background: #705332 !important;
+    border: 1px solid #E1BD82 !important;
+    color: #FFF7EB !important;
+}
+.stApp [data-testid="stBaseButton-primary"]:not(.st-key-site_nav *):hover {
+    background: #83613C !important;
+}
+.stApp [data-testid="stExpander"] {
+    background: #1C232C;
+    border: 1px solid #46515E;
+    border-radius: 9px;
+}
+.stApp [data-testid="stExpander"] summary { cursor: pointer; }
+.stApp [data-testid="stExpander"] summary p { color: #E9D2AC !important; }
+
+/* Ranking cards: compact rows, prominent data, clear compact CTA. */
+[class*="st-key-guild_rank_card_"] {
+    padding: .55rem .7rem;
+    margin: 5px 0;
+    border: 1px solid #3D4956;
+    border-radius: 10px;
+    background: #1D242D;
+    box-shadow: none;
+}
+[class*="st-key-guild_rank_card_"]:hover {
+    border-color: #8A785B;
+    background: #232B35;
+}
+[class*="st-key-guild_rank_card_"] .guild-rank-row {
+    min-height: 58px;
+    grid-template-columns: 26px 52px minmax(0, 1fr) minmax(110px, auto);
+    gap: 9px;
+}
+[class*="st-key-guild_rank_card_"] .guild-rank-avatar { width: 50px; height: 54px; border-color: #586370; background: #293440; }
+.guild-rank-identity strong { color: #F7F9FA; font-size: 1rem; }
+.guild-rank-detail, .guild-rank-score small { color: #B8C4D0; }
+.guild-rank-score strong { color: #FCFCFA; font-size: 1.13rem; }
+[class*="st-key-guild_rank_card_"] [data-testid="stButton"] button {
+    min-height: 39px !important;
+    width: 100% !important;
+    padding: .45rem .5rem !important;
+    border-radius: 8px !important;
+    border: 1px solid #B89967 !important;
+    color: #F9DCAA !important;
+    background: #373125 !important;
+    font-size: .82rem !important;
+    font-weight: 730 !important;
+    white-space: nowrap !important;
+}
+[class*="st-key-guild_rank_card_"] [data-testid="stButton"] button * { color: inherit !important; }
+[class*="st-key-guild_rank_card_"] [data-testid="stButton"] button:hover {
+    background: #52412C !important;
+    border-color: #E3C18B !important;
+    color: #FFF0D3 !important;
+}
+.guild-rank-match { background: #6F5330; color: #FFFFFF; }
+
+/* Responsive first: no giant stacked detail buttons, no invisible labels. */
+@media (max-width: 720px) {
+    .block-container { padding: .55rem .75rem 3rem; }
+    .st-key-site_nav { margin: 0 auto .8rem; }
+    .st-key-site_nav [data-testid="stButton"] button { min-height: 46px !important; font-size: .83rem !important; }
+    .site-hero { padding: 1rem 1.1rem; margin: .2rem 0 .75rem; }
+    .page-heading { margin: .3rem 0 .5rem; }
+    .page-heading h1 { font-size: 1.6rem; }
+    .st-key-leaderboard_filters { padding: .55rem; margin: .2rem 0 .75rem; }
+    .st-key-leaderboard_period_filter { margin-top: .55rem; padding: .6rem .7rem; }
+    .st-key-leaderboard_period_filter [data-testid="stSelectbox"] { max-width: none; }
+    [class*="st-key-ranking_search_panel_"] [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; gap: .3rem !important; }
+    [class*="st-key-ranking_search_panel_"] [data-testid="stColumn"] { min-width: 0 !important; }
+    [class*="st-key-guild_rank_card_"] [data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: .45rem !important;
+    }
+    [class*="st-key-guild_rank_card_"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child {
+        flex: 1 1 0% !important;
+        width: auto !important;
+        min-width: 0 !important;
+    }
+    [class*="st-key-guild_rank_card_"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child {
+        flex: 0 0 105px !important;
+        width: 105px !important;
+        min-width: 0 !important;
+    }
+    [class*="st-key-guild_rank_card_"] { padding: .5rem; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-row {
+        min-height: 59px;
+        grid-template-columns: 19px 43px minmax(0,1fr);
+        column-gap: 7px;
+        row-gap: 1px;
+    }
+    [class*="st-key-guild_rank_card_"] .guild-rank-position { grid-row: span 2; font-size: .86rem; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-avatar { grid-row: span 2; width: 41px; height: 48px; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-identity strong { font-size: .85rem; line-height: 1.28; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-detail { font-size: .7rem; margin-top: 2px; line-height: 1.3; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-score { grid-column: 3; text-align: left; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-score strong { font-size: .87rem; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-score small { display: none; }
+    [class*="st-key-guild_rank_card_"] [data-testid="stButton"] button {
+        min-height: 42px !important;
+        padding: .3rem .15rem !important;
+        font-size: .75rem !important;
+    }
+    .stat-grid { gap: .55rem; }
+    .stat-card { min-height: 97px; padding: .8rem .75rem; }
+    .stat-value { font-size: 1.24rem; }
+    .focus-card-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 400px) {
+    [class*="st-key-guild_rank_card_"] [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child {
+        flex-basis: 90px !important; width: 90px !important;
+    }
+    .st-key-leaderboard_filters [data-testid="stButtonGroup"] [data-variant="segmented_control"],
+    .st-key-leaderboard_filters [data-testid^="stBaseButton-segmented_control"] {
+        font-size: .82rem !important;
+        padding: .45rem .1rem !important;
+    }
+    .guild-rank-detail { font-size: .67rem; }
+    .stat-period { font-size: .85rem; }
+}
+
 </style>
 """
 
