@@ -471,14 +471,17 @@ def _make_visual_rank_rows(data, metric, selected_week_count, search=""):
     rows = []
     water = metric == "地下水道"
     for _, player in data.iterrows():
-        rank = int(player["名次"])
+        outside_period = bool(player.get("_outside_period", False))
+        rank = "—" if outside_period else str(int(player["名次"]))
         name = _highlight_rank_name(player["暱稱"], search)
         job = html.escape(str(player.get("最新職業") or player.get("職業") or "未知"))
         level = player.get("等級")
         level_text = f'Lv. {int(level)}' if level is not None and not np.isnan(level) and level > 0 else '等級未記錄'
         avatar = _ranking_avatar(player.get("角色圖片", ""), player["暱稱"])
         score = int(player[metric])
-        if water:
+        if outside_period:
+            main_value, unit, note = "—", "", "本期間無紀錄"
+        elif water:
             weeks = int(player["周次"])
             average = round(score / weeks) if weeks else 0
             main_value = f'{score:,}'
@@ -489,7 +492,9 @@ def _make_visual_rank_rows(data, metric, selected_week_count, search=""):
             unit = '分' if metric == '旗幟戰' else '次'
             rate = float(player["區間達成率"])
             note = f'週次參與率 {rate:.1f}% · {int(player["周次"])} / {selected_week_count} 週紀錄'
-        rank_class = f' is-top-{rank}' if rank in (1, 2, 3) else ''
+        rank_class = f' is-top-{rank}' if not outside_period and int(rank) in (1, 2, 3) else ''
+        if outside_period:
+            rank_class += ' is-outside-period'
         rows.append(
             f'<article class="guild-rank-row{rank_class}">'
             f'<div class="guild-rank-position"><span>{rank}</span></div>'
@@ -503,8 +508,93 @@ def _make_visual_rank_rows(data, metric, selected_week_count, search=""):
     return '<div class="guild-rank-list">' + ''.join(rows) + '</div>'
 
 
+def build_historical_search_rows(period_df, all_profiles):
+    """建立僅供 ID 搜尋的歷史玩家；不參與當期名次與統計。"""
+    missing = all_profiles.loc[
+        ~all_profiles["暱稱"].isin(period_df["暱稱"])
+    ].copy()
+    missing = missing.rename(columns={"圖片": "角色圖片"})
+    missing["職業"] = missing["最新職業"]
+    missing["周次"] = 0
+    missing["名次"] = np.nan
+    missing["旗幟戰"] = 0
+    missing["地下水道"] = 0
+    missing["公會城每周"] = 0
+    missing["區間達成率"] = 0.0
+    missing["_outside_period"] = True
+    return missing.sort_values("暱稱", kind="stable").reset_index(drop=True)
+
+
+# 僅存儲使用者自己的捲動座標，不含密碼、暱稱或歷史資料。
+# 寫入發生在原生「查看詳細」按鈕送出之前；返回時才做一次性還原。
+_RANKING_SCROLL_TRACKER = """<script>
+(() => {
+  if (window.__weeklyRankScrollTracker) return;
+  window.__weeklyRankScrollTracker = true;
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest && event.target.closest('button');
+    const card = button && button.closest('[class*="st-key-guild_rank_card_"]');
+    if (!card) return;
+    try {
+      const selectors = [
+        '[data-testid="stMain"]',
+        '[data-testid="stAppViewContainer"]',
+        'html', 'body'
+      ];
+      const offsets = {};
+      for (const selector of selectors) {
+        const element = document.querySelector(selector);
+        if (element) offsets[selector] = element.scrollTop || 0;
+      }
+      sessionStorage.setItem('weekly_rank_last_scroll', JSON.stringify({
+        offsets, windowY: window.scrollY || 0,
+        cardClass: Array.from(card.classList).find(cls => cls.startsWith('st-key-guild_rank_card_')) || ''
+      }));
+    } catch (_err) { /* Browsers with restricted storage use the anchor fallback. */ }
+  }, true);
+})();
+</script>"""
+
+
+def _ranking_restore_script(card_class):
+    """定位回原名單中的那張卡片，優先還原離開時的像素座標。"""
+    import json
+    js_target = json.dumps(card_class)
+    return """<script>
+(() => {
+  const cardClass = TARGET_CLASS;
+  let snapshot = null;
+  try {
+    const raw = sessionStorage.getItem('weekly_rank_last_scroll');
+    if (raw) snapshot = JSON.parse(raw);
+    sessionStorage.removeItem('weekly_rank_last_scroll');
+  } catch (_err) {}
+  let frames = 0;
+  function restore() {
+    const target = document.getElementsByClassName(cardClass)[0];
+    if (!target && ++frames < 90) return requestAnimationFrame(restore);
+    if (!target) return;
+    // Always make the selected player visible even if the list has changed.
+    target.scrollIntoView({block: 'center', behavior: 'instant'});
+    if (snapshot && snapshot.cardClass === cardClass) {
+      for (const [selector, y] of Object.entries(snapshot.offsets || {})) {
+        const el = document.querySelector(selector);
+        if (el && Number.isFinite(y)) el.scrollTop = y;
+      }
+      if (Number.isFinite(snapshot.windowY)) {
+        window.scrollTo({top: snapshot.windowY, behavior: 'instant'});
+      }
+    }
+  }
+  requestAnimationFrame(restore);
+})();
+</script>""".replace('TARGET_CLASS', js_target)
+
+
 @st.fragment
-def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_player=None):
+def render_visual_rank_list(
+    sorted_df, metric, selected_week_count, on_view_player=None, historical_only_df=None,
+):
     """支援即時包含搜尋、分頁和每位玩家的個人詳細資料入口。"""
     prefix = {'地下水道': 'water', '旗幟戰': 'flag', '公會城每周': 'castle'}[metric]
     search_key = f'guild_rank_search_{prefix}'
@@ -513,6 +603,7 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_play
     if page_key not in st.session_state:
         st.session_state[page_key] = 0
 
+    st.html(_RANKING_SCROLL_TRACKER, unsafe_allow_javascript=True)
     st.html('<div class="guild-list-heading">玩家排行</div>')
     with st.container(key=f'ranking_search_panel_{prefix}'):
         col_search, col_filter = st.columns([3, 1], gap='small', vertical_alignment='bottom')
@@ -539,7 +630,13 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_play
 
     filtered = sorted_df
     if search:
-        match = sorted_df['暱稱'].astype(str).str.contains(
+        # 唯有搜尋時才加入當期沒有紀錄的歷史玩家，且不改動當期排名。
+        if historical_only_df is not None and not historical_only_df.empty:
+            active_period_rows = sorted_df.assign(_outside_period=False)
+            filtered = pd.concat(
+                [active_period_rows, historical_only_df], ignore_index=True,
+            )
+        match = filtered['暱稱'].astype(str).str.contains(
             search, case=False, regex=False, na=False,
         )
         filtered = filtered.loc[match]
@@ -547,7 +644,7 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_play
         filtered = filtered.loc[filtered[metric] > 0]
 
     if filtered.empty:
-        st.info('沒有符合的玩家 ID，請換個關鍵字或期間。')
+        st.info('找不到符合的玩家 ID。若勾選「只看有參與」，可先取消勾選。')
         return
 
     page_size = 20
@@ -558,7 +655,9 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_play
     current = filtered.iloc[first:first + page_size]
 
     if search:
-        st.caption(f'找到 {len(filtered)} 位 · 第 {page + 1} / {page_count} 頁')
+        outside_count = int(filtered.get('_outside_period', pd.Series(False, index=filtered.index)).fillna(False).sum())
+        missing_note = f' · {outside_count} 位本期間無紀錄' if outside_count else ''
+        st.caption(f'找到 {len(filtered)} 位{missing_note} · 第 {page + 1} / {page_count} 頁')
     else:
         st.caption(f'{len(filtered)} 位玩家 · {first + 1}–{first + len(current)} 位')
 
@@ -585,7 +684,17 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_play
                         type='secondary',
                     ):
                         if on_view_player is not None:
-                            on_view_player(player_name)
+                            on_view_player(player_name, bool(player.get('_outside_period', False)))
+
+    # 從詳細頁返回時才執行一次；搜尋、分頁狀態已由 session 保存。
+    if st.session_state.get('ranking_scroll_restore_pending'):
+        return_target = st.session_state.get('ranking_return_target')
+        if isinstance(return_target, dict) and return_target.get('metric') == prefix:
+            target_name = return_target.get('player', '')
+            target_hash = hashlib.sha1(str(target_name).encode('utf-8')).hexdigest()[:16]
+            card_class = f'st-key-guild_rank_card_{prefix}_{target_hash}'
+            st.html(_ranking_restore_script(card_class), unsafe_allow_javascript=True)
+            st.session_state['ranking_scroll_restore_pending'] = False
 
     if page_count > 1:
         left, center, right = st.columns([1, 2, 1], vertical_alignment='center')
@@ -604,7 +713,7 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_play
                 st.rerun()
 
 
-def render_capped_metric_summary(data, metric, selected_week_count, on_view_player=None):
+def render_capped_metric_summary(data, metric, selected_week_count, on_view_player=None, historical_only_df=None):
     if data.empty:
         st.info('這個週次範圍沒有資料。')
         return
@@ -627,7 +736,10 @@ def render_capped_metric_summary(data, metric, selected_week_count, on_view_play
     zero_count = int((~active_mask).sum())
     avg_rate = float(sorted_df.loc[active_mask, '區間達成率'].mean()) if active_count else 0
 
-    render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_player=on_view_player)
+    render_visual_rank_list(
+        sorted_df, metric, selected_week_count,
+        on_view_player=on_view_player, historical_only_df=historical_only_df,
+    )
 
     with st.expander('統計與圖表', expanded=False):
         render_stat_grid([
@@ -666,7 +778,7 @@ def render_capped_metric_summary(data, metric, selected_week_count, on_view_play
         )
 
 
-def draw_water_leaderboard(data, selected_week_count, on_view_player=None):
+def draw_water_leaderboard(data, selected_week_count, on_view_player=None, historical_only_df=None):
     if data.empty:
         st.info('這個週次範圍沒有資料。')
         return
@@ -679,7 +791,10 @@ def draw_water_leaderboard(data, selected_week_count, on_view_player=None):
     top_score = int(sorted_df.iloc[0][metric])
     top_ties = int((sorted_df[metric] == top_score).sum())
 
-    render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_player=on_view_player)
+    render_visual_rank_list(
+        sorted_df, metric, selected_week_count,
+        on_view_player=on_view_player, historical_only_df=historical_only_df,
+    )
 
     with st.expander('統計與圖表', expanded=False):
         render_stat_grid([
@@ -725,13 +840,20 @@ def render_leaderboard_page(
     leaderboard_df = leaderboard_df.drop(columns=['圖片'], errors='ignore')
     leaderboard_df = leaderboard_df.merge(visuals, on='暱稱', how='left')
     leaderboard_df = leaderboard_df.rename(columns={'圖片': '角色圖片'})
+    historical_only_df = build_historical_search_rows(leaderboard_df, visuals)
 
     if metric == '地下水道':
-        draw_water_leaderboard(leaderboard_df, selected_week_count, on_view_player)
+        draw_water_leaderboard(
+            leaderboard_df, selected_week_count, on_view_player, historical_only_df,
+        )
     elif metric == '旗幟戰':
-        render_capped_metric_summary(leaderboard_df, '旗幟戰', selected_week_count, on_view_player)
+        render_capped_metric_summary(
+            leaderboard_df, '旗幟戰', selected_week_count, on_view_player, historical_only_df,
+        )
     else:
-        render_capped_metric_summary(leaderboard_df, '公會城每周', selected_week_count, on_view_player)
+        render_capped_metric_summary(
+            leaderboard_df, '公會城每周', selected_week_count, on_view_player, historical_only_df,
+        )
 
 
 # 歷史資料查詢

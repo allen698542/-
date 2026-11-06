@@ -1119,6 +1119,25 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     .guild-trend-stat:last-child { grid-column: 1 / -1; }
 }
 
+/* Historical players are searchable without pretending they have a period rank. */
+[class*="st-key-guild_rank_card_"] .guild-rank-row.is-outside-period .guild-rank-position,
+[class*="st-key-guild_rank_card_"] .guild-rank-row.is-outside-period .guild-rank-score strong {
+    color: #B6C1CD;
+}
+[class*="st-key-guild_rank_card_"] .guild-rank-row.is-outside-period .guild-rank-score small {
+    color: #E0BD83;
+    font-weight: 600;
+}
+@media (max-width: 720px) {
+    [class*="st-key-guild_rank_card_"] .guild-rank-row.is-outside-period .guild-rank-score small {
+        display: block;
+        font-size: .68rem;
+        white-space: nowrap;
+    }
+}
+/* Ensure restored rank rows clear the fixed site navigation. */
+[class*="st-key-guild_rank_card_"] { scroll-margin-top: 90px; }
+
 </style>
 """
 

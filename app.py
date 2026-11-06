@@ -306,11 +306,18 @@ def main():
         render_site_navigation("home")
         render_home_page(df, quality)
 
-    def open_player_details(player_name, ranking_metric):
+    def open_player_details(player_name, ranking_metric, outside_period=False):
         """從排行榜前往玩家詳細資料，並沿用目前的排名統計期間。"""
         metric_key = RANKING_METRIC_KEYS[ranking_metric]
+        st.session_state["ranking_return_target"] = {
+            "metric": metric_key, "player": player_name,
+        }
         period_prefix = f"leaderboard_{metric_key}"
-        period_mode = st.session_state.get(f"{period_prefix}_period_mode", "全部")
+        # 當期沒有紀錄的舊玩家，詳細頁直接顯示完整歷史。
+        period_mode = (
+            "全部" if outside_period
+            else st.session_state.get(f"{period_prefix}_period_mode", "全部")
+        )
         st.session_state["profile_period_mode"] = period_mode
         if period_mode == "自訂":
             for part in ("custom_start", "custom_end"):
@@ -323,6 +330,7 @@ def main():
         """排名的內部詳細頁，保留原玩家頁的統計及圖表，但不佔用導覽位置。"""
         render_site_navigation("ranking")
         if st.button("返回公會排行", icon=":material/arrow_back:", key="back_to_ranking"):
+            st.session_state["ranking_scroll_restore_pending"] = True
             st.switch_page(page_refs["ranking"])
 
         player = st.query_params.get("player", "")
