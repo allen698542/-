@@ -60,15 +60,26 @@ body { font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
 .block-container { max-width: 1200px; padding: 1.0rem 1.75rem 4.5rem; }
 .st-key-mobile_nav { display: none !important; }
 
-/* Navigation */
+/* Navigation: fixed at the top so the three destinations remain reachable while scrolling. */
 .st-key-site_nav {
+    position: fixed !important;
+    z-index: 950 !important;
+    top: max(8px, env(safe-area-inset-top, 0px)) !important;
+    left: 50% !important;
+    transform: translateX(-50%);
+    width: min(770px, calc(100vw - 28px)) !important;
     max-width: 770px;
-    margin: 0 auto 2.1rem;
+    margin: 0 !important;
     padding: 5px;
     border: 1px solid var(--guild-border);
     border-radius: 11px;
-    background: #171B21;
+    background: rgba(23, 27, 33, .96);
+    box-shadow: 0 9px 28px rgba(0, 0, 0, .45);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
 }
+.guild-nav-spacer { height: 76px; }
+.guild-loading { color: #E8CFAB; text-align: center; padding: 16vh 1rem; font-size: 1.05rem; }
 .st-key-site_nav [data-testid="stHorizontalBlock"] { gap: 5px !important; }
 .st-key-site_nav [data-testid="stColumn"] { min-width: 0 !important; }
 .st-key-site_nav [data-testid="stButton"] button {
@@ -207,7 +218,7 @@ body { font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
 }
 .stat-card {
     min-width: 0;
-    min-height: 146px;
+    min-height: 124px;
     display: flex;
     flex-direction: column;
     padding: 1.18rem 1.15rem 1.0rem;
@@ -932,10 +943,15 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 .stApp [data-testid="stExpander"] summary { cursor: pointer; }
 .stApp [data-testid="stExpander"] summary p { color: #E9D2AC !important; }
 
+/* Keep card list spacing compact (Streamlit's default block gap is too large). */
+[class*="st-key-guild_rank_cards_"] [data-testid="stVerticalBlock"] {
+    gap: .43rem !important;
+}
+
 /* Ranking cards: compact rows, prominent data, clear compact CTA. */
 [class*="st-key-guild_rank_card_"] {
-    padding: .55rem .7rem;
-    margin: 5px 0;
+    padding: .52rem .7rem;
+    margin: 0;
     border: 1px solid #3D4956;
     border-radius: 10px;
     background: #1D242D;
@@ -946,11 +962,11 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     background: #232B35;
 }
 [class*="st-key-guild_rank_card_"] .guild-rank-row {
-    min-height: 58px;
-    grid-template-columns: 26px 52px minmax(0, 1fr) minmax(110px, auto);
+    min-height: 64px;
+    grid-template-columns: 26px 59px minmax(0, 1fr) minmax(110px, auto);
     gap: 9px;
 }
-[class*="st-key-guild_rank_card_"] .guild-rank-avatar { width: 50px; height: 54px; border-color: #586370; background: #293440; }
+[class*="st-key-guild_rank_card_"] .guild-rank-avatar { width: 57px; height: 60px; border-color: #586370; background: #293440; }
 .guild-rank-identity strong { color: #F7F9FA; font-size: 1rem; }
 .guild-rank-detail, .guild-rank-score small { color: #B8C4D0; }
 .guild-rank-score strong { color: #FCFCFA; font-size: 1.13rem; }
@@ -977,7 +993,8 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 /* Responsive first: no giant stacked detail buttons, no invisible labels. */
 @media (max-width: 720px) {
     .block-container { padding: .55rem .75rem 3rem; }
-    .st-key-site_nav { margin: 0 auto .8rem; }
+    .st-key-site_nav { width: calc(100vw - 18px) !important; top: max(5px, env(safe-area-inset-top, 0px)) !important; }
+    .guild-nav-spacer { height: 65px; }
     .st-key-site_nav [data-testid="stButton"] button { min-height: 46px !important; font-size: .83rem !important; }
     .site-hero { padding: 1rem 1.1rem; margin: .2rem 0 .75rem; }
     .page-heading { margin: .3rem 0 .5rem; }
@@ -1002,15 +1019,15 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
         width: 105px !important;
         min-width: 0 !important;
     }
-    [class*="st-key-guild_rank_card_"] { padding: .5rem; }
+    [class*="st-key-guild_rank_card_"] { padding: .47rem .5rem; }
     [class*="st-key-guild_rank_card_"] .guild-rank-row {
-        min-height: 59px;
-        grid-template-columns: 19px 43px minmax(0,1fr);
+        min-height: 64px;
+        grid-template-columns: 19px 49px minmax(0,1fr);
         column-gap: 7px;
         row-gap: 1px;
     }
     [class*="st-key-guild_rank_card_"] .guild-rank-position { grid-row: span 2; font-size: .86rem; }
-    [class*="st-key-guild_rank_card_"] .guild-rank-avatar { grid-row: span 2; width: 41px; height: 48px; }
+    [class*="st-key-guild_rank_card_"] .guild-rank-avatar { grid-row: span 2; width: 47px; height: 54px; }
     [class*="st-key-guild_rank_card_"] .guild-rank-identity strong { font-size: .85rem; line-height: 1.28; }
     [class*="st-key-guild_rank_card_"] .guild-rank-detail { font-size: .7rem; margin-top: 2px; line-height: 1.3; }
     [class*="st-key-guild_rank_card_"] .guild-rank-score { grid-column: 3; text-align: left; }

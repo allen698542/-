@@ -15,12 +15,12 @@ from guild_ui import (
 
 
 st.set_page_config(
-    page_title="清流公會｜每週紀錄",
+    page_title="每週紀錄",
     page_icon="🍁",
     layout="wide",
     initial_sidebar_state="collapsed",
     menu_items={
-        "About": "清流公會每週統計",
+        "About": "每週紀錄",
     },
 )
 
@@ -61,9 +61,8 @@ def get_app_passwords():
 
 
 def check_password():
-    """驗證密碼並維護目前連線的登入狀態。"""
+    """密碼表單僅在未通過驗證時顯示；通過後直接切換至載入畫面。"""
     passwords = get_app_passwords()
-
     if not passwords:
         st.error("尚未設定網站密碼，請在 Streamlit Secrets 設定 APP_PASSWORDS。")
         st.code('APP_PASSWORDS = ["你的密碼1", "你的密碼2"]', language="toml")
@@ -74,50 +73,45 @@ def check_password():
     if "login_error" not in st.session_state:
         st.session_state.login_error = False
 
+    # 已驗證的工作階段不再繪製密碼框；資料載入期間也無法再次送出。
     if st.session_state.password_correct:
         return True
 
-    st.html(
-        """
-        <div class="login-heading">
-            <h1>清流公會</h1>
-            <p>登入後查看每週紀錄</p>
-        </div>
-        """,
-    )
+    def submit_password():
+        # 伺服器端防重入：已通過驗證或正在轉換畫面時忽略重複送出。
+        if st.session_state.get("password_correct") or st.session_state.get("login_pending"):
+            return
+        entered = st.session_state.get("login_password", "")
+        valid = any(hmac.compare_digest(entered, expected) for expected in passwords)
+        st.session_state.login_error = not valid
+        if valid:
+            st.session_state.password_correct = True
+            st.session_state.login_pending = True
+            # 回呼在頁面重繪之前執行；成功後不在 Session State 留存明文密碼。
+            st.session_state.pop("login_password", None)
 
+    st.html('<div class="login-heading"><h1>每週紀錄</h1></div>')
     login_row = st.container(horizontal=True, horizontal_alignment="center")
     login_card = login_row.container(border=True, width=420)
-
     with login_card.form("login_form", border=False):
-        password = st.text_input(
-            "密碼",
+        st.text_input(
+            "輸入密碼",
             type="password",
             label_visibility="collapsed",
-            placeholder="存取密碼",
+            placeholder="輸入密碼",
+            key="login_password",
+            disabled=st.session_state.get("login_pending", False),
         )
-        submitted = st.form_submit_button(
-            "登入",
+        st.form_submit_button(
+            "進入",
             type="primary",
             width="stretch",
+            disabled=st.session_state.get("login_pending", False),
+            on_click=submit_password,
         )
-
-    if submitted:
-        is_correct = any(
-            hmac.compare_digest(password, expected)
-            for expected in passwords
-        )
-
-        if is_correct:
-            st.session_state.password_correct = True
-            st.session_state.login_error = False
-            st.rerun()
-
-        st.session_state.login_error = True
 
     if st.session_state.login_error:
-        login_card.error("密碼錯誤")
-
+        login_card.error("密碼錯誤，請再試一次")
     return False
 
 
@@ -268,6 +262,12 @@ def main():
     if not check_password():
         st.stop()
 
+    # 提交成功後先完成一次快速重繪，讓可互動的密碼表單立即離開畫面，
+    # 再開始較耗時的 CSV 載入；避免舊表單停留而被連續點擊、修改。
+    if st.session_state.pop("login_pending", False):
+        st.html('<div class="guild-loading">正在載入資料…</div>')
+        st.rerun()
+
     try:
         file_mtime_ns = CSV_PATH.stat().st_mtime_ns
         with st.spinner("正在載入公會資料…"):
@@ -299,6 +299,8 @@ def main():
                     )
                     if clicked and page_key != current_page:
                         st.switch_page(page_refs[page_key])
+        # 導覽列採 fixed，不佔文件高度；保留空間避免遮住頁面標題。
+        st.html('<div class="guild-nav-spacer" aria-hidden="true"></div>')
 
     def home_page():
         render_site_navigation("home")

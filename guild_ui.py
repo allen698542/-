@@ -335,7 +335,6 @@ def render_home_page(df, quality):
     st.html(
         f'''
         <div class="site-hero">
-            <div class="site-kicker">清流公會</div>
             <h1>本週概況</h1>
             <p>{latest_week:%Y-%m-%d} ～ {week_end:%Y-%m-%d}</p>
         </div>
@@ -343,7 +342,6 @@ def render_home_page(df, quality):
     )
 
     render_stat_grid([
-        ("range", "最新週次", f"{latest_week:%Y-%m-%d} ～ {week_end:%Y-%m-%d}", ""),
         ("neutral", "記錄玩家", f"{latest_players} 人", ""),
         ("accent", "旗幟戰參與", f"{flag_participants} 人", ""),
         ("neutral", "公會城參與", f"{castle_participants} 人", ""),
@@ -521,27 +519,28 @@ def render_visual_rank_list(sorted_df, metric, selected_week_count, on_view_play
 
     # st.html 不能嵌入可觸發 Python 的按鈕，因此逐筆以原生 Streamlit
     # container + button 組合，維持點擊可靠性與行動裝置的操作支援。
-    for offset, (_, player) in enumerate(current.iterrows()):
-        player_name = str(player['暱稱'])
-        stable_id = hashlib.sha1(player_name.encode('utf-8')).hexdigest()[:16]
-        with st.container(key=f'guild_rank_card_{prefix}_{stable_id}'):
-            profile_col, action_col = st.columns(
-                [8, 1.55], gap='small', vertical_alignment='center',
-            )
-            with profile_col:
-                st.html(_make_visual_rank_rows(
-                    current.iloc[offset:offset + 1], metric, selected_week_count, search,
-                ))
-            with action_col:
-                if st.button(
-                    '查看詳細',
-                    key=f'guild_rank_detail_{prefix}_{stable_id}',
-                    icon=':material/arrow_forward:',
-                    width='stretch',
-                    type='secondary',
-                ):
-                    if on_view_player is not None:
-                        on_view_player(player_name)
+    with st.container(key=f'guild_rank_cards_{prefix}'):
+        for offset, (_, player) in enumerate(current.iterrows()):
+            player_name = str(player['暱稱'])
+            stable_id = hashlib.sha1(player_name.encode('utf-8')).hexdigest()[:16]
+            with st.container(key=f'guild_rank_card_{prefix}_{stable_id}'):
+                profile_col, action_col = st.columns(
+                    [8, 1.55], gap='small', vertical_alignment='center',
+                )
+                with profile_col:
+                    st.html(_make_visual_rank_rows(
+                        current.iloc[offset:offset + 1], metric, selected_week_count, search,
+                    ))
+                with action_col:
+                    if st.button(
+                        '查看詳細',
+                        key=f'guild_rank_detail_{prefix}_{stable_id}',
+                        icon=':material/arrow_forward:',
+                        width='stretch',
+                        type='secondary',
+                    ):
+                        if on_view_player is not None:
+                            on_view_player(player_name)
 
     if page_count > 1:
         left, center, right = st.columns([1, 2, 1], vertical_alignment='center')
