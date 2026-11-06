@@ -375,7 +375,7 @@ def main():
             selected_week_count,
             full_df=df,
             metric=metric,
-            on_view_player=lambda name: open_player_details(name, metric),
+            on_view_player=lambda name, outside_period=False: open_player_details(name, metric, outside_period),
         )
 
     def raw_data_page():
