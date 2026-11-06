@@ -4,11 +4,56 @@ import re
 from datetime import timedelta
 
 import numpy as np
+import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 from guild_config import PLOT_CONFIG
 from guild_data import build_guild_stats, build_visual_profiles, get_latest_profile
+
+
+CHART_CONFIG = {**PLOT_CONFIG, "displayModeBar": False, "scrollZoom": False, "responsive": True}
+CHART_COLORS = {
+    "旗幟戰": "#E0B979",
+    "地下水道": "#6EAEDF",
+    "公會城每周": "#76BE96",
+}
+
+
+def _style_plot(fig, *, height, mobile=False, left_margin=44, bottom_margin=30):
+    """All Plotly figures share readable, non-interactive axes and a dark palette."""
+    fig.update_layout(
+        height=height,
+        autosize=True,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Noto Sans TC, Microsoft JhengHei, sans-serif", color="#D7E0EB", size=11 if mobile else 12),
+        margin=dict(l=left_margin, r=12, t=12, b=bottom_margin),
+        hoverlabel=dict(bgcolor="#263240", bordercolor="#64788A", font=dict(color="#FFFFFF", size=12)),
+        dragmode=False,
+        showlegend=False,
+    )
+    fig.update_xaxes(showline=False, showgrid=False, zeroline=False, fixedrange=True,
+                     tickfont=dict(color="#BEC8D5"), automargin=True)
+    fig.update_yaxes(showline=False, showgrid=True, gridcolor="#34404D", zeroline=False,
+                     fixedrange=True, tickfont=dict(color="#BEC8D5"), automargin=True)
+    return fig
+
+
+def _compact_chart_ticks(weeks, max_ticks, *, mobile=False):
+    """Only simplify *labels*, never the underlying plotted data."""
+    if not len(weeks):
+        return [], []
+    indices = sorted(set(np.linspace(0, len(weeks) - 1, num=min(max_ticks, len(weeks)), dtype=int)))
+    selected = pd.to_datetime(pd.Series(weeks).iloc[indices])
+    fmt = "%m/%d" if len(weeks) < 26 else "%Y/%m"
+    return selected.tolist(), selected.dt.strftime(fmt).tolist()
+
+
+def _short_chart_label(value, maximum=8):
+    name = str(value)
+    return name if len(name) <= maximum else name[:maximum - 1] + "…"
 
 
 # 共用元件
@@ -603,17 +648,18 @@ def render_capped_metric_summary(data, metric, selected_week_count, on_view_play
                 .rename_axis('達成區間').reset_index(name='玩家數')
             )
             fig = px.bar(
-                distribution, x='玩家數', y='達成區間', orientation='h', text='玩家數',
-                category_orders={'達成區間': list(reversed(labels))},
+                distribution, x='玩家數', y='達成區間', orientation='h',
+                text='玩家數', category_orders={'達成區間': list(reversed(labels))},
+                color_discrete_sequence=['#6EAEDF'],
             )
-            fig.update_layout(
-                xaxis={'title': '玩家數', 'fixedrange': True, 'rangemode': 'tozero'},
-                yaxis={'title': None, 'fixedrange': True},
-                margin=dict(l=10, r=30, t=15, b=20), height=300, dragmode=False,
-                bargap=0.3,
-            )
-            fig.update_traces(textposition='outside', cliponaxis=False)
-            st.plotly_chart(fig, width='stretch', config=PLOT_CONFIG)
+            _style_plot(fig, height=245, left_margin=70, bottom_margin=20)
+            largest = max(int(distribution['玩家數'].max()), 1)
+            fig.update_layout(bargap=.32)
+            fig.update_xaxes(title=None, range=[0, largest * 1.22], dtick=max(1, int(np.ceil(largest / 4))))
+            fig.update_yaxes(title=None, showgrid=False)
+            fig.update_traces(textposition='outside', cliponaxis=False,
+                              hovertemplate='%{y}：%{x:,} 位玩家<extra></extra>')
+            st.plotly_chart(fig, width='stretch', theme=None, config=CHART_CONFIG)
         st.dataframe(
             sorted_df[['名次', '暱稱', '職業', '周次', metric, '區間達成率']],
             width='stretch', hide_index=True, height=450,
@@ -642,14 +688,27 @@ def draw_water_leaderboard(data, selected_week_count, on_view_player=None):
             ('neutral', '計算區間', f'{selected_week_count} 週', ''),
         ])
         top15_df = sorted_df.head(15).copy()
-        fig = px.bar(top15_df, x=metric, y='暱稱', orientation='h', text=metric)
-        fig.update_layout(
-            yaxis={'categoryorder': 'total ascending', 'fixedrange': True, 'title': None},
-            xaxis={'fixedrange': True, 'title': '地下水道分數'},
-            margin=dict(l=10, r=20, t=20, b=20), height=460, dragmode=False,
+        # Short tick labels leave room on phones; hovering still reveals the full ID.
+        top15_df['簡短暱稱'] = [f'{i + 1:02d}  {_short_chart_label(name, 7)}'
+                            for i, name in enumerate(top15_df['暱稱'])]
+        fig = px.bar(
+            top15_df, x=metric, y='簡短暱稱', orientation='h',
+            custom_data=['暱稱'], color_discrete_sequence=['#6EAEDF'],
         )
-        fig.update_traces(texttemplate='%{text:,}', textposition='outside')
-        st.plotly_chart(fig, width='stretch', config=PLOT_CONFIG)
+        _style_plot(fig, height=470, left_margin=100, bottom_margin=26)
+        fig.update_yaxes(categoryorder='array', categoryarray=top15_df['簡短暱稱'].iloc[::-1].tolist(),
+                         title=None, showgrid=False)
+        fig.update_xaxes(title=None, tickformat='~s', range=[0, max(top_score, 1) * 1.29])
+        # Rounded, compact on-chart labels; exact scores remain in the tooltip and table.
+        fig.update_traces(
+            text=[f'{float(value) / 1_000_000:.1f}M' if value >= 1_000_000
+                  else f'{value / 1000:.0f}k' if value >= 1000 else f'{value:.0f}'
+                  for value in top15_df[metric]],
+            textposition='outside', cliponaxis=False,
+            textfont=dict(color='#E0E6EE', size=11),
+            hovertemplate='%{customdata[0]}<br>累積 %{x:,.0f} 分<extra></extra>',
+        )
+        st.plotly_chart(fig, width='stretch', theme=None, config=CHART_CONFIG)
         st.dataframe(
             sorted_df[['名次', '暱稱', '職業', '周次', metric]],
             width='stretch', hide_index=True, height=450,
@@ -831,7 +890,7 @@ def render_player_details(df, df_period, player, start_date, end_date, selected_
     )
 
     if detail_view == "走勢":
-        render_player_trend(player_period, player)
+        render_player_trend(player_period, player, known_weeks=df_period["周次"])
     elif detail_view == "每週記錄":
         render_player_detail(player_period)
     elif detail_view == "達成狀況":
@@ -840,82 +899,188 @@ def render_player_details(df, df_period, player, start_date, end_date, selected_
         render_player_changes(player_period)
 
 
-def render_player_trend(player_period, player):
-    chart_type = st.segmented_control(
-        "數據項目",
-        ["旗幟戰", "地下水道", "公會城每周"],
-        default="旗幟戰",
-        selection_mode="single",
-        key="player_chart_type",
-    ) or "旗幟戰"
+def _prepare_trend_data(player_period, metric, all_weeks, window):
+    """Use real weeks as the X axis, leaving missing player weeks as gaps."""
+    weeks = pd.DatetimeIndex(pd.to_datetime(pd.Series(all_weeks).dropna().unique())).sort_values()
+    if not len(weeks):
+        weeks = pd.DatetimeIndex(player_period["周次"].dropna().unique()).sort_values()
+    count = {"近 12 週": 12, "近 52 週": 52}.get(window)
+    if count is not None:
+        weeks = weeks[-count:]
 
-    settings = {
-        "旗幟戰": ("#C79A52", "分數"),
-        "地下水道": ("#5A8FC4", "分數"),
-        "公會城每周": ("#65A57A", "完成狀態 (1=有, 0=無)"),
+    actual = (player_period.sort_values("周次")
+              .drop_duplicates("周次", keep="last")
+              .set_index("周次")[metric].astype(float))
+    # Reindex adds NaN (not zero) for weeks with no player record.
+    values = actual.reindex(weeks)
+    return pd.DataFrame({"周次": weeks, "分數": values.to_numpy()})
+
+
+def _trend_stats(chart_df, metric):
+    recorded = chart_df.dropna(subset=["分數"])
+    if recorded.empty:
+        return {"count": 0, "latest": None, "average": None, "slope": None, "trend": None}
+
+    scores = recorded["分數"].astype(float)
+    stats = {
+        "count": len(recorded),
+        "latest": (recorded.iloc[-1]["周次"], float(scores.iloc[-1])),
+        "average": float(scores.mean()),
+        "slope": None,
+        "trend": None,
     }
-    line_color, y_label = settings[chart_type]
+    if metric == "地下水道" and len(recorded) > 1:
+        x_days = (recorded["周次"] - recorded["周次"].min()).dt.days.astype(float).to_numpy()
+        if len(np.unique(x_days)) > 1:
+            slope, intercept = np.polyfit(x_days, scores.to_numpy(), 1)
+            stats["slope"] = float(slope * 7.0)
+            stats["trend"] = (recorded["周次"], slope * x_days + intercept)
+    return stats
 
-    chart_df = player_period.sort_values("周次").copy()
 
-    fig_line = px.line(
-        chart_df,
-        x="周次",
-        y=chart_type,
-        markers=True,
+def _build_player_trend_figure(chart_df, metric, *, mobile=False, show_average=False, show_trend=False):
+    """A pure Plotly builder, independently testable with real history."""
+    stats = _trend_stats(chart_df, metric)
+    color = CHART_COLORS[metric]
+    fig = go.Figure()
+    if metric == "公會城每周":
+        # Status values are discrete; do not draw a misleading continuous slope.
+        colors = ["#76BE96" if val == 1 else "#8694A4" for val in chart_df["分數"]]
+        fig.add_trace(go.Scatter(
+            x=chart_df["周次"], y=chart_df["分數"], mode="markers",
+            marker=dict(symbol="square", size=10 if mobile else 9, color=colors),
+            name="完成狀況", connectgaps=False,
+            hovertemplate="%{x|%Y-%m-%d}<br>完成狀態：%{customdata}<extra></extra>",
+            customdata=["已完成" if v == 1 else "未完成" if pd.notna(v) else "無紀錄"
+                        for v in chart_df["分數"]],
+        ))
+    else:
+        fig.add_trace(go.Scatter(
+            x=chart_df["周次"], y=chart_df["分數"],
+            mode="lines+markers" if stats["count"] <= 20 else "lines",
+            line=dict(color=color, width=2.6 if mobile else 2.4, shape="linear"),
+            marker=dict(size=5, color=color),
+            connectgaps=False,
+            name="每週實際分數",
+            hovertemplate="%{x|%Y-%m-%d}<br>%{y:,.0f} 分<extra></extra>",
+        ))
+        if mobile and stats["count"] > 20:
+            # Invisible larger hit targets keep individual weeks tappable on phones.
+            fig.add_trace(go.Scatter(
+                x=chart_df["周次"], y=chart_df["分數"], mode="markers",
+                marker=dict(size=13, color="rgba(110,174,223,0.015)"),
+                showlegend=False,
+                hovertemplate="%{x|%Y-%m-%d}<br>%{y:,.0f} 分<extra></extra>",
+            ))
+        if stats["latest"] is not None:
+            latest_date, latest_score = stats["latest"]
+            fig.add_trace(go.Scatter(
+                x=[latest_date], y=[latest_score], mode="markers", name="最新紀錄",
+                marker=dict(size=9, color=color, line=dict(color="#12161C", width=2)),
+                hovertemplate="%{x|%Y-%m-%d}<br>%{y:,.0f} 分<extra></extra>",
+            ))
+        if show_average and stats["average"] is not None:
+            fig.add_hline(y=stats["average"], line=dict(color="#ABB7C5", dash="dot", width=1.5))
+        if show_trend and stats["trend"] is not None:
+            x, y = stats["trend"]
+            fig.add_trace(go.Scatter(
+                x=x, y=y, mode="lines", name="線性趨勢",
+                line=dict(color="#DCB97F", dash="dash", width=1.6),
+                hovertemplate="線性趨勢：%{y:,.0f} 分<extra></extra>",
+            ))
+
+    _style_plot(fig, height=306 if mobile else 395, mobile=mobile,
+                left_margin=38 if mobile else 52, bottom_margin=24 if mobile else 30)
+    tickvals, ticktext = _compact_chart_ticks(chart_df["周次"], 3 if mobile else 6, mobile=mobile)
+    fig.update_xaxes(tickmode="array", tickvals=tickvals, ticktext=ticktext,
+                     tickangle=0, ticks="", title=None, showgrid=False)
+    if metric == "公會城每周":
+        fig.update_yaxes(tickmode="array", tickvals=[0, 1], ticktext=["未完成", "已完成"],
+                         range=[-0.20, 1.22], title=None, showgrid=True)
+    else:
+        fig.update_yaxes(tickformat="~s", rangemode="tozero", title=None, nticks=5)
+    fig.update_layout(hovermode="closest", hoverdistance=30)
+    return fig, stats
+
+
+def _render_trend_summary(stats, metric, chart_df):
+    if not stats["count"]:
+        st.info("所選期間沒有這位玩家的紀錄。")
+        return
+    last_date, last_value = stats["latest"]
+    if metric == "公會城每周":
+        panels = [
+            ("最新紀錄", "已完成" if last_value == 1 else "未完成"),
+            ("完成週數", f'{int(chart_df["分數"].eq(1).sum()):,} 週'),
+            ("有紀錄", f'{stats["count"]:,} 週'),
+        ]
+    else:
+        third_label = "線性趨勢／週" if metric == "地下水道" and stats["slope"] is not None else "有紀錄"
+        third_value = (f'{stats["slope"]:+,.0f}' if third_label == "線性趨勢／週"
+                       else f'{stats["count"]:,} 週')
+        panels = [
+            ("最新分數", f'{last_value:,.0f}'),
+            ("區間平均", f'{stats["average"]:,.0f}'),
+            (third_label, third_value),
+        ]
+    content = "".join(
+        '<div class="guild-trend-stat">'
+        f'<span>{html.escape(label)}</span><strong>{html.escape(value)}</strong>'
+        '</div>' for label, value in panels
     )
-    fig_line.update_traces(
-        line_color=line_color,
-        line_width=2.5,
-        marker_size=6,
-        marker_color=line_color,
-        name="實際數據",
-    )
+    st.html('<div class="guild-trend-summary">' + content + '</div>')
 
-    if chart_type == "地下水道" and len(chart_df) > 1:
-        base_date = chart_df["周次"].min()
-        x_days = (chart_df["周次"] - base_date).dt.days.astype(float)
-        y_scores = chart_df[chart_type].astype(float)
 
-        if x_days.nunique() > 1:
-            slope_daily, intercept = np.polyfit(x_days, y_scores, 1)
-            slope_weekly = slope_daily * 7
-            y_trend = slope_daily * x_days + intercept
+def _render_trend_view(player_period, all_weeks, metric, *, mobile):
+    viewport = "mobile" if mobile else "desktop"
+    with st.container(key=f"player_trend_{viewport}"):
+        window = st.segmented_control(
+            "顯示期間", ["近 12 週", "近 52 週", "全部紀錄"],
+            default="近 52 週" if mobile else "全部紀錄",
+            key=f"player_trend_window_{viewport}",
+            selection_mode="single", width="stretch",
+        ) or ("近 52 週" if mobile else "全部紀錄")
+        chart_df = _prepare_trend_data(player_period, metric, all_weeks, window)
+        if chart_df.empty:
+            st.info("這段期間沒有週次資料。")
+            return
+        with st.container(key=f"player_trend_options_{viewport}"):
+            if metric != "公會城每周":
+                left, right = st.columns(2, gap="small")
+                with left:
+                    show_average = st.toggle("顯示平均線", value=not mobile,
+                                             key=f"player_trend_avg_{viewport}")
+                with right:
+                    show_trend = (st.toggle("顯示趨勢線", value=not mobile,
+                                            key=f"player_trend_fit_{viewport}")
+                                  if metric == "地下水道" else False)
+            else:
+                show_average = show_trend = False
 
-            fig_line.add_scatter(
-                x=chart_df["周次"],
-                y=y_trend,
-                mode="lines",
-                name=f"週趨勢 {int(slope_weekly):+,}",
-                line=dict(color="#8B8B8B", width=2, dash="dash"),
-                hoverinfo="name+y",
-            )
-
-    avg_score = chart_df[chart_type].mean()
-    if chart_type != "公會城每周" and avg_score > 0:
-        fig_line.add_hline(
-            y=avg_score,
-            line_dash="dot",
-            line_color="#9A9A9A",
-            annotation_text=f"平均 {int(avg_score):,}",
-            annotation_position="bottom right",
+        fig, stats = _build_player_trend_figure(
+            chart_df, metric, mobile=mobile,
+            show_average=show_average, show_trend=show_trend,
         )
+        _render_trend_summary(stats, metric, chart_df)
+        if not stats["count"]:
+            return
+        st.caption(f'{chart_df["周次"].iloc[0]:%Y-%m-%d} ～ {chart_df["周次"].iloc[-1]:%Y-%m-%d} · {stats["count"]} 週紀錄')
+        st.plotly_chart(fig, width="stretch", theme=None, config=CHART_CONFIG,
+                        key=f"player_trend_plot_{viewport}")
 
-    fig_line.update_layout(
-        xaxis=dict(tickformat="%Y-%m-%d", fixedrange=True, title=None),
-        yaxis=dict(title=y_label, fixedrange=True),
-        hovermode="x unified",
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        dragmode=False,
-        height=460,
-        margin=dict(l=10, r=10, t=40, b=20),
-    )
 
-    st.plotly_chart(fig_line, width="stretch", config=PLOT_CONFIG)
+def render_player_trend(player_period, player, known_weeks=None):
+    chart_type = st.segmented_control(
+        "數據項目", ["旗幟戰", "地下水道", "公會城每周"],
+        default="旗幟戰", selection_mode="single", key="player_chart_type",
+    ) or "旗幟戰"
+    if known_weeks is None:
+        known_weeks = player_period["周次"]
 
-    if chart_type == "公會城每周":
-        st.caption("1 代表有完成，0 代表未完成。")
+    # Streamlit doesn't expose viewport width to Python. Both variants are
+    # controlled by CSS media queries; mobile sees 52 weeks, desktop sees all.
+    _render_trend_view(player_period, known_weeks, chart_type, mobile=False)
+    _render_trend_view(player_period, known_weeks, chart_type, mobile=True)
 
 
 def render_player_detail(player_period):
@@ -935,59 +1100,55 @@ def render_player_detail(player_period):
     )
 
 
+def _status_card_markup(title, values, status_colors):
+    """Compact responsive alternative to 500px donuts, with all counts visible."""
+    counts = values.value_counts(dropna=False)
+    total = int(counts.sum())
+    if not total:
+        return ""
+    segments, items = [], []
+    ordered = [name for name in status_colors if name in counts.index]
+    ordered.extend(str(name) for name in counts.index if name not in status_colors)
+    for status in ordered:
+        amount = int(counts.get(status, 0))
+        if amount == 0:
+            continue
+        percent = amount * 100 / total
+        color = status_colors.get(status, "#A1ACB9")
+        safe_label = html.escape(str(status))
+        segments.append(
+            f'<span style="width:{percent:.6f}%;background:{color}" '
+            f'title="{safe_label}：{amount:,} 週"></span>'
+        )
+        items.append(
+            '<div class="guild-status-item">'
+            f'<span class="guild-status-name"><i style="background:{color}"></i>{safe_label}</span>'
+            f'<strong>{amount:,} 週</strong><small>{percent:.1f}%</small>'
+            '</div>'
+        )
+    return (
+        '<section class="guild-status-card">'
+        f'<div class="guild-status-title">{html.escape(str(title))}<span>{total:,} 週</span></div>'
+        f'<div class="guild-status-track" role="img" aria-label="{html.escape(str(title))}分布">'
+        + ''.join(segments) + '</div>'
+        + ''.join(items) + '</section>'
+    )
+
+
 def render_player_completion(player_period):
-    charts = st.container(horizontal=True, gap="small")
-
-    cnt = (
-        player_period["本周是否達成"]
-        .value_counts()
-        .rename_axis("狀態")
-        .reset_index(name="數量")
+    achieved = _status_card_markup(
+        "每週達成狀況", player_period["本周是否達成"],
+        {"達成": "#76BE96", "未達成": "#D28181", "NA": "#8694A4"},
     )
-
-    if not cnt.empty:
-        card = charts.container(border=True, width=500)
-        card.markdown("#### 每週達成率")
-        fig = px.pie(
-            cnt,
-            values="數量",
-            names="狀態",
-            color="狀態",
-            color_discrete_map={
-                "達成": "#65A57A",
-                "未達成": "#C05E5E",
-                "NA": "#7A7A7A",
-            },
-            hole=0.55,
-        )
-        fig.update_layout(height=360, margin=dict(l=10, r=10, t=20, b=20))
-        card.plotly_chart(fig, width="stretch", config=PLOT_CONFIG)
-
-    valid_changes = player_period.loc[player_period["異動與否"] != "NA"]
-    change_counts = (
-        valid_changes["異動與否"]
-        .value_counts()
-        .rename_axis("狀態")
-        .reset_index(name="數量")
+    actual_changes = player_period.loc[player_period["異動與否"] != "NA", "異動與否"]
+    changes = _status_card_markup(
+        "職位異動分布", actual_changes,
+        {"升階": "#76BE96", "降階": "#D28181", "否": "#6EAEDF"},
     )
-
-    if not change_counts.empty:
-        card = charts.container(border=True, width=500)
-        card.markdown("#### 職位異動")
-        fig = px.pie(
-            change_counts,
-            values="數量",
-            names="狀態",
-            color="狀態",
-            color_discrete_map={
-                "升階": "#65A57A",
-                "降階": "#C05E5E",
-                "否": "#5B6F88",
-            },
-            hole=0.55,
-        )
-        fig.update_layout(height=360, margin=dict(l=10, r=10, t=20, b=20))
-        card.plotly_chart(fig, width="stretch", config=PLOT_CONFIG)
+    if achieved or changes:
+        st.html('<div class="guild-status-grid">' + achieved + changes + '</div>')
+    else:
+        st.info("所選期間沒有達成狀況紀錄。")
 
 
 def render_player_changes(player_period):

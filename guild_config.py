@@ -1056,6 +1056,69 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     .stat-period { font-size: .85rem; }
 }
 
+
+/* Responsive historical charts. The unshown view remains available on viewport changes. */
+.st-key-player_trend_mobile { display: none !important; }
+.st-key-player_trend_desktop { display: block !important; }
+.guild-trend-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .55rem;
+    margin: .55rem 0 .25rem;
+}
+.guild-trend-stat {
+    min-width: 0;
+    background: #1D242D;
+    border: 1px solid #414B58;
+    border-radius: 9px;
+    padding: .72rem .8rem;
+}
+.guild-trend-stat span { display: block; color: #C6D0DB; font-size: .76rem; margin-bottom: .3rem; }
+.guild-trend-stat strong {
+    display: block;
+    color: #FAFBFE;
+    font-size: clamp(.97rem, 1.8vw, 1.22rem);
+    font-weight: 720;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+.guild-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .85rem;
+    margin: .6rem 0 1rem;
+}
+.guild-status-card { background: #1D242D; border: 1px solid #414B58;
+                     border-radius: 11px; padding: 1rem; min-width: 0; }
+.guild-status-title { font-size: 1rem; font-weight: 720; color: #F5F6F8;
+                      display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.guild-status-title span { font-weight: 500; font-size: .78rem; color: #B9C6D5; }
+.guild-status-track { display: flex; height: 12px; border-radius: 999px;
+                      overflow: hidden; background: #303A46; margin: .95rem 0 1rem; }
+.guild-status-track > span { height: 100%; min-width: 0; }
+.guild-status-item { display: grid; grid-template-columns: minmax(0,1fr) auto 58px;
+                     align-items: center; gap: .55rem; margin: .55rem 0; font-size: .85rem; }
+.guild-status-name { display: flex; align-items: center; gap: .5rem; color: #D6E0EB; }
+.guild-status-name i { display: inline-block; width: 10px; height: 10px;
+                       border-radius: 3px; flex-shrink: 0; }
+.guild-status-item strong { color: #F7F9FB; font-size: .86rem; font-variant-numeric: tabular-nums; }
+.guild-status-item small { color: #B6C2D0; font-size: .78rem; text-align: right; }
+
+@media (max-width: 720px) {
+    .st-key-player_trend_desktop { display: none !important; }
+    .st-key-player_trend_mobile { display: block !important; }
+    .guild-trend-summary { gap: .35rem; }
+    .guild-trend-stat { padding: .65rem .5rem; }
+    .guild-trend-stat span { font-size: .69rem; }
+    .guild-trend-stat strong { font-size: clamp(.86rem, 3.55vw, 1.12rem); }
+    .guild-status-grid { grid-template-columns: 1fr; gap: .65rem; }
+    .guild-status-card { padding: .85rem; }
+}
+@media (max-width: 380px) {
+    .guild-trend-summary { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .guild-trend-stat:last-child { grid-column: 1 / -1; }
+}
+
 </style>
 """
 
